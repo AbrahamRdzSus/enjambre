@@ -51,3 +51,8 @@ venv/
 /logs/
 /projects/
 /hub/runtime/
+
+# --- agregado por project-essentials ---
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
