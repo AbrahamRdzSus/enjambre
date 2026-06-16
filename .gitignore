@@ -1,0 +1,53 @@
+# Logs
+*.log
+npm-debug.log*
+
+# Entorno / secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Dependencias y build (generico)
+node_modules/
+dist/
+build/
+out/
+coverage/
+tmp/
+.cache/
+
+# Obsidia / despliegue
+publish/
+ecosystem.config.js
+*.keystore
+.obsidia-keys/
+# Artefactos de build con hash (NO commitear: rompen git pull en deploy)
+# **/ para alcanzar wwwroot anidado (src/App.Api/wwwroot/...)
+**/wwwroot/*.js
+**/wwwroot/*.css
+
+# OMC state
+.omc/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# ENJAMBRE runtime (workspaces y logs locales)
+/logs/
+/projects/
+/hub/runtime/

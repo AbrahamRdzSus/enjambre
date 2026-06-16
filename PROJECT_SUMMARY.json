@@ -1,0 +1,38 @@
+{
+  "project": "ENJAMBRE",
+  "ecosystem": "Obsidia Studio",
+  "license_recommendation": "Apache-2.0",
+  "core_principles": [
+    "Open source",
+    "Local-first",
+    "BYOK",
+    "No training",
+    "No distillation",
+    "Human approval before changes",
+    "Provider adapters",
+    "Sandbox for execution"
+  ],
+  "keep": [
+    "Name ENJAMBRE",
+    "Black/purple/amber visual identity",
+    "Hexagon, nodes and swarm concept",
+    "Multi-agent dashboard",
+    "Projects, chats, API keys, logs"
+  ],
+  "change": [
+    "Avoid absolute privacy claims when cloud providers are used",
+    "Avoid third-party logos without permission",
+    "Replace hardcoded providers with configurable adapters",
+    "Add sandbox, secret scanner and approval gates",
+    "Add formal design system"
+  ],
+  "first_mvp": [
+    "Local project",
+    "API key validation",
+    "Agent registry",
+    "Parallel prompt to multiple providers",
+    "Side-by-side outputs",
+    "Local logs",
+    "No automatic file writes"
+  ]
+}
