@@ -5,21 +5,27 @@
 > que viva fuera del repo. Manten este archivo PODADO: indice, no historia completa.
 
 ## Estado actual
-- Rama / version: main / core v0.4.0
-- Que funciona hoy: NUCLEO DE ORQUESTACION REAL (Fase 1, rompe el "MVP simulado").
-  `src/enjambre/`: adapters httpx reales (OpenAI, xAI, Anthropic, Google) con
-  validate_key/chat/estimate_cost; `registry.py` (UTF-8, recupera UTF-16 heredado);
-  `config.py` (mapeo proveedor->env, alineado a .env.example); `orchestrator.py`
-  (despacho PARALELO asyncio, solo lectura, sin escritura de archivos);
-  `policy.py` cableado (secret scanner + redaccion). `app.py` usa el core real
-  (sin simulacion). 28 tests en verde (offline, httpx.MockTransport).
-  Gate: `docs/gates/core-real-orchestration.md` (congelado 2026-06-17).
-- Que esta a medias: la GUI Streamlit es funcional pero es prototipo; la migracion
-  a Tauri (decision arquitectonica) sigue pendiente y reusara este mismo core.
+- Rama / version: feature/nucleo-real / core v0.5.0 (main quedo intacta; entra por PR)
+- Que funciona hoy:
+  - FASE 1 - nucleo de orquestacion real (rompe el "MVP simulado"): adapters httpx
+    (OpenAI, xAI, Anthropic, Google) con validate_key/chat/estimate_cost;
+    `registry.py` (UTF-8, recupera UTF-16 heredado); `config.py` (proveedor->env);
+    `orchestrator.py` (despacho PARALELO asyncio, solo lectura); `policy.py`
+    cableado (secret scanner + redaccion). Gate: docs/gates/core-real-orchestration.md.
+  - FASE 2 - workspace seguro: `workspace.py` (arbol respetando .enjambreignore +
+    BLOCKED_FILES, contexto con secretos redactados); `changes.py` (Change/ChangeSet,
+    unified diff, apply() bajo aprobacion humana: rechaza sin approved, bloquea path
+    traversal/archivos sensibles/secretos, atomico, branch temporal git opcional).
+    Gate: docs/gates/fase2-workspace-seguro.md.
+  - `app.py`: 2 pestañas (Comparar agentes / Workspace), sin simulacion.
+  - 41 tests en verde (offline, httpx.MockTransport + tmp_path).
+- Que esta a medias: GUI Streamlit funcional pero prototipo; la migracion a Tauri
+  (decision arquitectonica) sigue pendiente y reusara este mismo core.
 
 ## Siguiente paso
-1. Fase 2 (workspace seguro): arbol de archivos, seleccion de contexto,
-   .enjambreignore, diff viewer, aplicar cambios con aprobacion + branch temporal.
+1. Fase 3 (orquestacion multiagente real): roles architect/builder, modos
+   paralelo/secuencial/debate/votacion, comparacion por criterios, checkpoints.
+   El blueprint architect-loop (docs/ARCHITECT_LOOP_BLUEPRINT.md) guia esto.
 2. Migracion incremental a sidecar Tauri consumiendo `src/enjambre` (este core).
 
 ## Decisiones congeladas
