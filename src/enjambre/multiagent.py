@@ -22,7 +22,7 @@ import httpx
 
 from .gates import Gate
 from .orchestrator import Orchestrator
-from .providers import Message, ProviderResult
+from .providers import ProviderResult
 from .registry import Agent, Registry
 
 Mode = Literal["parallel", "sequential", "debate", "vote"]
@@ -52,7 +52,7 @@ class Candidate:
         return self.error is None
 
     @classmethod
-    def from_result(cls, agent: str, result: ProviderResult) -> "Candidate":
+    def from_result(cls, agent: str, result: ProviderResult) -> Candidate:
         return cls(agent, result.provider, result.model, result.text,
                    result.cost_usd, result.error)
 

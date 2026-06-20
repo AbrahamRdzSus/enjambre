@@ -3,7 +3,6 @@
 import asyncio
 
 import mock_api
-
 from enjambre.orchestrator import Orchestrator
 from enjambre.registry import Agent, Registry
 

@@ -8,8 +8,13 @@ import pytest
 
 from enjambre import extensions as ext
 from enjambre.orchestrator import Orchestrator
-from enjambre.providers import (PROVIDERS, BaseProvider, ValidationResult,
-                                build_provider, unregister_provider)
+from enjambre.providers import (
+    PROVIDERS,
+    BaseProvider,
+    ValidationResult,
+    build_provider,
+    unregister_provider,
+)
 from enjambre.registry import Registry
 
 # Hace importable examples/ (plugin de ejemplo) sin instalar.

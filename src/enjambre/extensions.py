@@ -11,9 +11,10 @@ plugins en los que confies; Enjambre no aisla codigo de terceros.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import metadata
-from typing import Callable, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from .multiagent import MODES, Mode
 from .providers import register_provider, unregister_provider  # re-export

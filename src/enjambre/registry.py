@@ -41,7 +41,7 @@ class Registry:
 
     # --- persistencia -----------------------------------------------------
     @classmethod
-    def load(cls, path: str | Path = DEFAULT_PATH) -> "Registry":
+    def load(cls, path: str | Path = DEFAULT_PATH) -> Registry:
         p = Path(path)
         if not p.exists():
             return cls()

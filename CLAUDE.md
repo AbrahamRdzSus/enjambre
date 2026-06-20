@@ -10,9 +10,15 @@ aprobacion humana. Capa de orquestacion/UI — NO entrena ni revende modelos (BY
 Stack: Python + Streamlit (GUI) + scripts PowerShell (hub Windows). Apache-2.0.
 
 ## Estado
-MVP. `app.py` (Streamlit) tiene validacion de keys y logs **SIMULADOS**; la
-orquestacion real es pendiente. Ver `docs/ROADMAP.md`, `docs/HANDOFF.md`,
-`PROJECT_SUMMARY.json` (first_mvp).
+Core REAL en `src/enjambre/` (~2100 LOC, 98 tests verdes): Fases 1-5 del ROADMAP
+implementadas — orquestacion paralela async con gate de secretos, multiagente
+(roles architect/builder; modos parallel/sequential/debate/vote; review por gate
+congelado), workspace seguro (ChangeSet.apply bajo aprobacion + path-traversal +
+secret-scan), sandbox docker `--network none`, github/PR, Provider SDK extensible.
+`app.py` (Streamlit) YA consume el core real; es **prototipo de UI**, no el destino:
+el plan es migrar a app real **Tauri 2 + React** (shell desde `obsidia-skeleton-desktop`,
+arquitectura de referencia tipo Obsidia Eye) con `src/enjambre` como sidecar Python.
+Ver `REPO.md`, `docs/ROADMAP.md`, `docs/HANDOFF.md`.
 
 ## Reglas duras (ENJAMBRE)
 - Idioma: ESPANOL. Progreso/info en texto plano y tablas, SIN emojis/Unicode.
@@ -30,14 +36,16 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env   # rellenar con TUS keys
-streamlit run app.py     # GUI (MVP, simulada)
+streamlit run app.py     # GUI prototipo (consume el core real)
 # o el hub de consola Windows:
 .\enjambre-hub.ps1
 ```
 
 ## Como probar
 ```
-# (pendiente test suite) validar manualmente la GUI y los scripts .ps1.
+pip install -e ".[dev]"
+pytest -q        # 98 tests
+ruff check .     # lint (E/F/I/UP/B); ambos corren en CI (.github/workflows/ci.yml)
 # Antes de dar por hecho: revisar que ninguna salida escriba archivos sin aprobacion.
 ```
 

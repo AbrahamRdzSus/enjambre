@@ -16,10 +16,19 @@ dependencies = [
 
 [project.optional-dependencies]
 gui = ["streamlit>=1.30", "rich>=13"]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# E/F pycodestyle+pyflakes, I import-sort, UP pyupgrade, B bugbear.
+select = ["E", "F", "I", "UP", "B"]

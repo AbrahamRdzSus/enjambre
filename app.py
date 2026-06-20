@@ -83,7 +83,7 @@ with tab_comparar:
 
                 st.caption(f"Costo estimado total: ${report.total_cost_usd:.6f} USD")
                 cols = st.columns(max(1, len(report.runs)))
-                for c, run in zip(cols, report.runs):
+                for c, run in zip(cols, report.runs, strict=False):
                     with c:
                         st.markdown(f"**{run.agent}** ({run.provider}/{run.model})")
                         if run.result.ok:

@@ -5,8 +5,7 @@ from __future__ import annotations
 import httpx
 
 from .anthropic import AnthropicProvider
-from .base import (BaseProvider, Message, ProviderResult, Usage,
-                   ValidationResult)
+from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult
 from .google import GoogleProvider
 from .openai_compat import OpenAICompatProvider, XAIProvider
 

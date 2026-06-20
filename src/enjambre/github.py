@@ -9,8 +9,8 @@ leer issues, abrir PR, comentar resumen. Enjambre ABRE el PR; no lo mergea solo.
 from __future__ import annotations
 
 import contextlib
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import AsyncIterator
 
 import httpx
 

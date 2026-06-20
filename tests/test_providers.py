@@ -3,7 +3,6 @@
 import asyncio
 
 import mock_api
-
 from enjambre.providers import Message, build_provider
 
 

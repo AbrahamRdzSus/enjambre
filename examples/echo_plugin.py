@@ -19,8 +19,7 @@ Como entry point, en el pyproject del paquete del plugin:
 from __future__ import annotations
 
 from enjambre.extensions import AgentTemplate, PluginRegistrar, WorkflowTemplate
-from enjambre.providers import (BaseProvider, Message, ProviderResult, Usage,
-                                ValidationResult)
+from enjambre.providers import BaseProvider, Message, ProviderResult, Usage, ValidationResult
 
 
 class EchoProvider(BaseProvider):

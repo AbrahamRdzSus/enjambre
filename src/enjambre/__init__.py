@@ -8,22 +8,33 @@ from __future__ import annotations
 
 from . import commands, config, extensions, policy, workspace
 from .changes import ApplyReport, ApprovalRequired, Change, ChangeSet
-from .extensions import (AgentTemplate, Plugin, PluginRegistrar,
-                         WorkflowTemplate, load_plugins, register_agent_template,
-                         register_plugin, register_provider,
-                         register_workflow_template)
+from .extensions import (
+                         AgentTemplate,
+                         Plugin,
+                         PluginRegistrar,
+                         WorkflowTemplate,
+                         load_plugins,
+                         register_agent_template,
+                         register_plugin,
+                         register_provider,
+                         register_workflow_template,
+)
 from .gates import Gate, load_gate, parse_gate
-from .sandbox import AuditEntry, RunResult, Sandbox
-from .github import (Comment, GitHubClient, GitHubError, Issue, PullRequest)
+from .github import Comment, GitHubClient, GitHubError, Issue, PullRequest
 from .gitops import GitError, GitOps
-from .multiagent import (MODES, Candidate, Mode, MultiAgent, MultiAgentReport,
-                         Verdict)
+from .multiagent import MODES, Candidate, Mode, MultiAgent, MultiAgentReport, Verdict
 from .orchestrator import AgentRun, OrchestrationReport, Orchestrator
-from .providers import (BaseProvider, Message, ProviderResult, Usage,
-                        ValidationResult, build_provider)
-from .pull_request import (ChangeRequest, ChangeRequestResult,
-                           submit_change_request)
+from .providers import (
+                         BaseProvider,
+                         Message,
+                         ProviderResult,
+                         Usage,
+                         ValidationResult,
+                         build_provider,
+)
+from .pull_request import ChangeRequest, ChangeRequestResult, submit_change_request
 from .registry import Agent, Registry
+from .sandbox import AuditEntry, RunResult, Sandbox
 
 __version__ = "1.0.0"
 
