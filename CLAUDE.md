@@ -37,6 +37,8 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env   # rellenar con TUS keys
 streamlit run app.py     # GUI prototipo (consume el core real)
+# o la CLI (sin GUI, usa el core real):
+enjambre agents          # lista agentes | providers | validate | run "<prompt>"
 # o el hub de consola Windows:
 .\enjambre-hub.ps1
 ```
