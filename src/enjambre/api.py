@@ -9,20 +9,30 @@ FastAPI es dependencia OPCIONAL (extra `[api]`), no del core:
     pip install -e ".[api]"
     uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 
-Endpoints (v1): /health /agents /providers /validate /run /sessions /sessions/{id} /stats.
-Workspace y aplicacion de cambios (Fase 2) quedan para una iteracion posterior.
+Endpoints: /health /agents /providers /validate /run /sessions /stats /workspace/*
+/changes/* /logs /logs/stream.
+
+Seguridad (3 controles, todos opt-in para no estorbar el uso local):
+- API token (env ENJAMBRE_API_TOKEN): si se define, todo salvo /health exige
+  'Authorization: Bearer <token>' o 'X-API-Token'. Defense-in-depth aun en loopback.
+- Allowlist de roots (env ENJAMBRE_ALLOWED_ROOTS, separado por os.pathsep): si se
+  define, /workspace y /changes solo operan dentro de esos dirs (resuelto, anti
+  traversal/symlink). Sin definir = sin restriccion (app local BYOK navega libre).
+- Docs apagadas por defecto: /docs /redoc /openapi.json solo si ENJAMBRE_API_DEV=1
+  (reduce superficie/divulgacion de esquema).
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from . import config, sessions, stats, workspace
@@ -58,15 +68,39 @@ class ChangesRequest(BaseModel):
     git_branch: str | None = None
 
 
+def _resolve_roots(allowed_roots: list[str] | None) -> list[Path] | None:
+    raw = allowed_roots
+    if raw is None:
+        env = os.getenv("ENJAMBRE_ALLOWED_ROOTS", "").strip()
+        raw = env.split(os.pathsep) if env else None
+    if not raw:
+        return None  # sin restriccion (default local)
+    return [Path(r).expanduser().resolve() for r in raw if r.strip()]
+
+
 def create_app(*, registry: Registry | None = None,
                keys: dict[str, str] | None = None,
                client: httpx.AsyncClient | None = None,
-               bus: LogBus | None = None) -> FastAPI:
+               bus: LogBus | None = None,
+               api_token: str | None = None,
+               allowed_roots: list[str] | None = None,
+               dev_docs: bool | None = None) -> FastAPI:
     """Crea la app. Sin args usa el registro en disco y claves del entorno.
 
-    `registry`/`keys`/`client`/`bus` permiten inyeccion en tests (transporte mock).
+    `registry`/`keys`/`client`/`bus` permiten inyeccion en tests. `api_token`/
+    `allowed_roots`/`dev_docs` controlan los 3 controles de seguridad (con
+    fallback a env ENJAMBRE_API_TOKEN / ENJAMBRE_ALLOWED_ROOTS / ENJAMBRE_API_DEV).
     """
-    app = FastAPI(title="ENJAMBRE sidecar", version="1")
+    token = (api_token if api_token is not None
+             else os.getenv("ENJAMBRE_API_TOKEN", "").strip()) or None
+    roots = _resolve_roots(allowed_roots)
+    show_docs = (dev_docs if dev_docs is not None
+                 else os.getenv("ENJAMBRE_API_DEV", "").strip().lower()
+                 in ("1", "true", "yes"))
+
+    docs = dict(docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json") \
+        if show_docs else dict(docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title="ENJAMBRE sidecar", version="1", **docs)
     bus = bus or LogBus()
     app.add_middleware(
         CORSMiddleware,
@@ -74,6 +108,30 @@ def create_app(*, registry: Registry | None = None,
                        "http://localhost:5173", "tauri://localhost"],
         allow_methods=["*"], allow_headers=["*"],
     )
+
+    if token:
+        @app.middleware("http")
+        async def _auth(request: Request, call_next):
+            # /health y preflight CORS quedan abiertos; el resto exige token.
+            if request.url.path == "/health" or request.method == "OPTIONS":
+                return await call_next(request)
+            sent = (request.headers.get("x-api-token")
+                    or request.headers.get("authorization", "").removeprefix("Bearer ").strip())
+            if sent != token:
+                return JSONResponse({"detail": "token invalido o ausente"},
+                                    status_code=401)
+            return await call_next(request)
+
+    def _ensure_root(root: str) -> Path:
+        """Valida que `root` es un dir permitido (allowlist + anti traversal)."""
+        p = Path(root).expanduser().resolve()
+        if not p.is_dir():
+            raise HTTPException(status_code=400, detail=f"'{root}' no es un directorio")
+        if roots is not None and not any(
+                p == r or p.is_relative_to(r) for r in roots):
+            raise HTTPException(status_code=403,
+                                detail=f"'{root}' fuera de los roots permitidos")
+        return p
 
     def _registry() -> Registry:
         return registry if registry is not None else Registry.load()
@@ -152,15 +210,13 @@ def create_app(*, registry: Registry | None = None,
     # --- workspace (tab Proyectos & Archivos) ------------------------------
     @app.get("/workspace/files")
     def workspace_files(root: str = ".") -> dict[str, Any]:
-        if not Path(root).is_dir():
-            raise HTTPException(status_code=400, detail=f"'{root}' no es un directorio")
-        return {"root": root, "files": workspace.iter_files(root)}
+        p = _ensure_root(root)
+        return {"root": root, "files": workspace.iter_files(p)}
 
     @app.post("/workspace/context")
     def workspace_context(req: ContextRequest) -> dict[str, str]:
-        if not Path(req.root).is_dir():
-            raise HTTPException(status_code=400, detail=f"'{req.root}' no es un directorio")
-        return {"context": workspace.build_context(req.root, req.paths,
+        p = _ensure_root(req.root)
+        return {"context": workspace.build_context(p, req.paths,
                                                    redact=req.redact)}
 
     # --- changes (flujo de diff + aprobacion, Fase 2) ----------------------
@@ -169,14 +225,15 @@ def create_app(*, registry: Registry | None = None,
 
     @app.post("/changes/preview")
     def changes_preview(req: ChangesRequest) -> dict[str, dict[str, str]]:
-        return {"diffs": _changeset(req).preview(req.root)}
+        return {"diffs": _changeset(req).preview(_ensure_root(req.root))}
 
     @app.post("/changes/apply")
     def changes_apply(req: ChangesRequest) -> dict[str, Any]:
+        root = _ensure_root(req.root)
         bus.emit("changes.apply", message=f"{len(req.changes)} archivo(s)",
                  approved=req.approved)
         try:
-            report = _changeset(req).apply(req.root, approved=req.approved,
+            report = _changeset(req).apply(root, approved=req.approved,
                                            git_branch=req.git_branch)
         except ApprovalRequired as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc

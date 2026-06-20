@@ -123,3 +123,56 @@ def test_logs_filter_by_agent():
     c.post("/run", json={"prompt": "x"})
     only = c.get("/logs", params={"agent": "a-openai"}).json()
     assert only and all(e["agent"] == "a-openai" for e in only)
+
+
+# --- seguridad: token, allowlist de roots, docs apagadas -------------------
+def _reg():
+    return Registry([Agent(name="a-openai", provider="openai", model="gpt-4o-mini")])
+
+
+def test_api_token_required():
+    app = create_app(registry=_reg(), keys=KEYS, client=mock_api.make_client(),
+                     api_token="secreto")
+    c = TestClient(app)
+    assert c.get("/health").status_code == 200          # /health abierto
+    assert c.get("/agents").status_code == 401          # sin token
+    assert c.get("/agents", headers={"X-API-Token": "secreto"}).status_code == 200
+    assert c.get("/agents",
+                 headers={"Authorization": "Bearer secreto"}).status_code == 200
+    assert c.get("/agents", headers={"X-API-Token": "malo"}).status_code == 401
+
+
+def test_workspace_allowlist(tmp_path):
+    allowed = tmp_path / "ok"
+    allowed.mkdir()
+    (allowed / "f.txt").write_text("x", encoding="utf-8")
+    outside = tmp_path / "fuera"
+    outside.mkdir()
+    app = create_app(registry=_reg(), allowed_roots=[str(allowed)])
+    c = TestClient(app)
+    assert c.get("/workspace/files", params={"root": str(allowed)}).status_code == 200
+    assert c.get("/workspace/files", params={"root": str(outside)}).status_code == 403
+
+
+def test_changes_apply_respects_allowlist(tmp_path):
+    allowed = tmp_path / "ok"
+    allowed.mkdir()
+    outside = tmp_path / "fuera"
+    outside.mkdir()
+    app = create_app(registry=_reg(), allowed_roots=[str(allowed)])
+    c = TestClient(app)
+    payload = {"root": str(outside), "approved": True,
+               "changes": [{"path": "x.txt", "new_content": "y"}]}
+    assert c.post("/changes/apply", json=payload).status_code == 403
+    assert not (outside / "x.txt").exists()
+
+
+def test_docs_off_by_default():
+    c = TestClient(create_app(registry=_reg()))
+    assert c.get("/openapi.json").status_code == 404
+    assert c.get("/docs").status_code == 404
+
+
+def test_docs_on_with_dev_flag():
+    c = TestClient(create_app(registry=_reg(), dev_docs=True))
+    assert c.get("/openapi.json").status_code == 200

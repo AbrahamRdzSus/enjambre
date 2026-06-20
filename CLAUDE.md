@@ -42,6 +42,8 @@ enjambre agents          # lista agentes | providers | validate | run "<prompt>"
 enjambre --config enjambre.yaml agents   # agentes declarativos (parser propio, sin pyyaml)
 # o el sidecar HTTP (capa para el frontend React; extra opcional [api]):
 pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
+# seguridad (opt-in): ENJAMBRE_API_TOKEN (auth), ENJAMBRE_ALLOWED_ROOTS (allowlist
+# de carpetas para /workspace), ENJAMBRE_API_DEV=1 (habilita /docs, apagado por def).
 # o el hub de consola Windows:
 .\enjambre-hub.ps1
 ```
