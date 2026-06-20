@@ -9,7 +9,7 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
-from . import agentfile, commands, config, extensions, policy, sessions, workspace
+from . import agentfile, commands, config, extensions, policy, sessions, stats, workspace
 from .agentfile import ConfigError, EnjambreConfig, load_config
 from .changes import ApplyReport, ApprovalRequired, Change, ChangeSet
 from .extensions import (
@@ -49,7 +49,8 @@ except PackageNotFoundError:  # pragma: no cover
 
 __all__ = [
     "__version__",
-    "agentfile", "commands", "config", "extensions", "policy", "sessions", "workspace",
+    "agentfile", "commands", "config", "extensions", "policy", "sessions", "stats",
+    "workspace",
     "EnjambreConfig", "ConfigError", "load_config",
     "Orchestrator", "OrchestrationReport", "AgentRun",
     "Registry", "Agent",

@@ -20,7 +20,7 @@ import sys
 
 import httpx
 
-from . import agentfile, config, sessions
+from . import agentfile, config, sessions, stats
 from .orchestrator import Orchestrator
 from .registry import DEFAULT_PATH, Registry
 
@@ -37,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("providers", help="lista proveedores y claves presentes")
     sub.add_parser("validate", help="valida las claves de los proveedores en uso")
     sub.add_parser("sessions", help="lista las sesiones guardadas (.enjambre/sessions)")
+    sub.add_parser("stats", help="agrega uso (tokens/costo) de las sesiones guardadas")
 
     run = sub.add_parser("run", help="despacha un prompt a los agentes habilitados")
     run.add_argument("prompt", help="el prompt a despachar")
@@ -110,6 +111,20 @@ def cmd_run(prompt: str, registry: Registry, *, agents: list[str] | None = None,
     return 0 if report.ok_runs else 1
 
 
+def cmd_stats() -> int:
+    st = stats.from_store()
+    if not st.sessions:
+        print("(sin sesiones guardadas; corre 'enjambre run --save' primero)")
+        return 0
+    print(f"Sesiones: {st.sessions}  |  Tokens: {st.total_tokens}  |  "
+          f"Costo total: ${st.total_cost_usd:.6f} USD\n")
+    print(f"{'PROVEEDOR':<12} {'RUNS':>5} {'OK':>4} {'ERR':>4} {'TOKENS':>9} {'COSTO USD':>12}")
+    for name, t in sorted(st.by_provider.items()):
+        print(f"{name:<12} {t.runs:>5} {t.ok:>4} {t.errors:>4} {t.total_tokens:>9} "
+              f"{t.cost_usd:>12.6f}")
+    return 0
+
+
 def cmd_sessions() -> int:
     items = sessions.list_sessions()
     if not items:
@@ -148,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_validate(registry)
     if args.command == "sessions":
         return cmd_sessions()
+    if args.command == "stats":
+        return cmd_stats()
     if args.command == "run":
         selected = ([s.strip() for s in args.agents.split(",")]
                     if args.agents else None)
