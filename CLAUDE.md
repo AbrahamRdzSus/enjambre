@@ -40,6 +40,8 @@ streamlit run app.py     # GUI prototipo (consume el core real)
 # o la CLI (sin GUI, usa el core real):
 enjambre agents          # lista agentes | providers | validate | run "<prompt>" | sessions
 enjambre --config enjambre.yaml agents   # agentes declarativos (parser propio, sin pyyaml)
+# o el sidecar HTTP (capa para el frontend React; extra opcional [api]):
+pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # o el hub de consola Windows:
 .\enjambre-hub.ps1
 ```
