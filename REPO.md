@@ -18,6 +18,10 @@ aprobacion humana. Capa de orquestacion/UI; NO entrena ni revende modelos.
 ## Relaciones
 - Depende de: proveedores externos via API (BYOK), ecosistema Obsidia (essentials).
 - Usado por: desarrolladores que quieren comparar/orquestar varios modelos.
+- Esqueleto de origen: **Esqueleto-Desktop** (obsidia-skeleton-desktop, linaje Eye).
+  Enjambre es un PROGRAMA DE ESCRITORIO de Obsidia: el objetivo de roadmap es adoptar
+  el shell del esqueleto (Tauri + React) con el nucleo Python actual como sidecar/motor,
+  sustituyendo Streamlit. Hoy el stack sigue siendo Python/Streamlit (no migrado aun).
 - Relacionado: Obsidia Eye (rama Studio); solapa conceptualmente con Obsidia Hub
   y oh-my-claudecode. Blueprint de arquitectura: docs/ARCHITECT_LOOP_BLUEPRINT.md.
 
