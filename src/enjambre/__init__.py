@@ -21,7 +21,7 @@ from .extensions import (
 )
 from .gates import Gate, load_gate, parse_gate
 from .github import Comment, GitHubClient, GitHubError, Issue, PullRequest
-from .gitops import GitError, GitOps
+from .gitops import GitError, GitOps, Worktree
 from .multiagent import MODES, Candidate, Mode, MultiAgent, MultiAgentReport, Verdict
 from .orchestrator import AgentRun, OrchestrationReport, Orchestrator
 from .providers import (
@@ -49,7 +49,7 @@ __all__ = [
     "Gate", "load_gate", "parse_gate",
     "MultiAgent", "MultiAgentReport", "Candidate", "Verdict", "Mode", "MODES",
     "GitHubClient", "GitHubError", "Issue", "PullRequest", "Comment",
-    "GitOps", "GitError",
+    "GitOps", "GitError", "Worktree",
     "ChangeRequest", "ChangeRequestResult", "submit_change_request",
     "Sandbox", "RunResult", "AuditEntry",
     "register_provider", "AgentTemplate", "WorkflowTemplate",

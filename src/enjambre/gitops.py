@@ -20,6 +20,15 @@ class GitError(RuntimeError):
 
 
 @dataclass
+class Worktree:
+    """Un worktree del repo: ruta en disco, rama (si la hay) y HEAD."""
+
+    path: str
+    branch: str = ""
+    head: str = ""
+
+
+@dataclass
 class GitOps:
     """Envuelve git via subprocess, anclado a la raiz de un repo."""
 
@@ -42,6 +51,26 @@ class GitOps:
     def has_changes(self) -> bool:
         """True si hay cambios staged o sin stage en el working tree."""
         return bool(self._git("status", "--porcelain").strip())
+
+    def list_worktrees(self) -> list[Worktree]:
+        """Lista los worktrees del repo (incluye el principal)."""
+        out = self._git("worktree", "list", "--porcelain")
+        trees: list[Worktree] = []
+        path = head = branch = ""
+        for line in out.splitlines():
+            if line.startswith("worktree "):
+                path = line[len("worktree "):].strip()
+            elif line.startswith("HEAD "):
+                head = line[len("HEAD "):].strip()
+            elif line.startswith("branch "):
+                branch = line[len("branch "):].strip().removeprefix("refs/heads/")
+            elif not line.strip():  # blanco = fin de bloque
+                if path:
+                    trees.append(Worktree(path, branch, head))
+                path = head = branch = ""
+        if path:  # ultimo bloque sin blanco final
+            trees.append(Worktree(path, branch, head))
+        return trees
 
     # --- mutacion (requiere aprobacion) ----------------------------------
     def create_branch(self, name: str, *, approved: bool) -> str:
@@ -66,6 +95,37 @@ class GitOps:
         if set_upstream:
             args.append("--set-upstream")
         args += [remote, target]
+        self._git(*args)
+
+    def create_worktree(self, path: str | Path, *, approved: bool,
+                        branch: str | None = None,
+                        new_branch: bool = True) -> str:
+        """Crea un worktree aislado (dir separado, mismo .git).
+
+        Primitivo preferido para correr agentes en paralelo sin tocar el working
+        tree del usuario: cada candidato se aplica/prueba en su propio worktree.
+        `ChangeSet.apply(<ruta del worktree>, approved=True)` escribe ahi.
+
+        `new_branch` True (defecto) crea una rama nueva (`-b`); False usa una rama
+        o commit existente. Devuelve la ruta absoluta del worktree.
+        """
+        _require(approved, "create_worktree")
+        target = str(Path(path).resolve())
+        ref = branch or Path(target).name
+        if new_branch:
+            self._git("worktree", "add", "-b", ref, target)
+        else:
+            self._git("worktree", "add", target, ref)
+        return target
+
+    def remove_worktree(self, path: str | Path, *, approved: bool,
+                        force: bool = False) -> None:
+        """Elimina un worktree (no borra la rama). `force` si tiene cambios."""
+        _require(approved, "remove_worktree")
+        args = ["worktree", "remove"]
+        if force:
+            args.append("--force")
+        args.append(str(Path(path).resolve()))
         self._git(*args)
 
     # --- interno ----------------------------------------------------------
