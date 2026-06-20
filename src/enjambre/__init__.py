@@ -6,7 +6,7 @@ agentes, politica de seguridad y orquestador paralelo (Fase 1, solo lectura).
 
 from __future__ import annotations
 
-from . import commands, config, extensions, policy, workspace
+from . import commands, config, extensions, policy, sessions, workspace
 from .changes import ApplyReport, ApprovalRequired, Change, ChangeSet
 from .extensions import (
                          AgentTemplate,
@@ -40,7 +40,7 @@ __version__ = "1.0.0"
 
 __all__ = [
     "__version__",
-    "commands", "config", "extensions", "policy", "workspace",
+    "commands", "config", "extensions", "policy", "sessions", "workspace",
     "Orchestrator", "OrchestrationReport", "AgentRun",
     "Registry", "Agent",
     "build_provider", "BaseProvider", "Message", "ProviderResult",

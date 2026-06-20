@@ -56,3 +56,6 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ipynb_checkpoints/
+
+# Sesiones persistidas (enjambre.sessions)
+.enjambre/

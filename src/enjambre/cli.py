@@ -20,7 +20,7 @@ import sys
 
 import httpx
 
-from . import config
+from . import config, sessions
 from .orchestrator import Orchestrator
 from .registry import DEFAULT_PATH, Registry
 
@@ -34,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("agents", help="lista los agentes registrados")
     sub.add_parser("providers", help="lista proveedores y claves presentes")
     sub.add_parser("validate", help="valida las claves de los proveedores en uso")
+    sub.add_parser("sessions", help="lista las sesiones guardadas (.enjambre/sessions)")
 
     run = sub.add_parser("run", help="despacha un prompt a los agentes habilitados")
     run.add_argument("prompt", help="el prompt a despachar")
@@ -41,6 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--max-tokens", type=int, default=1024)
     run.add_argument("--no-redact", action="store_true",
                      help="bloquea (en vez de redactar) si el prompt trae secretos")
+    run.add_argument("--save", action="store_true",
+                     help="persiste la corrida como sesion (.enjambre/sessions)")
     return p
 
 
@@ -80,7 +83,7 @@ def cmd_validate(registry: Registry, *, keys: dict[str, str] | None = None,
 
 
 def cmd_run(prompt: str, registry: Registry, *, agents: list[str] | None = None,
-            max_tokens: int = 1024, redact: bool = True,
+            max_tokens: int = 1024, redact: bool = True, save: bool = False,
             keys: dict[str, str] | None = None,
             client: httpx.AsyncClient | None = None) -> int:
     orch = Orchestrator(registry, keys=keys, client=client)
@@ -99,7 +102,22 @@ def cmd_run(prompt: str, registry: Registry, *, agents: list[str] | None = None,
             print(f"[error] {r.error}")
     print(f"\nCosto estimado total: ${report.total_cost_usd:.6f} USD "
           f"({len(report.ok_runs)}/{len(report.runs)} ok)")
+    if save:
+        sid = sessions.save(report)
+        print(f"Sesion guardada: {sid}")
     return 0 if report.ok_runs else 1
+
+
+def cmd_sessions() -> int:
+    items = sessions.list_sessions()
+    if not items:
+        print("(sin sesiones guardadas)")
+        return 0
+    print(f"{'ID':<24} {'KIND':<14} CREATED              PROMPT")
+    for s in items:
+        prompt = (s.prompt[:40] + "...") if len(s.prompt) > 40 else s.prompt
+        print(f"{s.id:<24} {s.kind:<14} {s.created_at[:19]}  {prompt}")
+    return 0
 
 
 # --- entrypoint ------------------------------------------------------------
@@ -119,11 +137,14 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_providers()
     if args.command == "validate":
         return cmd_validate(registry)
+    if args.command == "sessions":
+        return cmd_sessions()
     if args.command == "run":
         selected = ([s.strip() for s in args.agents.split(",")]
                     if args.agents else None)
         return cmd_run(args.prompt, registry, agents=selected,
-                       max_tokens=args.max_tokens, redact=not args.no_redact)
+                       max_tokens=args.max_tokens, redact=not args.no_redact,
+                       save=args.save)
     return 2  # pragma: no cover - subparser required lo impide
 
 
