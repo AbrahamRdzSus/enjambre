@@ -6,9 +6,10 @@ agentes, politica de seguridad y orquestador paralelo (Fase 1, solo lectura).
 
 from __future__ import annotations
 
-from . import config, policy, workspace
+from . import commands, config, policy, workspace
 from .changes import ApplyReport, ApprovalRequired, Change, ChangeSet
 from .gates import Gate, load_gate, parse_gate
+from .sandbox import AuditEntry, RunResult, Sandbox
 from .github import (Comment, GitHubClient, GitHubError, Issue, PullRequest)
 from .gitops import GitError, GitOps
 from .multiagent import (MODES, Candidate, Mode, MultiAgent, MultiAgentReport,
@@ -20,11 +21,11 @@ from .pull_request import (ChangeRequest, ChangeRequestResult,
                            submit_change_request)
 from .registry import Agent, Registry
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     "__version__",
-    "config", "policy", "workspace",
+    "commands", "config", "policy", "workspace",
     "Orchestrator", "OrchestrationReport", "AgentRun",
     "Registry", "Agent",
     "build_provider", "BaseProvider", "Message", "ProviderResult",
@@ -35,4 +36,5 @@ __all__ = [
     "GitHubClient", "GitHubError", "Issue", "PullRequest", "Comment",
     "GitOps", "GitError",
     "ChangeRequest", "ChangeRequestResult", "submit_change_request",
+    "Sandbox", "RunResult", "AuditEntry",
 ]
