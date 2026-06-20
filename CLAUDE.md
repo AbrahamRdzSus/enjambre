@@ -38,7 +38,8 @@ pip install -r requirements.txt
 copy .env.example .env   # rellenar con TUS keys
 streamlit run app.py     # GUI prototipo (consume el core real)
 # o la CLI (sin GUI, usa el core real):
-enjambre agents          # lista agentes | providers | validate | run "<prompt>"
+enjambre agents          # lista agentes | providers | validate | run "<prompt>" | sessions
+enjambre --config enjambre.yaml agents   # agentes declarativos (parser propio, sin pyyaml)
 # o el hub de consola Windows:
 .\enjambre-hub.ps1
 ```

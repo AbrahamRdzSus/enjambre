@@ -20,7 +20,7 @@ import sys
 
 import httpx
 
-from . import config, sessions
+from . import agentfile, config, sessions
 from .orchestrator import Orchestrator
 from .registry import DEFAULT_PATH, Registry
 
@@ -29,6 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="enjambre", description=__doc__.splitlines()[0])
     p.add_argument("--registry", default=str(DEFAULT_PATH),
                    help="ruta al registro de agentes (def: agents/registered.json)")
+    p.add_argument("--config", "-c", default=None,
+                   help="carga agentes desde un enjambre.yaml (en vez de --registry)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sub.add_parser("agents", help="lista los agentes registrados")
@@ -129,7 +131,14 @@ def main(argv: list[str] | None = None) -> int:
         pass
 
     args = build_parser().parse_args(argv)
-    registry = Registry.load(args.registry)
+    if args.config:
+        try:
+            registry = agentfile.load_config(args.config).to_registry()
+        except (OSError, agentfile.ConfigError) as exc:
+            print(f"[error] enjambre.yaml: {exc}", file=sys.stderr)
+            return 2
+    else:
+        registry = Registry.load(args.registry)
 
     if args.command == "agents":
         return cmd_agents(registry)

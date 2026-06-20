@@ -1,0 +1,30 @@
+# enjambre.yaml — configuracion declarativa de agentes (alternativa a
+# agents/registered.json). Cargar con: enjambre --config enjambre.yaml <comando>
+#
+# Subconjunto YAML soportado por el parser propio (sin pyyaml): 2 niveles,
+# indent de 2 espacios, escalares string/bool/int. Ver src/enjambre/agentfile.py.
+
+defaults:
+  max_tokens: 1024
+  mode: parallel
+
+agents:
+  - name: claude-builder
+    provider: anthropic
+    model: claude-sonnet-4-6
+    role: builder
+    enabled: true
+    system_prompt: "Eres un dev backend conciso. Devuelve solo codigo."
+
+  - name: gpt-builder
+    provider: openai
+    model: gpt-4o-mini
+    role: builder
+    enabled: true
+
+  - name: arquitecto
+    provider: anthropic
+    model: claude-opus-4-8
+    role: architect
+    enabled: true
+    system_prompt: "Eres el revisor. Juzga contra el gate; no reescribas."

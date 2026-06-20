@@ -6,7 +6,11 @@ agentes, politica de seguridad y orquestador paralelo (Fase 1, solo lectura).
 
 from __future__ import annotations
 
-from . import commands, config, extensions, policy, sessions, workspace
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
+from . import agentfile, commands, config, extensions, policy, sessions, workspace
+from .agentfile import ConfigError, EnjambreConfig, load_config
 from .changes import ApplyReport, ApprovalRequired, Change, ChangeSet
 from .extensions import (
                          AgentTemplate,
@@ -36,11 +40,17 @@ from .pull_request import ChangeRequest, ChangeRequestResult, submit_change_requ
 from .registry import Agent, Registry
 from .sandbox import AuditEntry, RunResult, Sandbox
 
-__version__ = "1.0.0"
+# Fuente unica de verdad: la version vive en pyproject.toml. Aqui se deriva del
+# metadata del paquete instalado (fallback al ejecutar desde el arbol sin pip).
+try:
+    __version__ = _pkg_version("enjambre")
+except PackageNotFoundError:  # pragma: no cover
+    __version__ = "0.5.0"
 
 __all__ = [
     "__version__",
-    "commands", "config", "extensions", "policy", "sessions", "workspace",
+    "agentfile", "commands", "config", "extensions", "policy", "sessions", "workspace",
+    "EnjambreConfig", "ConfigError", "load_config",
     "Orchestrator", "OrchestrationReport", "AgentRun",
     "Registry", "Agent",
     "build_provider", "BaseProvider", "Message", "ProviderResult",
