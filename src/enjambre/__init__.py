@@ -9,32 +9,43 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
-from . import agentfile, commands, config, extensions, policy, sessions, stats, workspace
+from . import (
+    agentfile,
+    commands,
+    config,
+    extensions,
+    logs,
+    policy,
+    sessions,
+    stats,
+    workspace,
+)
 from .agentfile import ConfigError, EnjambreConfig, load_config
 from .changes import ApplyReport, ApprovalRequired, Change, ChangeSet
 from .extensions import (
-                         AgentTemplate,
-                         Plugin,
-                         PluginRegistrar,
-                         WorkflowTemplate,
-                         load_plugins,
-                         register_agent_template,
-                         register_plugin,
-                         register_provider,
-                         register_workflow_template,
+    AgentTemplate,
+    Plugin,
+    PluginRegistrar,
+    WorkflowTemplate,
+    load_plugins,
+    register_agent_template,
+    register_plugin,
+    register_provider,
+    register_workflow_template,
 )
 from .gates import Gate, load_gate, parse_gate
 from .github import Comment, GitHubClient, GitHubError, Issue, PullRequest
 from .gitops import GitError, GitOps, Worktree
+from .logs import LogBus, LogEvent
 from .multiagent import MODES, Candidate, Mode, MultiAgent, MultiAgentReport, Verdict
 from .orchestrator import AgentRun, OrchestrationReport, Orchestrator
 from .providers import (
-                         BaseProvider,
-                         Message,
-                         ProviderResult,
-                         Usage,
-                         ValidationResult,
-                         build_provider,
+    BaseProvider,
+    Message,
+    ProviderResult,
+    Usage,
+    ValidationResult,
+    build_provider,
 )
 from .pull_request import ChangeRequest, ChangeRequestResult, submit_change_request
 from .registry import Agent, Registry
@@ -49,8 +60,8 @@ except PackageNotFoundError:  # pragma: no cover
 
 __all__ = [
     "__version__",
-    "agentfile", "commands", "config", "extensions", "policy", "sessions", "stats",
-    "workspace",
+    "agentfile", "commands", "config", "extensions", "logs", "policy", "sessions",
+    "stats", "workspace", "LogBus", "LogEvent",
     "EnjambreConfig", "ConfigError", "load_config",
     "Orchestrator", "OrchestrationReport", "AgentRun",
     "Registry", "Agent",

@@ -72,3 +72,54 @@ def test_run_save_and_sessions_and_stats(tmp_path, monkeypatch):
 
 def test_session_not_found():
     assert _client().get("/sessions/no-existe").status_code == 404
+
+
+def test_workspace_files(tmp_path):
+    (tmp_path / "a.txt").write_text("hola", encoding="utf-8")
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "b.py").write_text("x=1", encoding="utf-8")
+    r = _client().get("/workspace/files", params={"root": str(tmp_path)})
+    files = r.json()["files"]
+    assert "a.txt" in files and "sub/b.py" in files
+
+
+def test_workspace_files_bad_root():
+    assert _client().get("/workspace/files",
+                         params={"root": "/no/existe/xyz"}).status_code == 400
+
+
+def test_changes_preview_and_apply_gate(tmp_path):
+    c = _client()
+    payload = {"root": str(tmp_path),
+               "changes": [{"path": "nuevo.txt", "new_content": "hola\n"}]}
+
+    # preview no escribe
+    diffs = c.post("/changes/preview", json=payload).json()["diffs"]
+    assert "nuevo.txt" in diffs
+    assert not (tmp_path / "nuevo.txt").exists()
+
+    # apply sin approved -> 403 (gate del core)
+    assert c.post("/changes/apply", json=payload).status_code == 403
+    assert not (tmp_path / "nuevo.txt").exists()
+
+    # apply con approved -> escribe
+    payload["approved"] = True
+    body = c.post("/changes/apply", json=payload).json()
+    assert body["ok"] and "nuevo.txt" in body["written"]
+    assert (tmp_path / "nuevo.txt").read_text() == "hola\n"
+
+
+def test_run_emits_logs():
+    c = _client()
+    assert c.get("/logs").json() == []
+    c.post("/run", json={"prompt": "refactor"})
+    events = [e["event"] for e in c.get("/logs").json()]
+    assert "run.start" in events and "run.done" in events
+    assert "agent.done" in events
+
+
+def test_logs_filter_by_agent():
+    c = _client()
+    c.post("/run", json={"prompt": "x"})
+    only = c.get("/logs", params={"agent": "a-openai"}).json()
+    assert only and all(e["agent"] == "a-openai" for e in only)
