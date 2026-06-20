@@ -6,8 +6,12 @@ agentes, politica de seguridad y orquestador paralelo (Fase 1, solo lectura).
 
 from __future__ import annotations
 
-from . import commands, config, policy, workspace
+from . import commands, config, extensions, policy, workspace
 from .changes import ApplyReport, ApprovalRequired, Change, ChangeSet
+from .extensions import (AgentTemplate, Plugin, PluginRegistrar,
+                         WorkflowTemplate, load_plugins, register_agent_template,
+                         register_plugin, register_provider,
+                         register_workflow_template)
 from .gates import Gate, load_gate, parse_gate
 from .sandbox import AuditEntry, RunResult, Sandbox
 from .github import (Comment, GitHubClient, GitHubError, Issue, PullRequest)
@@ -21,11 +25,11 @@ from .pull_request import (ChangeRequest, ChangeRequestResult,
                            submit_change_request)
 from .registry import Agent, Registry
 
-__version__ = "0.8.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "__version__",
-    "commands", "config", "policy", "workspace",
+    "commands", "config", "extensions", "policy", "workspace",
     "Orchestrator", "OrchestrationReport", "AgentRun",
     "Registry", "Agent",
     "build_provider", "BaseProvider", "Message", "ProviderResult",
@@ -37,4 +41,7 @@ __all__ = [
     "GitOps", "GitError",
     "ChangeRequest", "ChangeRequestResult", "submit_change_request",
     "Sandbox", "RunResult", "AuditEntry",
+    "register_provider", "AgentTemplate", "WorkflowTemplate",
+    "register_agent_template", "register_workflow_template",
+    "Plugin", "PluginRegistrar", "register_plugin", "load_plugins",
 ]
