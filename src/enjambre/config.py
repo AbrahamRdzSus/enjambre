@@ -29,3 +29,17 @@ def get_key(provider: str, env: dict[str, str] | None = None) -> str:
 def available_providers(env: dict[str, str] | None = None) -> list[str]:
     """Proveedores con clave presente en el entorno."""
     return [p for p in PROVIDER_ENV if get_key(p, env)]
+
+
+#: variable de entorno del token de GitHub (BYOK, ya en .env.example).
+GITHUB_TOKEN_ENV = "GITHUB_TOKEN"
+
+
+def github_token(env: dict[str, str] | None = None) -> str:
+    """Devuelve el Personal Access Token de GitHub del entorno (o '' si falta).
+
+    BYOK: el core nunca persiste el token; se usa solo en memoria para las
+    llamadas a la API de GitHub (Fase 4).
+    """
+    source = env if env is not None else os.environ
+    return (source.get(GITHUB_TOKEN_ENV) or "").strip()
