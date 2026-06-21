@@ -55,6 +55,7 @@ export default function RunPage() {
           return (
             <button
               key={a.name}
+              type="button"
               onClick={() => toggle(a.name)}
               className="text-xs px-3 py-1.5 rounded-lg border transition-colors"
               style={{
@@ -72,6 +73,7 @@ export default function RunPage() {
 
       <div className="flex items-center gap-4">
         <button
+          type="button"
           onClick={launch}
           disabled={run.isPending || !prompt.trim() || chosen.length === 0}
           className="flex items-center gap-2 px-5 h-11 rounded-xl font-semibold text-sm disabled:opacity-50"

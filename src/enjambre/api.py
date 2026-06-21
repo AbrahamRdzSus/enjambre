@@ -116,7 +116,8 @@ def create_app(*, registry: Registry | None = None,
             if request.url.path == "/health" or request.method == "OPTIONS":
                 return await call_next(request)
             sent = (request.headers.get("x-api-token")
-                    or request.headers.get("authorization", "").removeprefix("Bearer ").strip())
+                    or request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+                    or request.query_params.get("token", ""))  # EventSource no manda headers
             if sent != token:
                 return JSONResponse({"detail": "token invalido o ausente"},
                                     status_code=401)

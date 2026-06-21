@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutGrid, Send, ScrollText, BarChart3, Hexagon } from 'lucide-react';
+import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Hexagon } from 'lucide-react';
 import { api } from '../api/client';
 
 const NAV = [
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
   { to: '/run', label: 'Lanzar', icon: Send },
+  { to: '/projects', label: 'Proyectos', icon: FolderTree },
   { to: '/logs', label: 'Logs', icon: ScrollText },
   { to: '/stats', label: 'Estadisticas', icon: BarChart3 },
 ];

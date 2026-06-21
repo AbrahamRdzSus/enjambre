@@ -68,8 +68,12 @@ class LogBus:
 
 
 def _sse(ev: LogEvent) -> str:
-    """Serializa un evento al formato SSE (campos event/data)."""
-    return f"event: {ev.event}\ndata: {json.dumps(asdict(ev), ensure_ascii=False)}\n\n"
+    """Serializa un evento al formato SSE.
+
+    Se emite como evento por defecto (sin linea `event:`) para que el EventSource
+    del navegador lo reciba con `onmessage`; el tipo concreto viaja en `data.event`.
+    """
+    return f"data: {json.dumps(asdict(ev), ensure_ascii=False)}\n\n"
 
 
 async def sse_stream(bus: LogBus, *, replay: int = 0,

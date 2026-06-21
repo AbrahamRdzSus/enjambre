@@ -42,8 +42,9 @@ def test_sse_stream_replays_and_stops():
 
     chunks = asyncio.run(collect())
     assert len(chunks) == 2
-    assert chunks[0].startswith("event: a\ndata: ")
-    assert "\n\n" in chunks[0]
+    assert chunks[0].startswith("data: ")
+    assert '"event": "a"' in chunks[0]
+    assert chunks[0].endswith("\n\n")
 
 
 def test_sse_stream_live_event():
@@ -59,4 +60,5 @@ def test_sse_stream_live_event():
         return out
 
     chunks = asyncio.run(drive())
-    assert chunks[0].startswith("event: live\n")
+    assert chunks[0].startswith("data: ")
+    assert '"event": "live"' in chunks[0]

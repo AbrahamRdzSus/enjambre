@@ -5,6 +5,7 @@ import AppShell from './layouts/AppShell';
 
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
 const RunPage = lazy(() => import('./pages/RunPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const LogsPage = lazy(() => import('./pages/LogsPage'));
 const StatsPage = lazy(() => import('./pages/StatsPage'));
 
@@ -22,6 +23,7 @@ export default function App() {
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<OverviewPage />} />
               <Route path="run" element={<RunPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
               <Route path="logs" element={<LogsPage />} />
               <Route path="stats" element={<StatsPage />} />
             </Route>

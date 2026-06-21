@@ -42,3 +42,40 @@ export function useRun() {
     },
   });
 }
+
+// --- workspace + changes (tab Proyectos & Archivos) ----------------------
+export function useWorkspaceFiles(root: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['workspace', root],
+    queryFn: () =>
+      api.get<{ root: string; files: string[] }>(
+        `/workspace/files?root=${encodeURIComponent(root)}`),
+    enabled,
+    retry: false,
+  });
+}
+
+export interface ChangeIn { path: string; new_content: string }
+
+export function usePreviewChanges() {
+  return useMutation({
+    mutationFn: (body: { root: string; changes: ChangeIn[] }) =>
+      api.post<{ diffs: Record<string, string> }>('/changes/preview', body),
+  });
+}
+
+export interface ApplyReport {
+  ok: boolean;
+  written: string[];
+  rejected: [string, string][];
+  temp_branch: string | null;
+}
+
+export function useApplyChanges() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { root: string; changes: ChangeIn[]; approved: boolean }) =>
+      api.post<ApplyReport>('/changes/apply', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['workspace'] }),
+  });
+}
