@@ -21,7 +21,7 @@
       "provider": "google",
       "model": "gemini-1.5-flash",
       "role": "builder",
-      "enabled": false,
+      "enabled": true,
       "system_prompt": "Eres un agente de codificacion preciso. Propon cambios minimos y justificados. No escribas archivos: devuelve tu propuesta para revision humana."
     },
     {
@@ -29,7 +29,7 @@
       "provider": "xai",
       "model": "grok-2-latest",
       "role": "builder",
-      "enabled": false,
+      "enabled": true,
       "system_prompt": "Eres un agente de codificacion preciso. Propon cambios minimos y justificados. No escribas archivos: devuelve tu propuesta para revision humana."
     }
   ]

@@ -1,0 +1,120 @@
+/* ============================================================
+   ENJAMBRE — Sistema visual (by Obsidia Studio)
+   Tokens base segun ENJAMBRE_IA_Coder_UI_README.md
+   ============================================================ */
+:root{
+  /* Fondos */
+  --bg:#050509;            /* negro obsidiana */
+  --panel:#080D16;         /* azul-negro profundo */
+  --panel-2:#0D111C;       /* grafito oscuro / panel elevado */
+  --panel-3:#10182a;
+  --line:#211338;          /* borde violeta muy oscuro */
+  --line-2:#2a2140;
+  /* Marca */
+  --purple:#8B5CF6;        /* morado electrico */
+  --purple-2:#a78bfa;
+  --purple-deep:#4A2C7D;   /* violeta profundo */
+  --amber:#FFB020;         /* ambar IA */
+  --amber-2:#FFC637;       /* ambar hover */
+  /* Estados */
+  --green:#22C55E;
+  --blue:#3B82F6;
+  --red:#EF4444;
+  /* Texto */
+  --fg:#F8FAFC;            /* blanco frio */
+  --fg-2:#94A3B8;         /* gris acero */
+  --fg-3:#64748B;         /* gris tenue */
+  /* Forma */
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px;
+  --r-pill:999px;
+  --glow-purple:0 0 0 1px rgba(139,92,246,.35), 0 0 28px rgba(139,92,246,.25);
+  --glow-amber:0 0 0 1px rgba(255,176,32,.4), 0 0 34px rgba(255,176,32,.3);
+  --shadow:0 20px 50px rgba(0,0,0,.5);
+  --font-ui:'Inter','Public Sans',system-ui,-apple-system,sans-serif;
+  --font-display:'Orbitron','Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono','Roboto Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font-ui);color:var(--fg);background:var(--bg);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+
+/* ---- Tipografia de marca ---- */
+.brand-word{font-family:var(--font-display);font-weight:800;letter-spacing:.14em}
+.eyebrow{font-family:var(--font-display);font-weight:700;letter-spacing:.32em;text-transform:uppercase;
+  font-size:11px;color:var(--purple-2)}
+
+/* ---- Botones ---- */
+.btn{display:inline-flex;align-items:center;gap:9px;border:1px solid transparent;border-radius:var(--r-md);
+  font-family:var(--font-ui);font-weight:600;font-size:14px;padding:11px 18px;cursor:pointer;
+  text-decoration:none;transition:.15s;line-height:1;white-space:nowrap}
+.btn svg{width:17px;height:17px}
+.btn-amber{background:linear-gradient(180deg,var(--amber-2),var(--amber));color:#241400;
+  box-shadow:0 6px 20px rgba(255,176,32,.28)}
+.btn-amber:hover{filter:brightness(1.06);box-shadow:0 8px 26px rgba(255,176,32,.42)}
+.btn-purple{background:rgba(139,92,246,.14);border-color:rgba(139,92,246,.5);color:var(--purple-2)}
+.btn-purple:hover{background:rgba(139,92,246,.22)}
+.btn-ghost{background:transparent;color:var(--fg-2)}
+.btn-ghost:hover{background:rgba(255,255,255,.05);color:var(--fg)}
+.btn-solid{background:#11192a;border-color:var(--line-2);color:var(--fg)}
+.btn-solid:hover{border-color:var(--purple)}
+
+/* ---- Paneles ---- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg)}
+.panel-2{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-lg)}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  border-bottom:1px solid var(--line)}
+.panel-title{font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2)}
+
+/* ---- Badges / chips ---- */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+  padding:4px 10px;border-radius:var(--r-pill);border:1px solid var(--line-2);color:var(--fg-2)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dot.green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.amber{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.dot.purple{background:var(--purple);box-shadow:0 0 8px var(--purple)}
+.dot.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+.dot.gray{background:var(--fg-3)}
+.tag-lang{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px}
+.tag-ts{background:rgba(59,130,246,.16);color:#7db1ff}
+.tag-tsx{background:rgba(139,92,246,.16);color:var(--purple-2)}
+.tag-md{background:rgba(148,163,184,.16);color:#b7c4d6}
+
+/* ---- Barras de progreso ---- */
+.bar{height:6px;border-radius:var(--r-pill);background:#161024;overflow:hidden}
+.bar > span{display:block;height:100%;border-radius:var(--r-pill);
+  background:linear-gradient(90deg,var(--purple-deep),var(--purple))}
+.bar.amber > span{background:linear-gradient(90deg,#b9791a,var(--amber))}
+
+/* ---- Util ---- */
+.scroll::-webkit-scrollbar{width:9px;height:9px}
+.scroll::-webkit-scrollbar-thumb{background:#241a3a;border-radius:9px;border:2px solid transparent;background-clip:padding-box}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.muted{color:var(--fg-2)}
+.dim{color:var(--fg-3)}
+.mono{font-family:var(--font-mono)}
+.glow-text{text-shadow:0 0 18px rgba(139,92,246,.5)}
+/* dissolve the black background of logo PNGs into dark surfaces */
+.blend{mix-blend-mode:screen}
+
+/* ============================================================
+   Ventana de escritorio Windows 11
+   ============================================================ */
+.win{position:relative;background:var(--bg);border-radius:12px;overflow:hidden;
+  border:1px solid #1c1730;box-shadow:0 40px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(139,92,246,.08)}
+.win-titlebar{height:40px;display:flex;align-items:center;gap:10px;padding:0 0 0 14px;
+  background:linear-gradient(180deg,#0a0a12,#070710);border-bottom:1px solid #15101f;
+  -webkit-user-select:none;user-select:none}
+.win-titlebar .app-ico{width:20px;height:20px;border-radius:5px;object-fit:cover;flex:none}
+.win-titlebar .title{font-size:12.5px;color:var(--fg-2);font-weight:500;letter-spacing:.01em}
+.win-titlebar .title b{color:var(--fg);font-weight:600}
+.win-menu{display:flex;gap:2px;margin-left:14px}
+.win-menu span{font-size:12.5px;color:var(--fg-3);padding:4px 9px;border-radius:6px;cursor:default}
+.win-menu span:hover{background:rgba(255,255,255,.05);color:var(--fg-2)}
+.win-ctrls{margin-left:auto;display:flex;height:100%}
+.win-ctrls button{width:46px;height:40px;border:0;background:transparent;color:var(--fg-2);
+  display:grid;place-items:center;cursor:pointer;transition:.12s}
+.win-ctrls button:hover{background:rgba(255,255,255,.07)}
+.win-ctrls button.close:hover{background:#e11d48;color:#fff}
+.win-ctrls svg{width:11px;height:11px;stroke:currentColor;stroke-width:1.3;fill:none}
+.win-body{position:relative;overflow:hidden}
