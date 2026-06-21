@@ -1,4 +1,5 @@
 import { useAgents, useProviders, useStats } from '../api/hooks';
+import HexSwarm from '../components/HexSwarm';
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
@@ -28,6 +29,19 @@ export default function OverviewPage() {
           Tu equipo de IAs trabajando en paralelo
         </h1>
       </header>
+
+      {/* Hero: viz hexagonal del enjambre */}
+      <div
+        className="rounded-2xl border relative overflow-hidden"
+        style={{
+          borderColor: 'var(--border)',
+          background:
+            'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.10), transparent 60%), var(--bg-raised)',
+          padding: 8,
+        }}
+      >
+        <HexSwarm size={440} />
+      </div>
 
       {/* Resumen rapido */}
       <div className="grid grid-cols-3 gap-4">
