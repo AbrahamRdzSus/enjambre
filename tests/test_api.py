@@ -176,3 +176,46 @@ def test_docs_off_by_default():
 def test_docs_on_with_dev_flag():
     c = TestClient(create_app(registry=_reg(), dev_docs=True))
     assert c.get("/openapi.json").status_code == 200
+
+
+# --- gestion de agentes (CRUD) + keys --------------------------------------
+def test_agent_crud():
+    c = TestClient(create_app(registry=Registry()))
+    # add
+    r = c.post("/agents", json={"name": "x", "provider": "openai", "model": "gpt-4o-mini"})
+    assert r.status_code == 201 and r.json()["name"] == "x"
+    assert [a["name"] for a in c.get("/agents").json()] == ["x"]
+    # add duplicado -> 400
+    assert c.post("/agents", json={"name": "x", "provider": "openai"}).status_code == 400
+    # patch (toggle enabled)
+    p = c.patch("/agents/x", json={"enabled": False})
+    assert p.status_code == 200 and p.json()["enabled"] is False
+    # delete
+    assert c.delete("/agents/x").status_code == 200
+    assert c.get("/agents").json() == []
+    assert c.delete("/agents/x").status_code == 404
+
+
+def test_add_agent_unknown_provider():
+    c = TestClient(create_app(registry=Registry()))
+    assert c.post("/agents", json={"name": "y", "provider": "nope"}).status_code == 400
+
+
+def test_set_key_in_memory_reflects_in_providers():
+    # sin claves inyectadas: modo runtime
+    c = TestClient(create_app(registry=_reg(), client=mock_api.make_client()))
+    before = {p["provider"]: p["key_present"] for p in c.get("/providers").json()}
+    assert before["openai"] in (True, False)  # depende del entorno
+    c.post("/keys", json={"provider": "openai", "key": "sk-runtime"})
+    after = {p["provider"]: p["key_present"] for p in c.get("/providers").json()}
+    assert after["openai"] is True
+
+
+def test_set_key_disabled_when_keys_injected():
+    c = TestClient(create_app(registry=_reg(), keys=KEYS, client=mock_api.make_client()))
+    assert c.post("/keys", json={"provider": "openai", "key": "x"}).status_code == 409
+
+
+def test_set_key_unknown_provider():
+    c = TestClient(create_app(registry=_reg()))
+    assert c.post("/keys", json={"provider": "nope", "key": "x"}).status_code == 400

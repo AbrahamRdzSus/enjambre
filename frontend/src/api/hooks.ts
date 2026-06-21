@@ -6,6 +6,37 @@ export function useAgents() {
   return useQuery({ queryKey: ['agents'], queryFn: () => api.get<Agent[]>('/agents') });
 }
 
+function useAgentMutation<V>(fn: (v: V) => Promise<unknown>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['agents'] }),
+  });
+}
+
+export function useAddAgent() {
+  return useAgentMutation((a: Partial<Agent> & { name: string; provider: string }) =>
+    api.post('/agents', a));
+}
+
+export function usePatchAgent() {
+  return useAgentMutation(({ name, patch }: { name: string; patch: Partial<Agent> }) =>
+    api.patch(`/agents/${encodeURIComponent(name)}`, patch));
+}
+
+export function useDeleteAgent() {
+  return useAgentMutation((name: string) =>
+    api.del(`/agents/${encodeURIComponent(name)}`));
+}
+
+export function useSetKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { provider: string; key: string }) => api.post('/keys', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['providers'] }),
+  });
+}
+
 export function useProviders() {
   return useQuery({
     queryKey: ['providers'],

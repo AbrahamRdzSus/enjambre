@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Hexagon } from 'lucide-react';
+import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users, Hexagon } from 'lucide-react';
 import { api } from '../api/client';
 
 const NAV = [
@@ -9,6 +9,7 @@ const NAV = [
   { to: '/projects', label: 'Proyectos', icon: FolderTree },
   { to: '/logs', label: 'Logs', icon: ScrollText },
   { to: '/stats', label: 'Estadisticas', icon: BarChart3 },
+  { to: '/agents', label: 'Agentes', icon: Users },
 ];
 
 function HealthDot() {

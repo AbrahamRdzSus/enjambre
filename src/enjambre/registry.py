@@ -79,6 +79,24 @@ class Registry:
             raise ValueError(f"Ya existe un agente llamado {agent.name!r}")
         self.agents.append(agent)
 
+    def get(self, name: str) -> Agent | None:
+        return next((a for a in self.agents if a.name == name), None)
+
+    def replace(self, agent: Agent) -> None:
+        """Reemplaza un agente existente por nombre (valida antes)."""
+        agent.validate()
+        for i, a in enumerate(self.agents):
+            if a.name == agent.name:
+                self.agents[i] = agent
+                return
+        raise ValueError(f"No existe un agente llamado {agent.name!r}")
+
+    def remove(self, name: str) -> bool:
+        """Elimina un agente por nombre. Devuelve True si existia."""
+        before = len(self.agents)
+        self.agents = [a for a in self.agents if a.name != name]
+        return len(self.agents) != before
+
     def enabled(self) -> list[Agent]:
         return [a for a in self.agents if a.enabled]
 

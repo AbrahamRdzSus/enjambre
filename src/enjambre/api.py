@@ -25,7 +25,7 @@ Seguridad (3 controles, todos opt-in para no estorbar el uso local):
 from __future__ import annotations
 
 import os
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +39,7 @@ from . import config, sessions, stats, workspace
 from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
 from .orchestrator import Orchestrator
-from .registry import Registry
+from .registry import Agent, Registry
 
 
 class RunRequest(BaseModel):
@@ -66,6 +66,28 @@ class ChangesRequest(BaseModel):
     changes: list[ChangeIn]
     approved: bool = False
     git_branch: str | None = None
+
+
+class AgentIn(BaseModel):
+    name: str
+    provider: str
+    model: str = ""
+    role: str = "builder"
+    enabled: bool = True
+    system_prompt: str = ""
+
+
+class AgentPatch(BaseModel):
+    provider: str | None = None
+    model: str | None = None
+    role: str | None = None
+    enabled: bool | None = None
+    system_prompt: str | None = None
+
+
+class KeyIn(BaseModel):
+    provider: str
+    key: str
 
 
 def _resolve_roots(allowed_roots: list[str] | None) -> list[Path] | None:
@@ -134,11 +156,28 @@ def create_app(*, registry: Registry | None = None,
                                 detail=f"'{root}' fuera de los roots permitidos")
         return p
 
+    # Claves BYOK en memoria (NUNCA se persisten ni se devuelven). Solo activas si
+    # no se inyectaron claves fijas (modo test). Sobrescriben al entorno.
+    runtime_keys: dict[str, str] = {}
+
     def _registry() -> Registry:
         return registry if registry is not None else Registry.load()
 
+    def _save_registry(reg: Registry) -> None:
+        # En modo inyectado (tests) el registro es en memoria: no se persiste.
+        if registry is None:
+            reg.save()
+
+    def _effective_keys() -> dict[str, str] | None:
+        if keys is not None:
+            return keys  # modo test: claves fijas inyectadas
+        # entorno + overrides en memoria (override gana)
+        merged = {p: config.get_key(p) for p in config.PROVIDER_ENV}
+        merged.update({k: v for k, v in runtime_keys.items() if v})
+        return merged
+
     def _orch(reg: Registry) -> Orchestrator:
-        return Orchestrator(reg, keys=keys, client=client)
+        return Orchestrator(reg, keys=_effective_keys(), client=client)
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -150,10 +189,57 @@ def create_app(*, registry: Registry | None = None,
 
     @app.get("/providers")
     def providers() -> list[dict[str, Any]]:
-        have = set(config.available_providers())
+        eff = _effective_keys() or {}
         return [{"provider": p, "env": config.PROVIDER_ENV[p],
-                 "key_present": p in have}
+                 "key_present": bool(eff.get(p))}
                 for p in sorted(config.PROVIDER_ENV)]
+
+    @app.post("/agents", status_code=201)
+    def add_agent(body: AgentIn) -> dict[str, Any]:
+        reg = _registry()
+        try:
+            reg.add(Agent(**body.model_dump()))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        _save_registry(reg)
+        bus.emit("agent.added", agent=body.name, message=body.provider)
+        return asdict(reg.get(body.name))  # type: ignore[arg-type]
+
+    @app.patch("/agents/{name}")
+    def patch_agent(name: str, body: AgentPatch) -> dict[str, Any]:
+        reg = _registry()
+        current = reg.get(name)
+        if current is None:
+            raise HTTPException(status_code=404, detail=f"agente {name!r} no existe")
+        updated = replace(current, **{k: v for k, v in body.model_dump().items()
+                                      if v is not None})
+        try:
+            reg.replace(updated)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        _save_registry(reg)
+        return asdict(updated)
+
+    @app.delete("/agents/{name}")
+    def delete_agent(name: str) -> dict[str, bool]:
+        reg = _registry()
+        if not reg.remove(name):
+            raise HTTPException(status_code=404, detail=f"agente {name!r} no existe")
+        _save_registry(reg)
+        bus.emit("agent.removed", agent=name)
+        return {"ok": True}
+
+    @app.post("/keys")
+    def set_key(body: KeyIn) -> dict[str, Any]:
+        """Guarda una clave BYOK en memoria (no se persiste ni se devuelve)."""
+        if keys is not None:
+            raise HTTPException(status_code=409,
+                                detail="claves fijas inyectadas; /keys deshabilitado")
+        prov = body.provider.strip().lower()
+        if prov not in config.PROVIDER_ENV:
+            raise HTTPException(status_code=400, detail=f"proveedor {prov!r} desconocido")
+        runtime_keys[prov] = body.key.strip()
+        return {"provider": prov, "key_present": bool(runtime_keys[prov])}
 
     @app.post("/validate")
     async def validate() -> dict[str, dict[str, Any]]:
