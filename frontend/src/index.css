@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/*
+ * Identidad ENJAMBRE: oscuro, morado (agentes/enjambre) + ambar (accion/energia).
+ * Sin logos de terceros (politica del proyecto). Hexagono/nodos = concepto enjambre.
+ */
+:root {
+  /* Superficies */
+  --bg-app: #0c0a14;
+  --bg-raised: #141020;
+  --bg-card: #1a1530;
+  --border: #2a2342;
+
+  /* Texto */
+  --fg: #f3f0fa;
+  --fg-mute: #a99fc7;
+  --fg-faint: #6f6690;
+
+  /* Acentos: morado (primario) + ambar (accion) */
+  --purple: #8b5cf6;
+  --purple-soft: #a684f8;
+  --purple-deep: #6d3df0;
+  --amber: #ffb020;
+  --amber-soft: #ffc54d;
+
+  /* Estado */
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --alert: #ef4444;
+
+  /* Radius / sombra / motion */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --glow-purple: 0 0 0 3px rgba(139, 92, 246, 0.22);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 200ms;
+
+  /* Fuentes */
+  --font-display: 'DM Sans', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg-app);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--purple-soft), var(--amber));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--purple-soft);
+}
+
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--glow-purple);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }

@@ -44,6 +44,8 @@ enjambre --config enjambre.yaml agents   # agentes declarativos (parser propio, 
 pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # seguridad (opt-in): ENJAMBRE_API_TOKEN (auth), ENJAMBRE_ALLOWED_ROOTS (allowlist
 # de carpetas para /workspace), ENJAMBRE_API_DEV=1 (habilita /docs, apagado por def).
+# frontend React (dashboard, consume el sidecar; ver frontend/):
+cd frontend; npm install; npm run dev   # http://localhost:5173 (sidecar en :8000)
 # o el hub de consola Windows:
 .\enjambre-hub.ps1
 ```
