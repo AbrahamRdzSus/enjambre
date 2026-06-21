@@ -46,6 +46,8 @@ pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # de carpetas para /workspace), ENJAMBRE_API_DEV=1 (habilita /docs, apagado por def).
 # frontend React (dashboard, consume el sidecar; ver frontend/):
 cd frontend; npm install; npm run dev   # http://localhost:5173 (sidecar en :8000)
+# app de escritorio (Tauri 2; requiere Rust+MSVC, ver docs/MIGRATION_TAURI.md):
+cd tauri; cargo tauri dev     # ventana nativa | cargo tauri build = .exe/instalador
 # o el hub de consola Windows:
 .\enjambre-hub.ps1
 ```
