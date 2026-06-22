@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users } from 'lucide-react';
 import { api } from '../api/client';
 import { useStats } from '../api/hooks';
+import ProjectSelector from '../components/ProjectSelector';
 
 const NAV = [
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
@@ -55,10 +56,7 @@ function Header() {
         backdropFilter: 'blur(12px)',
       }}
     >
-      <div className="flex items-center gap-2">
-        <span className="eyebrow">Proyecto</span>
-        <span className="text-sm font-medium" style={{ color: 'var(--fg)' }}>local</span>
-      </div>
+      <ProjectSelector />
 
       <div className="flex items-center gap-6">
         <Metric label="tokens" value={fmtTokens(data?.total_tokens ?? 0)} color="var(--fg)" />

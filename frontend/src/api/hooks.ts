@@ -1,6 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
-import type { Agent, Provider, RunReport, Stats, LogEvent } from './types';
+import type { Agent, Project, Provider, RunReport, Stats, LogEvent } from './types';
+
+export function useProjects() {
+  return useQuery({ queryKey: ['projects'], queryFn: () => api.get<Project[]>('/projects') });
+}
+
+export function useAddProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name: string; root: string }) => api.post<Project>('/projects', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] }),
+  });
+}
+
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del(`/projects/${encodeURIComponent(id)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] }),
+  });
+}
 
 export function useAgents() {
   return useQuery({ queryKey: ['agents'], queryFn: () => api.get<Agent[]>('/agents') });

@@ -16,6 +16,7 @@ from . import (
     extensions,
     logs,
     policy,
+    projects,
     sessions,
     stats,
     workspace,
@@ -60,8 +61,8 @@ except PackageNotFoundError:  # pragma: no cover
 
 __all__ = [
     "__version__",
-    "agentfile", "commands", "config", "extensions", "logs", "policy", "sessions",
-    "stats", "workspace", "LogBus", "LogEvent",
+    "agentfile", "commands", "config", "extensions", "logs", "policy", "projects",
+    "sessions", "stats", "workspace", "LogBus", "LogEvent",
     "EnjambreConfig", "ConfigError", "load_config",
     "Orchestrator", "OrchestrationReport", "AgentRun",
     "Registry", "Agent",

@@ -58,6 +58,13 @@ export interface Stats {
   by_day: Record<string, number>;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  root: string;
+  created_at: string;
+}
+
 export interface LogEvent {
   ts: number;
   level: string;

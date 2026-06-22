@@ -35,7 +35,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import config, sessions, stats, workspace
+from . import config, projects, sessions, stats, workspace
 from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
 from .multiagent import MODES, MultiAgent, MultiAgentReport
@@ -90,6 +90,11 @@ class AgentPatch(BaseModel):
 class KeyIn(BaseModel):
     provider: str
     key: str
+
+
+class ProjectIn(BaseModel):
+    name: str
+    root: str = "."
 
 
 def _multiagent_out(report: MultiAgentReport) -> dict[str, Any]:
@@ -324,6 +329,24 @@ def create_app(*, registry: Registry | None = None,
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return {"id": s.id, "kind": s.kind, "created_at": s.created_at,
                 "prompt": s.prompt, "data": s.data}
+
+    # --- proyectos (entidad header/sidebar) --------------------------------
+    @app.get("/projects")
+    def list_projects() -> list[dict[str, Any]]:
+        return [asdict(p) for p in projects.list_projects()]
+
+    @app.post("/projects", status_code=201)
+    def add_project(body: ProjectIn) -> dict[str, Any]:
+        try:
+            return asdict(projects.add_project(body.name, body.root))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.delete("/projects/{project_id}")
+    def delete_project(project_id: str) -> dict[str, bool]:
+        if not projects.remove_project(project_id):
+            raise HTTPException(status_code=404, detail=f"proyecto {project_id!r} no existe")
+        return {"ok": True}
 
     @app.get("/stats")
     def usage_stats() -> dict[str, Any]:

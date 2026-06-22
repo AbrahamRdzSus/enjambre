@@ -246,3 +246,16 @@ def test_run_debate_mode():
 def test_run_invalid_mode():
     c = TestClient(create_app(registry=_reg2(), keys=KEYS, client=mock_api.make_client()))
     assert c.post("/run", json={"prompt": "x", "mode": "nope"}).status_code == 400
+
+
+def test_projects_crud(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # aisla .enjambre/projects.json
+    c = TestClient(create_app(registry=_reg()))
+    assert c.get("/projects").json() == []
+    r = c.post("/projects", json={"name": "Nexus", "root": "."})
+    assert r.status_code == 201
+    pid = r.json()["id"]
+    assert [p["name"] for p in c.get("/projects").json()] == ["Nexus"]
+    assert c.post("/projects", json={"name": "  "}).status_code == 400
+    assert c.delete(f"/projects/{pid}").status_code == 200
+    assert c.delete(f"/projects/{pid}").status_code == 404
