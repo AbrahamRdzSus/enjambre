@@ -53,10 +53,8 @@ export default function LogsPage() {
       </header>
 
       <div
-        className="rounded-xl border p-4 flex flex-col gap-1"
+        className="glass p-4 flex flex-col gap-1"
         style={{
-          background: 'var(--bg-card)',
-          borderColor: 'var(--border)',
           maxHeight: 520,
           overflowY: 'auto',
           fontFamily: 'var(--font-mono)',

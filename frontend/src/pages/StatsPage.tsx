@@ -25,8 +25,7 @@ export default function StatsPage() {
         {providers.map(([name, t]) => (
           <div
             key={name}
-            className="rounded-xl border p-4"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="glass p-4"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold text-sm" style={{ color: 'var(--fg)' }}>{name}</span>

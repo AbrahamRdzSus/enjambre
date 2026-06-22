@@ -52,8 +52,8 @@ export default function ProjectsPage() {
       <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
         {/* Arbol de archivos */}
         <div
-          className="rounded-xl border p-3 flex flex-col gap-1"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', maxHeight: 460, overflowY: 'auto' }}
+          className="glass p-3 flex flex-col gap-1"
+          style={{ maxHeight: 460, overflowY: 'auto' }}
         >
           {files.isError && (
             <p className="text-xs" style={{ color: 'var(--alert)' }}>
