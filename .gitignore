@@ -66,3 +66,9 @@ tauri/gen/
 
 # extraccion temporal del export de v0
 diseno/_v0cockpit/
+
+# PyInstaller / sidecar congelado (artefactos, se regeneran)
+build/
+dist/
+*.spec
+tauri/binaries/*.exe
