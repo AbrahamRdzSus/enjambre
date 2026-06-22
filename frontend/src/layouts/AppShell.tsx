@@ -4,6 +4,7 @@ import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users } from 'luci
 import { api } from '../api/client';
 import { useAgents, useStats } from '../api/hooks';
 import ProjectSelector from '../components/ProjectSelector';
+import { Particles } from '../components/ui/particles';
 import { useRunEvents, useRunStore } from '../stores/run-store';
 
 const DOT: Record<string, string> = {
@@ -111,6 +112,14 @@ export default function AppShell() {
 
   return (
     <div className="flex min-h-screen app-texture">
+      <Particles
+        className="fixed inset-0"
+        style={{ zIndex: 0, opacity: 0.5 }}
+        quantity={70}
+        color="#8b5cf6"
+        size={0.5}
+        staticity={70}
+      />
       <aside
         className="fixed top-0 left-0 h-screen w-60 flex flex-col border-r z-30"
         style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}
@@ -148,7 +157,7 @@ export default function AppShell() {
         </div>
       </aside>
 
-      <main className="flex-1 ml-60 flex flex-col">
+      <main className="flex-1 ml-60 flex flex-col relative" style={{ zIndex: 10 }}>
         <Header />
         <div className="mx-auto w-full" style={{ maxWidth: 1200, padding: 32 }}>
           <Outlet />

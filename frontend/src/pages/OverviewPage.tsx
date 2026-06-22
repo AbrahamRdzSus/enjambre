@@ -2,6 +2,7 @@ import { useAgents, useLogs, useProviders, useStats } from '../api/hooks';
 import HexSwarm from '../components/HexSwarm';
 import StatCard from '../components/StatCard';
 import CircularProgress from '../components/CircularProgress';
+import { BorderBeam } from '../components/ui/border-beam';
 import { ProviderCostBars, ProviderTokenDonut } from '../components/UsageCharts';
 import { useRunStore } from '../stores/run-store';
 
@@ -53,6 +54,7 @@ export default function OverviewPage() {
           }}
         >
           <HexSwarm size={400} />
+          <BorderBeam size={90} duration={8} />
         </div>
 
         <div className="glass p-4 flex flex-col gap-3">
