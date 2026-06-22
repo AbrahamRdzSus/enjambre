@@ -4,6 +4,7 @@ import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users } from 'luci
 import { api } from '../api/client';
 import { useStats } from '../api/hooks';
 import ProjectSelector from '../components/ProjectSelector';
+import { useRunEvents } from '../stores/run-store';
 
 const NAV = [
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
@@ -77,6 +78,7 @@ function Header() {
 
 export default function AppShell() {
   const healthy = useHealth();
+  useRunEvents(); // estado live de agentes para la hex-viz
 
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--bg-app)' }}>
