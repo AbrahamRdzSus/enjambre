@@ -1,7 +1,13 @@
-import { useAgents, useProviders, useStats } from '../api/hooks';
+import { useAgents, useLogs, useProviders, useStats } from '../api/hooks';
 import HexSwarm from '../components/HexSwarm';
 import StatCard from '../components/StatCard';
 import { ProviderCostBars, ProviderTokenDonut } from '../components/UsageCharts';
+import { useRunStore } from '../stores/run-store';
+
+const DOT: Record<string, string> = {
+  running: 'var(--amber)', ok: 'var(--ok)', error: 'var(--alert)',
+  enabled: 'var(--purple)', idle: 'var(--fg-faint)',
+};
 
 function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -13,6 +19,8 @@ export default function OverviewPage() {
   const agents = useAgents();
   const providers = useProviders();
   const stats = useStats();
+  const logs = useLogs();
+  const runStatus = useRunStore((s) => s.status);
 
   const enabled = (agents.data ?? []).filter((a) => a.enabled).length;
   const total = agents.data?.length ?? 0;
@@ -30,16 +38,54 @@ export default function OverviewPage() {
         </h1>
       </header>
 
-      {/* Hero: viz hexagonal del enjambre */}
-      <div
-        className="gradient-border relative overflow-hidden"
-        style={{
-          background:
-            'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.10), transparent 60%), var(--bg-raised)',
-          padding: 8,
-        }}
-      >
-        <HexSwarm size={440} />
+      {/* Hero: viz hexagonal + panel de estado (2 columnas, densifica el ancho) */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)' }}>
+        <div
+          className="gradient-border relative overflow-hidden flex items-center"
+          style={{
+            background:
+              'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.12), transparent 60%), var(--bg-raised)',
+            padding: 8,
+          }}
+        >
+          <HexSwarm size={400} />
+        </div>
+
+        <div className="glass p-4 flex flex-col gap-3">
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--fg-mute)' }}>ESTADO DEL ENJAMBRE</h2>
+          <div className="flex flex-col gap-2">
+            {(agents.data ?? []).map((a) => {
+              const st = runStatus[a.name] ?? (a.enabled ? 'enabled' : 'idle');
+              return (
+                <div key={a.name} className="flex items-center gap-2 text-xs">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: DOT[st] }} />
+                  <span style={{ color: 'var(--fg)' }}>{a.name}</span>
+                  <span className="ml-auto" style={{ color: 'var(--fg-faint)', fontFamily: 'var(--font-mono)' }}>
+                    {st === 'running' ? 'pensando' : st === 'enabled' ? a.provider : st}
+                  </span>
+                </div>
+              );
+            })}
+            {agents.data?.length === 0 && (
+              <p className="text-xs" style={{ color: 'var(--fg-faint)' }}>Sin agentes.</p>
+            )}
+          </div>
+
+          <div className="border-t pt-2 mt-1" style={{ borderColor: 'var(--border)' }}>
+            <p className="eyebrow mb-2">Actividad</p>
+            <div className="flex flex-col gap-1" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+              {(logs.data ?? []).slice(-6).reverse().map((e, i) => (
+                <div key={`${e.ts}-${i}`} className="flex gap-2 truncate">
+                  <span style={{ color: 'var(--purple-soft)' }}>{e.event}</span>
+                  {e.agent && <span style={{ color: 'var(--amber-soft)' }}>{e.agent}</span>}
+                </div>
+              ))}
+              {(logs.data ?? []).length === 0 && (
+                <span style={{ color: 'var(--fg-faint)' }}>Sin actividad. Lanza una tarea.</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stat cards */}

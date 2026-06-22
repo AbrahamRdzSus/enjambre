@@ -76,18 +76,19 @@ export default function HexSwarm({ size = 420 }: { size?: number }) {
       <motion.circle
         cx={c}
         cy={c}
-        r={size * 0.17}
+        r={size * 0.2}
         fill="url(#hs-core)"
-        animate={reduce ? undefined : { scale: [1, 1.09, 1], opacity: [0.55, 0.85, 0.55] }}
+        animate={reduce ? undefined : { scale: [1, 1.1, 1], opacity: [0.7, 0.95, 0.7] }}
         transition={reduce ? undefined : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ transformOrigin: `${c}px ${c}px`, opacity: 0.65 }}
+        style={{ transformOrigin: `${c}px ${c}px`, opacity: 0.8 }}
       />
 
-      {/* lineas core -> agente */}
+      {/* lineas core -> agente (mas gruesas + glow en habilitadas) */}
       {nodes.map((n) => (
         <line key={`l-${n.a.name}`} x1={c} y1={c} x2={n.x} y2={n.y}
-          stroke="url(#hs-line)" strokeWidth="1.4"
-          strokeOpacity={n.a.enabled ? 0.55 : 0.15} />
+          stroke="url(#hs-line)" strokeWidth={n.a.enabled ? 2.4 : 1.2}
+          strokeOpacity={n.a.enabled ? 0.7 : 0.18}
+          filter={n.a.enabled ? 'url(#hs-glow)' : undefined} />
       ))}
 
       {/* pulso viajando del core al agente habilitado (omitido si reduced-motion) */}
@@ -101,8 +102,10 @@ export default function HexSwarm({ size = 420 }: { size?: number }) {
         )}
 
       {/* nucleo (hexagono) */}
-      <polygon points={hexPoints(c, c, size * 0.078)} fill="#1a1530"
-        stroke={AMBER} strokeWidth="1.6" filter="url(#hs-glow)" />
+      <polygon points={hexPoints(c, c, size * 0.088)} fill="#1a1530"
+        stroke={AMBER} strokeWidth="2.2" filter="url(#hs-glow)" />
+      <polygon points={hexPoints(c, c, size * 0.05)} fill="none"
+        stroke={AMBER} strokeWidth="1" strokeOpacity="0.6" />
 
       {/* agentes */}
       {nodes.map((n) => {
