@@ -63,3 +63,6 @@ venv/
 # Tauri (shell Rust)
 tauri/target/
 tauri/gen/
+
+# extraccion temporal del export de v0
+diseno/_v0cockpit/
