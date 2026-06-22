@@ -31,9 +31,31 @@ export interface StatCardProps {
   format?: (n: number) => string;
   accent?: string;
   hint?: string;
+  /** mini-barras (distribucion, p.ej. por proveedor) al pie de la card */
+  bars?: number[];
 }
 
-export default function StatCard({ label, value, format, accent = 'var(--purple-soft)', hint }: StatCardProps) {
+function Sparkbars({ data, accent }: { data: number[]; accent: string }) {
+  const max = Math.max(1, ...data);
+  return (
+    <div className="flex items-end gap-1 mt-2" style={{ height: 26 }} aria-hidden="true">
+      {data.map((v, i) => (
+        <div
+          key={i}
+          style={{
+            flex: 1,
+            height: `${Math.max(8, (v / max) * 100)}%`,
+            background: accent,
+            opacity: 0.35 + 0.55 * (v / max),
+            borderRadius: 2,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function StatCard({ label, value, format, accent = 'var(--purple-soft)', hint, bars }: StatCardProps) {
   const reduce = useReducedMotion();
   const animated = useCountUp(value, !reduce);
   const shown = format ? format(animated) : String(Math.round(animated));
@@ -46,6 +68,7 @@ export default function StatCard({ label, value, format, accent = 'var(--purple-
         {shown}
       </span>
       {hint && <span className="text-xs" style={{ color: 'var(--fg-mute)' }}>{hint}</span>}
+      {bars && bars.length > 0 && <Sparkbars data={bars} accent={accent} />}
     </div>
   );
 }

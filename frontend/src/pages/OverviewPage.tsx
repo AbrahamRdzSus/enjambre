@@ -29,6 +29,9 @@ export default function OverviewPage() {
   const runs = tallies.reduce((s, t) => s + t.runs, 0);
   const ok = tallies.reduce((s, t) => s + t.ok, 0);
   const success = runs > 0 ? (ok / runs) * 100 : 0;
+  const tokenBars = tallies.map((t) => t.input_tokens + t.output_tokens);
+  const costBars = tallies.map((t) => t.cost_usd);
+  const runBars = tallies.map((t) => t.runs);
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,10 +103,10 @@ export default function OverviewPage() {
           ))
         ) : (
           <>
-            <StatCard label="Agentes activos" value={enabled} accent="var(--purple-soft)" hint={`de ${total} registrados`} />
+            <StatCard label="Agentes activos" value={enabled} accent="var(--purple-soft)" hint={`de ${total} registrados`} bars={runBars} />
             <StatCard label="Sesiones" value={stats.data?.sessions ?? 0} accent="var(--fg)" />
-            <StatCard label="Tokens" value={stats.data?.total_tokens ?? 0} format={fmtTokens} accent="var(--purple-soft)" />
-            <StatCard label="Costo acumulado" value={stats.data?.total_cost_usd ?? 0} format={(n) => `$${n.toFixed(4)}`} accent="var(--amber)" />
+            <StatCard label="Tokens" value={stats.data?.total_tokens ?? 0} format={fmtTokens} accent="var(--purple-soft)" bars={tokenBars} />
+            <StatCard label="Costo acumulado" value={stats.data?.total_cost_usd ?? 0} format={(n) => `$${n.toFixed(4)}`} accent="var(--amber)" bars={costBars} />
           </>
         )}
       </div>
