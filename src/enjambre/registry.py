@@ -11,9 +11,25 @@ import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from . import paths
 from .providers import PROVIDERS
 
-DEFAULT_PATH = Path("agents/registered.json")
+
+def default_path() -> Path:
+    """Ruta del registro en el dir de datos del usuario (escribible)."""
+    return paths.data_dir() / "registered.json"
+
+
+#: Agentes por defecto para un primer arranque (cuando no hay registro aun).
+def _default_agents() -> list[Agent]:
+    sp = ("Eres un agente de codificacion preciso. Propon cambios minimos y "
+          "justificados. No escribas archivos: devuelve tu propuesta para revision humana.")
+    return [
+        Agent("claude-builder", "anthropic", "claude-sonnet-4-6", "builder", True, sp),
+        Agent("gpt-builder", "openai", "gpt-4o-mini", "builder", True, sp),
+        Agent("gemini-builder", "google", "gemini-1.5-flash", "builder", True, sp),
+        Agent("grok-builder", "xai", "grok-2-latest", "builder", True, sp),
+    ]
 
 
 @dataclass
@@ -41,14 +57,14 @@ class Registry:
 
     # --- persistencia -----------------------------------------------------
     @classmethod
-    def load(cls, path: str | Path = DEFAULT_PATH) -> Registry:
-        p = Path(path)
+    def load(cls, path: str | Path | None = None) -> Registry:
+        p = Path(path) if path is not None else default_path()
         if not p.exists():
-            return cls()
+            return cls(agents=_default_agents())  # primer arranque
         raw = _read_text_tolerant(p)
         raw = raw.strip()
         if not raw:
-            return cls()
+            return cls(agents=_default_agents())
         data = json.loads(raw)
         items = data.get("agents", []) if isinstance(data, dict) else data
         agents = []
@@ -65,8 +81,8 @@ class Registry:
             ))
         return cls(agents=agents)
 
-    def save(self, path: str | Path = DEFAULT_PATH) -> None:
-        p = Path(path)
+    def save(self, path: str | Path | None = None) -> None:
+        p = Path(path) if path is not None else default_path()
         p.parent.mkdir(parents=True, exist_ok=True)
         payload = {"agents": [asdict(a) for a in self.agents]}
         p.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n",

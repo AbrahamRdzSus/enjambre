@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import sessions
-from .sessions import DEFAULT_STORE, Session
+from .sessions import Session
 
 
 @dataclass
@@ -78,7 +78,7 @@ def aggregate(items: list[Session]) -> UsageStats:
     return stats
 
 
-def from_store(store: str | Path = DEFAULT_STORE) -> UsageStats:
+def from_store(store: str | Path | None = None) -> UsageStats:
     """Carga el store de sesiones y agrega su uso."""
     return aggregate(sessions.list_sessions(store=store))
 

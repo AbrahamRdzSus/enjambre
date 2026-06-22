@@ -53,7 +53,7 @@ def test_run_side_by_side():
 
 def test_run_save_and_sessions_and_stats(tmp_path, monkeypatch):
     # aisla el store de sesiones al tmp_path (DEFAULT_STORE es relativo al cwd)
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("ENJAMBRE_DATA_DIR", str(tmp_path))
     c = _client()
     body = c.post("/run", json={"prompt": "tarea", "save": True}).json()
     sid = body["session_id"]
@@ -249,7 +249,7 @@ def test_run_invalid_mode():
 
 
 def test_projects_crud(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)  # aisla .enjambre/projects.json
+    monkeypatch.setenv("ENJAMBRE_DATA_DIR", str(tmp_path))
     c = TestClient(create_app(registry=_reg()))
     assert c.get("/projects").json() == []
     r = c.post("/projects", json={"name": "Nexus", "root": "."})

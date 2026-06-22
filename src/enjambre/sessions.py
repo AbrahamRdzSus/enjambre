@@ -19,11 +19,14 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import paths
 from .multiagent import Candidate, MultiAgentReport, Verdict
 from .orchestrator import AgentRun, OrchestrationReport
 from .providers import ProviderResult, Usage
 
-DEFAULT_STORE = Path(".enjambre/sessions")
+
+def _store_dir(store: str | Path | None) -> Path:
+    return Path(store) if store is not None else paths.data_dir() / "sessions"
 
 
 @dataclass
@@ -51,7 +54,7 @@ def _kind_of(report: object) -> str:
 
 
 def save(report: OrchestrationReport | MultiAgentReport, *,
-         store: str | Path = DEFAULT_STORE,
+         store: str | Path | None = None,
          session_id: str | None = None) -> str:
     """Persiste un report como sesion. Devuelve el id de sesion.
 
@@ -68,16 +71,16 @@ def save(report: OrchestrationReport | MultiAgentReport, *,
         "prompt": prompt,
         "data": asdict(report),
     }
-    p = Path(store)
+    p = _store_dir(store)
     p.mkdir(parents=True, exist_ok=True)
     (p / f"{sid}.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return sid
 
 
-def load(session_id: str, *, store: str | Path = DEFAULT_STORE) -> Session:
+def load(session_id: str, *, store: str | Path | None = None) -> Session:
     """Carga una sesion por id."""
-    fp = Path(store) / f"{session_id}.json"
+    fp = _store_dir(store) / f"{session_id}.json"
     if not fp.is_file():
         raise FileNotFoundError(f"No existe la sesion {session_id!r} en {store}")
     d = json.loads(fp.read_text(encoding="utf-8"))
@@ -85,9 +88,9 @@ def load(session_id: str, *, store: str | Path = DEFAULT_STORE) -> Session:
                    prompt=d.get("prompt", ""), data=d.get("data", {}))
 
 
-def list_sessions(*, store: str | Path = DEFAULT_STORE) -> list[Session]:
+def list_sessions(*, store: str | Path | None = None) -> list[Session]:
     """Lista las sesiones del store, mas recientes primero."""
-    p = Path(store)
+    p = _store_dir(store)
     if not p.is_dir():
         return []
     out: list[Session] = []

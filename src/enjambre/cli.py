@@ -22,13 +22,13 @@ import httpx
 
 from . import agentfile, config, sessions, stats
 from .orchestrator import Orchestrator
-from .registry import DEFAULT_PATH, Registry
+from .registry import Registry
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="enjambre", description=__doc__.splitlines()[0])
-    p.add_argument("--registry", default=str(DEFAULT_PATH),
-                   help="ruta al registro de agentes (def: agents/registered.json)")
+    p.add_argument("--registry", default=None,
+                   help="ruta al registro de agentes (def: dir de datos del usuario)")
     p.add_argument("--config", "-c", default=None,
                    help="carga agentes desde un enjambre.yaml (en vez de --registry)")
     sub = p.add_subparsers(dest="command", required=True)

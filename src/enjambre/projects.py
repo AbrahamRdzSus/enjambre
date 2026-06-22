@@ -13,7 +13,11 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_STORE = Path(".enjambre/projects.json")
+from . import paths
+
+
+def _store_file(store: str | Path | None) -> Path:
+    return Path(store) if store is not None else paths.data_dir() / "projects.json"
 
 
 @dataclass
@@ -40,17 +44,17 @@ def _write(store: Path, items: list[dict]) -> None:
                      encoding="utf-8")
 
 
-def list_projects(*, store: str | Path = DEFAULT_STORE) -> list[Project]:
-    return [Project(**d) for d in _read(Path(store))]
+def list_projects(*, store: str | Path | None = None) -> list[Project]:
+    return [Project(**d) for d in _read(_store_file(store))]
 
 
 def add_project(name: str, root: str, *,
-                store: str | Path = DEFAULT_STORE) -> Project:
+                store: str | Path | None = None) -> Project:
     """Agrega un proyecto. `name` no vacio; `root` se guarda tal cual (string)."""
     name = name.strip()
     if not name:
         raise ValueError("el proyecto necesita un nombre")
-    p = Path(store)
+    p = _store_file(store)
     items = _read(p)
     proj = Project(
         id=uuid.uuid4().hex[:8],
@@ -63,9 +67,9 @@ def add_project(name: str, root: str, *,
     return proj
 
 
-def remove_project(project_id: str, *, store: str | Path = DEFAULT_STORE) -> bool:
+def remove_project(project_id: str, *, store: str | Path | None = None) -> bool:
     """Elimina un proyecto por id. Devuelve True si existia."""
-    p = Path(store)
+    p = _store_file(store)
     items = _read(p)
     kept = [d for d in items if d.get("id") != project_id]
     if len(kept) == len(items):
