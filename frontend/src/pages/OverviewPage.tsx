@@ -1,6 +1,7 @@
 import { useAgents, useLogs, useProviders, useStats } from '../api/hooks';
 import HexSwarm from '../components/HexSwarm';
 import StatCard from '../components/StatCard';
+import CircularProgress from '../components/CircularProgress';
 import { ProviderCostBars, ProviderTokenDonut } from '../components/UsageCharts';
 import { useRunStore } from '../stores/run-store';
 
@@ -52,7 +53,10 @@ export default function OverviewPage() {
         </div>
 
         <div className="glass p-4 flex flex-col gap-3">
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--fg-mute)' }}>ESTADO DEL ENJAMBRE</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--fg-mute)' }}>ESTADO DEL ENJAMBRE</h2>
+            <CircularProgress value={success} size={72} label="éxito" />
+          </div>
           <div className="flex flex-col gap-2">
             {(agents.data ?? []).map((a) => {
               const st = runStatus[a.name] ?? (a.enabled ? 'enabled' : 'idle');

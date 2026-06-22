@@ -46,9 +46,28 @@
 body {
   margin: 0;
   font-family: var(--font-body);
-  background: var(--bg-app);
+  background:
+    radial-gradient(55% 45% at 100% 0%, rgba(255, 176, 32, 0.06), transparent 60%),
+    radial-gradient(55% 50% at 0% 100%, rgba(139, 92, 246, 0.07), transparent 60%),
+    var(--bg-app);
+  background-attachment: fixed;
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Textura tech: grid fino para la sensacion "cockpit" (desvanece hacia abajo). */
+.app-texture::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(139, 92, 246, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.045) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(125% 120% at 50% 0%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(125% 120% at 50% 0%, #000 30%, transparent 78%);
 }
 
 .wordmark {

@@ -110,7 +110,7 @@ export default function AppShell() {
   useRunEvents(); // estado live de agentes para la hex-viz
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'var(--bg-app)' }}>
+    <div className="flex min-h-screen app-texture">
       <aside
         className="fixed top-0 left-0 h-screen w-60 flex flex-col border-r z-30"
         style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}
