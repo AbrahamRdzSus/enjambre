@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import AppShell from './layouts/AppShell';
+import SplashScreen from './components/SplashScreen';
 
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
 const RunPage = lazy(() => import('./pages/RunPage'));
@@ -15,8 +16,10 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
+  const [ready, setReady] = useState(false);
   return (
     <QueryClientProvider client={queryClient}>
+      {!ready && <SplashScreen onDone={() => setReady(true)} />}
       <BrowserRouter>
         <Suspense fallback={null}>
           <Routes>
