@@ -7,8 +7,8 @@ const PURPLE = '#8b5cf6';
 const AMBER = '#ffb020';
 const MODES = [
   { id: 'parallel', label: 'Paralelo', ready: true },
-  { id: 'sequential', label: 'Secuencial', ready: false },
-  { id: 'debate', label: 'Debate', ready: false },
+  { id: 'sequential', label: 'Secuencial', ready: true },
+  { id: 'debate', label: 'Debate', ready: true },
 ];
 
 export default function RunPage() {
@@ -31,7 +31,7 @@ export default function RunPage() {
 
   function launch() {
     if (!prompt.trim() || chosen.length === 0) return;
-    run.mutate({ prompt, agents: chosen, save });
+    run.mutate({ prompt, agents: chosen, save, mode });
   }
 
   const successPct = report && report.runs.length

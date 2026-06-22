@@ -38,6 +38,7 @@ from pydantic import BaseModel
 from . import config, sessions, stats, workspace
 from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
+from .multiagent import MODES, MultiAgent, MultiAgentReport
 from .orchestrator import Orchestrator
 from .registry import Agent, Registry
 
@@ -48,6 +49,7 @@ class RunRequest(BaseModel):
     max_tokens: int = 1024
     redact: bool = True
     save: bool = False
+    mode: str = "parallel"  # parallel (Orchestrator) | sequential | debate (MultiAgent)
 
 
 class ContextRequest(BaseModel):
@@ -88,6 +90,23 @@ class AgentPatch(BaseModel):
 class KeyIn(BaseModel):
     provider: str
     key: str
+
+
+def _multiagent_out(report: MultiAgentReport) -> dict[str, Any]:
+    """Aplana un MultiAgentReport (candidatos finales) a la forma 'runs' del /run."""
+    runs = [
+        {
+            "agent": c.agent, "provider": c.provider, "model": c.model,
+            "result": {
+                "provider": c.provider, "model": c.model, "text": c.text,
+                "usage": {"input_tokens": 0, "output_tokens": 0},
+                "cost_usd": c.cost_usd, "latency_ms": 0, "error": c.error,
+            },
+        }
+        for c in report.final
+    ]
+    return {"prompt": "", "mode": report.mode, "runs": runs,
+            "warnings": list(report.warnings), "total_cost_usd": report.total_cost_usd}
 
 
 def _resolve_roots(allowed_roots: list[str] | None) -> list[Path] | None:
@@ -250,24 +269,46 @@ def create_app(*, registry: Registry | None = None,
 
     @app.post("/run")
     async def run(req: RunRequest) -> dict[str, Any]:
-        bus.emit("run.start", message=f"prompt ({len(req.prompt)} chars)",
+        if req.mode not in MODES:
+            raise HTTPException(status_code=400,
+                                detail=f"modo {req.mode!r}; validos: {', '.join(MODES)}")
+        bus.emit("run.start", message=f"prompt ({len(req.prompt)} chars) [{req.mode}]",
                  agents=req.agents)
-        report = await _orch(_registry()).run(
-            req.prompt, agents=req.agents, max_tokens=req.max_tokens,
-            redact=req.redact)
-        for w in report.warnings:
+
+        if req.mode == "parallel":
+            report = await _orch(_registry()).run(
+                req.prompt, agents=req.agents, max_tokens=req.max_tokens,
+                redact=req.redact)
+            out: dict[str, Any] = asdict(report)
+            out["total_cost_usd"] = report.total_cost_usd
+            runs_for_log = [(r.agent, r.provider, r.result.ok, r.result.error,
+                             r.result.cost_usd) for r in report.runs]
+            save_report: Any = report
+        else:
+            # MultiAgent (Fase 3): sequential | debate | vote. Respeta la seleccion.
+            reg = _registry()
+            if req.agents is not None:
+                reg = Registry([a for a in reg.agents if a.name in set(req.agents)])
+            ma = MultiAgent(reg, keys=_effective_keys(), client=client,
+                            max_tokens=req.max_tokens)
+            report = await ma.run(req.mode, req.prompt, review=False)
+            out = _multiagent_out(report)
+            runs_for_log = [(r["agent"], r["provider"], r["result"]["error"] is None,
+                             r["result"]["error"], r["result"]["cost_usd"])
+                            for r in out["runs"]]
+            save_report = report
+
+        for w in out.get("warnings", []):
             bus.emit("run.warning", level="warn", message=w)
-        for r in report.runs:
-            ok = r.result.ok
-            bus.emit("agent.done", level="info" if ok else "error", agent=r.agent,
-                     message="ok" if ok else (r.result.error or "error"),
-                     provider=r.provider, cost_usd=r.result.cost_usd)
-        bus.emit("run.done", message=f"{len(report.ok_runs)}/{len(report.runs)} ok",
-                 cost_usd=report.total_cost_usd)
-        out: dict[str, Any] = asdict(report)
-        out["total_cost_usd"] = report.total_cost_usd
-        if req.save and report.runs:
-            out["session_id"] = sessions.save(report)
+        for agent, provider, ok, err, cost in runs_for_log:
+            bus.emit("agent.done", level="info" if ok else "error", agent=agent,
+                     message="ok" if ok else (err or "error"), provider=provider,
+                     cost_usd=cost)
+        n_ok = sum(1 for *_, ok, _, _ in runs_for_log if ok)
+        bus.emit("run.done", message=f"{n_ok}/{len(runs_for_log)} ok",
+                 cost_usd=out["total_cost_usd"])
+        if req.save and out["runs"]:
+            out["session_id"] = sessions.save(save_report)
         return out
 
     @app.get("/sessions")

@@ -61,6 +61,7 @@ export interface RunInput {
   prompt: string;
   agents?: string[];
   save?: boolean;
+  mode?: string;
 }
 
 export function useRun() {

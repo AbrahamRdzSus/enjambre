@@ -219,3 +219,30 @@ def test_set_key_disabled_when_keys_injected():
 def test_set_key_unknown_provider():
     c = TestClient(create_app(registry=_reg()))
     assert c.post("/keys", json={"provider": "nope", "key": "x"}).status_code == 400
+
+
+# --- modos multiagente (sequential/debate via MultiAgent) ------------------
+def _reg2():
+    return Registry([
+        Agent(name="a-openai", provider="openai", model="gpt-4o-mini"),
+        Agent(name="a-anthropic", provider="anthropic", model="claude-sonnet-4-6"),
+    ])
+
+
+def test_run_sequential_mode():
+    c = TestClient(create_app(registry=_reg2(), keys=KEYS, client=mock_api.make_client()))
+    r = c.post("/run", json={"prompt": "refactor", "mode": "sequential"})
+    body = r.json()
+    assert r.status_code == 200 and body["mode"] == "sequential"
+    assert len(body["runs"]) == 2 and body["total_cost_usd"] > 0
+
+
+def test_run_debate_mode():
+    c = TestClient(create_app(registry=_reg2(), keys=KEYS, client=mock_api.make_client()))
+    body = c.post("/run", json={"prompt": "disena", "mode": "debate"}).json()
+    assert body["mode"] == "debate" and len(body["runs"]) == 2
+
+
+def test_run_invalid_mode():
+    c = TestClient(create_app(registry=_reg2(), keys=KEYS, client=mock_api.make_client()))
+    assert c.post("/run", json={"prompt": "x", "mode": "nope"}).status_code == 400
