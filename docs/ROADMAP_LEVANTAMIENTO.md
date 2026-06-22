@@ -15,8 +15,9 @@
 - [x] **externalBin**: `tauri/tauri.conf.json` `bundle.externalBin: binaries/enjambre-sidecar`.
 - [x] **Spawn automatico**: `tauri/src/lib.rs` arranca el sidecar (SIDECAR_PORT=8000) en setup y lo mata en ExitRequested (tauri-plugin-shell).
 - [x] **`cargo tauri build`** full -> **instalador NSIS `ENJAMBRE_0.5.0_x64-setup.exe` (28.9MB)** en `tauri/target/release/bundle/nsis/`.
-- [ ] **PENDIENTE — directorio de datos de usuario:** el sidecar congelado usa cwd para `agents/registered.json` y `.enjambre/`. Instalado en Program Files (read-only) NO podra escribir -> agentes/keys/sesiones no persisten. FIX: mover esos paths a `%APPDATA%/enjambre` (platformdirs) en config/registry/sessions. **Hacer antes de distribuir.**
+- [x] **Directorio de datos de usuario:** `enjambre.paths.data_dir()` -> `%APPDATA%/enjambre` (override `ENJAMBRE_DATA_DIR`). registry/sessions/projects/stats persisten ahi (escribible). Registry.load() sin archivo -> 4 agentes por defecto. Instalador rehorneado con el sidecar corregido.
 - [ ] (Opcional) **Firma de codigo** Windows Authenticode (~$200/año) para evitar SmartScreen.
+- FASE B COMPLETA: `ENJAMBRE_0.5.0_x64-setup.exe` instalable, sidecar auto, datos persistentes.
 
 ## Fase C — Landing + web deploy
 - [ ] **Landing** publica de ENJAMBRE (assets en `diseno/assets/enjambre`, "logos y landings"). Stack: React/Vite + Magic UI/Aceternity (look cyber). 
