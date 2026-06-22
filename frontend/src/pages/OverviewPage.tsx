@@ -1,25 +1,25 @@
 import { useAgents, useProviders, useStats } from '../api/hooks';
 import HexSwarm from '../components/HexSwarm';
+import StatCard from '../components/StatCard';
+import { ProviderCostBars, ProviderTokenDonut } from '../components/UsageCharts';
 
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="rounded-xl p-4 border"
-      style={{
-        background: 'var(--bg-card)',
-        borderColor: 'var(--border)',
-        boxShadow: 'var(--shadow-card)',
-      }}
-    >
-      {children}
-    </div>
-  );
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(Math.round(n));
 }
 
 export default function OverviewPage() {
   const agents = useAgents();
   const providers = useProviders();
   const stats = useStats();
+
+  const enabled = (agents.data ?? []).filter((a) => a.enabled).length;
+  const total = agents.data?.length ?? 0;
+  const tallies = Object.values(stats.data?.by_provider ?? {});
+  const runs = tallies.reduce((s, t) => s + t.runs, 0);
+  const ok = tallies.reduce((s, t) => s + t.ok, 0);
+  const success = runs > 0 ? (ok / runs) * 100 : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,9 +32,8 @@ export default function OverviewPage() {
 
       {/* Hero: viz hexagonal del enjambre */}
       <div
-        className="rounded-2xl border relative overflow-hidden"
+        className="gradient-border relative overflow-hidden"
         style={{
-          borderColor: 'var(--border)',
           background:
             'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.10), transparent 60%), var(--bg-raised)',
           padding: 8,
@@ -43,36 +42,35 @@ export default function OverviewPage() {
         <HexSwarm size={440} />
       </div>
 
-      {/* Resumen rapido */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <p className="text-xs" style={{ color: 'var(--fg-mute)' }}>Agentes habilitados</p>
-          <p className="text-2xl font-semibold" style={{ color: 'var(--purple-soft)' }}>
-            {agents.data?.filter((a) => a.enabled).length ?? '—'}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-xs" style={{ color: 'var(--fg-mute)' }}>Sesiones guardadas</p>
-          <p className="text-2xl font-semibold" style={{ color: 'var(--fg)' }}>
-            {stats.data?.sessions ?? '—'}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-xs" style={{ color: 'var(--fg-mute)' }}>Costo acumulado</p>
-          <p className="text-2xl font-semibold" style={{ color: 'var(--amber)' }}>
-            ${(stats.data?.total_cost_usd ?? 0).toFixed(4)}
-          </p>
-        </Card>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Agentes activos" value={enabled} accent="var(--purple-soft)" hint={`de ${total} registrados`} />
+        <StatCard label="Sesiones" value={stats.data?.sessions ?? 0} accent="var(--fg)" />
+        <StatCard label="Tokens" value={stats.data?.total_tokens ?? 0} format={fmtTokens} accent="var(--purple-soft)" />
+        <StatCard label="Costo acumulado" value={stats.data?.total_cost_usd ?? 0} format={(n) => `$${n.toFixed(4)}`} accent="var(--amber)" />
+      </div>
+
+      {/* Charts */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="glass p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--fg-mute)' }}>Costo por proveedor</h2>
+            <span className="text-xs" style={{ color: 'var(--amber)' }}>{success.toFixed(1)}% éxito</span>
+          </div>
+          <ProviderCostBars stats={stats.data} />
+        </div>
+        <div className="glass p-4">
+          <h2 className="text-sm font-semibold mb-2" style={{ color: 'var(--fg-mute)' }}>Tokens por proveedor</h2>
+          <ProviderTokenDonut stats={stats.data} />
+        </div>
       </div>
 
       {/* Agentes */}
       <section>
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-mute)' }}>
-          AGENTES
-        </h2>
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-mute)' }}>AGENTES</h2>
         <div className="grid grid-cols-2 gap-4">
           {(agents.data ?? []).map((a) => (
-            <Card key={a.name}>
+            <div key={a.name} className="glass p-4">
               <div className="flex items-center justify-between">
                 <span className="font-semibold" style={{ color: 'var(--fg)' }}>{a.name}</span>
                 <span
@@ -89,21 +87,17 @@ export default function OverviewPage() {
               <p className="text-xs mt-2" style={{ color: 'var(--fg-mute)' }}>
                 {a.role} · {a.provider}/{a.model || 'default'}
               </p>
-            </Card>
+            </div>
           ))}
           {agents.data?.length === 0 && (
-            <p className="text-sm" style={{ color: 'var(--fg-faint)' }}>
-              Sin agentes registrados.
-            </p>
+            <p className="text-sm" style={{ color: 'var(--fg-faint)' }}>Sin agentes registrados.</p>
           )}
         </div>
       </section>
 
       {/* API Keys (BYOK) */}
       <section>
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-mute)' }}>
-          API KEYS (BYOK)
-        </h2>
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-mute)' }}>API KEYS (BYOK)</h2>
         <div className="flex flex-wrap gap-2">
           {(providers.data ?? []).map((p) => (
             <span
