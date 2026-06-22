@@ -104,6 +104,19 @@ body {
   opacity: 0.6;
 }
 
+/* Interacción (ui-ux-pro-max): cursor, press-feedback, transiciones suaves. */
+button:not(:disabled) { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button { transition: transform 160ms var(--ease), background 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease); }
+button:not(:disabled):active { transform: scale(0.97); }
+
+/* Cifras tabulares: evita el salto de ancho en contadores animados/datos. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Skeleton de carga (progressive-loading). */
+@keyframes enj-shimmer { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.85; } }
+.skeleton { background: var(--bg-card); border-radius: var(--r-md); animation: enj-shimmer 1.4s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

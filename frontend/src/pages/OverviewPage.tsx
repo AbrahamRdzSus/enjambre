@@ -44,10 +44,18 @@ export default function OverviewPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Agentes activos" value={enabled} accent="var(--purple-soft)" hint={`de ${total} registrados`} />
-        <StatCard label="Sesiones" value={stats.data?.sessions ?? 0} accent="var(--fg)" />
-        <StatCard label="Tokens" value={stats.data?.total_tokens ?? 0} format={fmtTokens} accent="var(--purple-soft)" />
-        <StatCard label="Costo acumulado" value={stats.data?.total_cost_usd ?? 0} format={(n) => `$${n.toFixed(4)}`} accent="var(--amber)" />
+        {stats.isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton" style={{ height: 84 }} />
+          ))
+        ) : (
+          <>
+            <StatCard label="Agentes activos" value={enabled} accent="var(--purple-soft)" hint={`de ${total} registrados`} />
+            <StatCard label="Sesiones" value={stats.data?.sessions ?? 0} accent="var(--fg)" />
+            <StatCard label="Tokens" value={stats.data?.total_tokens ?? 0} format={fmtTokens} accent="var(--purple-soft)" />
+            <StatCard label="Costo acumulado" value={stats.data?.total_cost_usd ?? 0} format={(n) => `$${n.toFixed(4)}`} accent="var(--amber)" />
+          </>
+        )}
       </div>
 
       {/* Charts */}

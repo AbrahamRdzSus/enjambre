@@ -42,7 +42,7 @@ export default function StatCard({ label, value, format, accent = 'var(--purple-
       <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--fg-faint)' }}>
         {label}
       </span>
-      <span className="text-2xl font-semibold" style={{ color: accent, fontFamily: 'var(--font-mono)' }}>
+      <span className="text-2xl font-semibold tnum" style={{ color: accent, fontFamily: 'var(--font-mono)' }}>
         {shown}
       </span>
       {hint && <span className="text-xs" style={{ color: 'var(--fg-mute)' }}>{hint}</span>}

@@ -27,7 +27,7 @@ function useHealth() {
 function Metric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="flex flex-col items-end leading-tight">
-      <span className="text-sm font-semibold" style={{ color, fontFamily: 'var(--font-mono)' }}>{value}</span>
+      <span className="text-sm font-semibold tnum" style={{ color, fontFamily: 'var(--font-mono)' }}>{value}</span>
       <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--fg-faint)' }}>{label}</span>
     </div>
   );
