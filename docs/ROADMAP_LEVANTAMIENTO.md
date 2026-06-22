@@ -11,11 +11,11 @@
 - [ ] **Replicar el lenguaje del cockpit en las demas pestañas** (Lanzar/Logs/Proyectos/Estadisticas/Agentes).
 
 ## Fase B — Instalador desktop (doble-click)
-Hoy el .exe es standalone y el sidecar se corre aparte. Para un instalador real:
-- [ ] **PyInstaller**: congelar el sidecar (`enjambre.api`) a binario unico (ya hay `sidecar/build.py` de patron en el skeleton).
-- [ ] **externalBin**: declarar el binario en `tauri/tauri.conf.json` (`bundle.externalBin`).
-- [ ] **Spawn automatico**: en `tauri/src/lib.rs`, arrancar el sidecar al abrir + health-check + apagarlo al cerrar (patron Obsidia Eye `tauri/src/lib.rs`).
-- [ ] **`cargo tauri build`** full (NSIS) -> instalador `.exe` (los iconos ya estan).
+- [x] **PyInstaller**: sidecar congelado (`sidecar_entry.py` -> `enjambre.serve`) -> `enjambre-sidecar.exe` (26MB), verificado.
+- [x] **externalBin**: `tauri/tauri.conf.json` `bundle.externalBin: binaries/enjambre-sidecar`.
+- [x] **Spawn automatico**: `tauri/src/lib.rs` arranca el sidecar (SIDECAR_PORT=8000) en setup y lo mata en ExitRequested (tauri-plugin-shell).
+- [x] **`cargo tauri build`** full -> **instalador NSIS `ENJAMBRE_0.5.0_x64-setup.exe` (28.9MB)** en `tauri/target/release/bundle/nsis/`.
+- [ ] **PENDIENTE — directorio de datos de usuario:** el sidecar congelado usa cwd para `agents/registered.json` y `.enjambre/`. Instalado en Program Files (read-only) NO podra escribir -> agentes/keys/sesiones no persisten. FIX: mover esos paths a `%APPDATA%/enjambre` (platformdirs) en config/registry/sessions. **Hacer antes de distribuir.**
 - [ ] (Opcional) **Firma de codigo** Windows Authenticode (~$200/año) para evitar SmartScreen.
 
 ## Fase C — Landing + web deploy
