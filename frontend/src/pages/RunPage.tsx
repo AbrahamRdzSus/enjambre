@@ -47,7 +47,7 @@ export default function RunPage() {
         </h1>
       </header>
 
-      <div className="grid gap-5" style={{ gridTemplateColumns: '1.5fr 0.9fr' }}>
+      <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)' }}>
         {/* Columna izquierda: prompt + agentes + modo */}
         <div className="flex flex-col gap-4">
           <textarea
@@ -130,58 +130,58 @@ export default function RunPage() {
           </div>
         </div>
 
-        {/* Columna derecha: anillo de progreso */}
-        <div className="glass flex flex-col items-center justify-center gap-3 p-6">
-          <CircularProgress
-            indeterminate={run.isPending}
-            value={successPct}
-            label={run.isPending ? 'corriendo' : 'éxito'}
-          />
-          <p className="text-xs text-center" style={{ color: 'var(--fg-mute)' }}>
-            {run.isPending
-              ? `Consultando ${chosen.length} agente(s) en ${mode}...`
-              : report
-                ? `${report.runs.filter((r) => !r.result.error).length}/${report.runs.length} ok · $${report.total_cost_usd.toFixed(6)}`
-                : 'Selecciona agentes y lanza el enjambre'}
-          </p>
+        {/* Columna derecha: progreso + salidas (panel tipo chat) */}
+        <div className="glass flex flex-col gap-4 p-5" style={{ maxHeight: 640, overflowY: 'auto' }}>
+          <div className="flex flex-col items-center gap-2">
+            <CircularProgress
+              indeterminate={run.isPending}
+              value={successPct}
+              label={run.isPending ? 'corriendo' : 'éxito'}
+            />
+            <p className="text-xs text-center" style={{ color: 'var(--fg-mute)' }}>
+              {run.isPending
+                ? `Consultando ${chosen.length} agente(s) en ${mode}...`
+                : report
+                  ? `${report.runs.filter((r) => !r.result.error).length}/${report.runs.length} ok · $${report.total_cost_usd.toFixed(6)}`
+                  : 'Selecciona agentes y lanza el enjambre'}
+            </p>
+          </div>
+
+          {report && (
+            <div className="flex flex-col gap-3 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+              {report.warnings.map((w) => (
+                <p key={w} className="text-xs" style={{ color: 'var(--warn)' }}>⚠ {w}</p>
+              ))}
+              {report.session_id && (
+                <p className="text-[11px]" style={{ color: 'var(--fg-faint)' }}>sesión {report.session_id}</p>
+              )}
+              {report.runs.map((r) => (
+                <div key={r.agent} className="rounded-lg p-3"
+                     style={{ background: 'var(--bg-app)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-xs" style={{ color: 'var(--purple-soft)' }}>{r.agent}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--fg-faint)', fontFamily: 'var(--font-mono)' }}>
+                      {r.provider}/{r.model}
+                    </span>
+                  </div>
+                  {r.result.error ? (
+                    <p className="text-xs" style={{ color: 'var(--alert)' }}>{r.result.error}</p>
+                  ) : (
+                    <>
+                      <p className="text-[10px] mb-1" style={{ color: 'var(--fg-faint)' }}>
+                        {r.result.latency_ms} ms · ${r.result.cost_usd.toFixed(6)}
+                      </p>
+                      <pre className="text-xs whitespace-pre-wrap" style={{ color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}>
+                        {r.result.text || '(respuesta vacia)'}
+                      </pre>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Resultados lado a lado */}
-      {report && (
-        <section className="flex flex-col gap-3">
-          {report.warnings.map((w) => (
-            <p key={w} className="text-xs" style={{ color: 'var(--warn)' }}>⚠ {w}</p>
-          ))}
-          {report.session_id && (
-            <p className="text-xs" style={{ color: 'var(--fg-faint)' }}>sesión {report.session_id}</p>
-          )}
-          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(1, report.runs.length)}, minmax(0, 1fr))` }}>
-            {report.runs.map((r) => (
-              <div key={r.agent} className="glass p-4 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-sm" style={{ color: 'var(--purple-soft)' }}>{r.agent}</span>
-                  <span className="text-xs" style={{ color: 'var(--fg-faint)', fontFamily: 'var(--font-mono)' }}>
-                    {r.provider}/{r.model}
-                  </span>
-                </div>
-                {r.result.error ? (
-                  <p className="text-xs" style={{ color: 'var(--alert)' }}>{r.result.error}</p>
-                ) : (
-                  <>
-                    <p className="text-xs" style={{ color: 'var(--fg-faint)' }}>
-                      {r.result.latency_ms} ms · ${r.result.cost_usd.toFixed(6)}
-                    </p>
-                    <pre className="text-xs whitespace-pre-wrap" style={{ color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}>
-                      {r.result.text || '(respuesta vacia)'}
-                    </pre>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

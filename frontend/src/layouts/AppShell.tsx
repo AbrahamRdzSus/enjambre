@@ -2,9 +2,38 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users } from 'lucide-react';
 import { api } from '../api/client';
-import { useStats } from '../api/hooks';
+import { useAgents, useStats } from '../api/hooks';
 import ProjectSelector from '../components/ProjectSelector';
-import { useRunEvents } from '../stores/run-store';
+import { useRunEvents, useRunStore } from '../stores/run-store';
+
+const DOT: Record<string, string> = {
+  running: 'var(--amber)', ok: 'var(--ok)', error: 'var(--alert)',
+  enabled: 'var(--purple)', idle: 'var(--fg-faint)',
+};
+
+function SidebarAgents() {
+  const { data } = useAgents();
+  const status = useRunStore((s) => s.status);
+  const agents = data ?? [];
+  if (agents.length === 0) return null;
+  return (
+    <div className="px-3 pb-2">
+      <p className="eyebrow px-2 mb-2">Agentes</p>
+      <div className="flex flex-col gap-1">
+        {agents.slice(0, 6).map((a) => {
+          const st = status[a.name] ?? (a.enabled ? 'enabled' : 'idle');
+          return (
+            <div key={a.name} className="flex items-center gap-2 px-2 h-7 text-xs"
+                 style={{ color: 'var(--fg-mute)' }}>
+              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: DOT[st] }} />
+              <span className="truncate" style={{ fontFamily: 'var(--font-mono)' }}>{a.name}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const NAV = [
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
@@ -108,6 +137,7 @@ export default function AppShell() {
             </NavLink>
           ))}
         </nav>
+        <SidebarAgents />
         <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--border)' }}>
           <p className="eyebrow mb-1">local-first · BYOK</p>
           <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--fg-mute)' }}>
