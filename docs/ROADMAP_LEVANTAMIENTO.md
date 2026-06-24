@@ -30,14 +30,19 @@
 - FASE B COMPLETA: `ENJAMBRE_0.5.0_x64-setup.exe` instalable, sidecar auto, datos persistentes.
 
 ## Fase C — Landing + web deploy
-- [ ] **Landing** publica de ENJAMBRE (assets en `diseno/assets/enjambre`, "logos y landings"). Stack: React/Vite + Magic UI/Aceternity (look cyber). 
-- [ ] **Deploy a Vercel** (la landing es estatica -> facil).
+- [x] **Landing** publica en `landing/` (React/Vite + Tailwind4 + Magic UI: Particles +
+  BorderBeam, look cyber). Reusa la identidad (`diseno/assets/enjambre`) y logos. Secciones:
+  Hero (HexCore + CTA descarga), Features (BYOK/local-first/no-training/multi-proveedor/gate
+  humano), HowItWorks, Download, Footer. build verde (`npm run build`).
+- [ ] **Deploy a Vercel**: PREPARADO (`landing/vercel.json`). Pendiente que el usuario corra
+  `cd landing && vercel` (login interactivo) + `vercel --prod`.
 - NOTA: el **dashboard NO se hostea** (es local-first, necesita el sidecar local) -> se distribuye como instalador. Solo la landing va a web.
 
 ## Fase D — Release / distribucion
-- [ ] **GitHub Release** con el instalador adjunto + changelog.
-- [ ] **Auto-update**: `tauri-plugin-updater` (Eye ya lo usa) + endpoint de releases.
-- [ ] **Pagina de descarga** en la landing apuntando al release.
+- [x] **GitHub Release** `v0.5.0` con el instalador `ENJAMBRE_0.5.0_x64-setup.exe` adjunto +
+  `CHANGELOG.md`. Release normal (latest) para que la landing linkee `/releases/latest/download`.
+- [x] **Pagina de descarga** en la landing apuntando al release (`landing/src/links.ts`).
+- [ ] **Auto-update**: `tauri-plugin-updater` (Eye ya lo usa) + endpoint de releases. Pendiente.
 
 ## Fase E — Pre-venta / negocio (si aplica)
 - [x] BYOK + local-first + no-training (diferenciador de privacidad ya implementado).

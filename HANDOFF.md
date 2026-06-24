@@ -42,9 +42,11 @@
    `components/overview/` MetricsRow/Conversations/FilePanel/BottomRow cableados a
    hooks reales; HexSwarm como orquestacion live; sin mock). Gate:
    `docs/gates/faseA-cockpit-overview.md`. HECHO tambien la replica del lenguaje cockpit
-   en las 5 pestañas restantes via chrome reutilizable `components/ui/Panel.tsx`
-   (Panel + PageHeader). PENDIENTE de Fase A: opcional, el chrome sidebar/topbar del
-   mockup. Luego Fases C+D (landing + release).
+   en las 5 pestañas restantes via chrome reutilizable `components/ui/Panel.tsx`.
+   HECHAS Fases C+D: landing publica en `landing/` (React/Vite + Magic UI) y GitHub
+   Release `v0.5.0` con el instalador + `CHANGELOG.md`. PENDIENTE: deploy de la landing
+   a Vercel (lo corre el usuario: `cd landing && vercel`), opcional chrome sidebar/topbar,
+   y auto-update (`tauri-plugin-updater`).
 2. Fases C+D levantamiento: landing estatica en Vercel + GitHub Release con el
    instalador ya horneado + `tauri-plugin-updater` (Eye ya lo usa).
 Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`

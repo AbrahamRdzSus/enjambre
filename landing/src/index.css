@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/*
+ * Identidad ENJAMBRE (tokens de diseno/assets/enjambre/enjambre.css):
+ * negro obsidiana + morado electrico + ambar IA. Look cyber, oscuro, premium.
+ */
+:root {
+  --bg: #050509;
+  --panel: #080d16;
+  --panel-2: #0d111c;
+  --line: #211338;
+  --line-2: #2a2140;
+  --purple: #8b5cf6;
+  --purple-2: #a78bfa;
+  --amber: #ffb020;
+  --amber-2: #ffc637;
+  --green: #22c55e;
+  --fg: #f8fafc;
+  --fg-2: #94a3b8;
+  --fg-3: #64748b;
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-muted-foreground: var(--fg-2);
+  --color-primary: var(--purple);
+  --color-accent: var(--amber);
+  --color-border: var(--line);
+  --color-success: var(--green);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  color: var(--fg);
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(139, 92, 246, 0.1), transparent 70%),
+    radial-gradient(45% 40% at 85% 90%, rgba(255, 176, 32, 0.06), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+
+.glass {
+  background: color-mix(in srgb, var(--panel-2) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.wordmark {
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--purple-2), var(--amber));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--purple-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
