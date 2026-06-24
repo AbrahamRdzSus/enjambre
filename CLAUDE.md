@@ -7,18 +7,22 @@
 ENJAMBRE: orquestador local-first de agentes IA de codificacion (Grok/Claude/
 Codex/Gemini/Jules en paralelo) con dashboard, comparacion de salidas y gate de
 aprobacion humana. Capa de orquestacion/UI — NO entrena ni revende modelos (BYOK).
-Stack: Python + Streamlit (GUI) + scripts PowerShell (hub Windows). Apache-2.0.
+Stack: core Python (`src/enjambre`) + sidecar HTTP FastAPI + frontend React/Vite +
+app de escritorio Tauri 2; Streamlit (`app.py`) es prototipo. Apache-2.0.
 
 ## Estado
-Core REAL en `src/enjambre/` (~2100 LOC, 98 tests verdes): Fases 1-5 del ROADMAP
-implementadas — orquestacion paralela async con gate de secretos, multiagente
-(roles architect/builder; modos parallel/sequential/debate/vote; review por gate
-congelado), workspace seguro (ChangeSet.apply bajo aprobacion + path-traversal +
-secret-scan), sandbox docker `--network none`, github/PR, Provider SDK extensible.
-`app.py` (Streamlit) YA consume el core real; es **prototipo de UI**, no el destino:
-el plan es migrar a app real **Tauri 2 + React** (shell desde `obsidia-skeleton-desktop`,
+Core REAL en `src/enjambre/` (~3450 LOC, 29 modulos, 170 tests verdes): Fases 1-5
+del ROADMAP implementadas (Fase 6/SDK parcial) — orquestacion paralela async con
+gate de secretos, multiagente (roles architect/builder; modos parallel/sequential/
+debate/vote; review por gate congelado), workspace seguro (ChangeSet.apply bajo
+aprobacion + path-traversal + secret-scan), sandbox docker `--network none`,
+github/PR, Provider SDK extensible. Consumo: CLI `enjambre`, sidecar `enjambre.api`
+(FastAPI, 20 endpoints + `/logs/stream` SSE), frontend React y app Tauri 2
+(instalador NSIS `ENJAMBRE_0.5.0_x64-setup.exe`, sidecar PyInstaller auto-spawn).
+`app.py` (Streamlit) consume el core real pero es **prototipo de UI**, no el destino:
+el destino es **Tauri 2 + React** (shell desde `obsidia-skeleton-desktop`,
 arquitectura de referencia tipo Obsidia Eye) con `src/enjambre` como sidecar Python.
-Ver `REPO.md`, `docs/ROADMAP.md`, `docs/HANDOFF.md`.
+Ver `REPO.md`, `HANDOFF.md`, `docs/ROADMAP.md`, `docs/ROADMAP_LEVANTAMIENTO.md`.
 
 ## Reglas duras (ENJAMBRE)
 - Idioma: ESPANOL. Progreso/info en texto plano y tablas, SIN emojis/Unicode.
@@ -55,7 +59,7 @@ cd tauri; cargo tauri dev     # ventana nativa | cargo tauri build = .exe/instal
 ## Como probar
 ```
 pip install -e ".[dev]"
-pytest -q        # 98 tests
+pytest -q        # 170 tests
 ruff check .     # lint (E/F/I/UP/B); ambos corren en CI (.github/workflows/ci.yml)
 # Antes de dar por hecho: revisar que ninguna salida escriba archivos sin aprobacion.
 ```

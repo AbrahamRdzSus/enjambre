@@ -6,8 +6,8 @@
 - **Nombre**: enjambre
 - **Audiencia**: ambos (open-source Apache-2.0; uso interno Obsidia Studio)
 - **Tipo**: herramienta
-- **Estado**: wip (MVP simulado; orquestacion real pendiente)
-- **Stack**: Python + Streamlit (GUI) + PowerShell (hub Windows)
+- **Estado**: wip (core real Fases 1-5, 170 tests; en levantamiento a producto distribuible)
+- **Stack**: core Python (`src/enjambre`) + sidecar FastAPI + frontend React/Vite + Tauri 2; Streamlit prototipo
 - **Despliegue**: local-first (corre en la maquina del usuario; BYOK)
 
 ## Para que sirve
@@ -21,12 +21,14 @@ aprobacion humana. Capa de orquestacion/UI; NO entrena ni revende modelos.
 - Esqueleto de origen: **Esqueleto-Desktop** (obsidia-skeleton-desktop, linaje Eye).
   Enjambre es un PROGRAMA DE ESCRITORIO de Obsidia: el objetivo de roadmap es adoptar
   el shell del esqueleto (Tauri + React) con el nucleo Python actual como sidecar/motor,
-  sustituyendo Streamlit. Hoy el stack sigue siendo Python/Streamlit (no migrado aun).
+  sustituyendo Streamlit. Migracion EN CURSO: ya existe frontend React/Vite + app Tauri 2
+  (instalador NSIS) sobre el sidecar; Streamlit queda como prototipo.
 - Relacionado: Obsidia Eye (rama Studio); solapa conceptualmente con Obsidia Hub
   y oh-my-claudecode. Blueprint de arquitectura: docs/ARCHITECT_LOOP_BLUEPRINT.md.
 
 ## Notas
 - Obsidia Studio. Apache-2.0, open-source (BYOK = el usuario trae sus claves).
 - PENDIENTE seguridad: rotar 2 claves filtradas en versiones viejas (OpenAI/Gemini).
-- Lo primero que debe saber alguien nuevo: el MVP actual es SIMULADO; el siguiente
-  trabajo real es el loop arquitecto/builder (ver blueprint + ROADMAP Fase 3).
+- Lo primero que debe saber alguien nuevo: el core es REAL (no simulado); Fases 1-5
+  del ROADMAP hechas. El frente abierto es el levantamiento a producto: terminar el
+  diseño (cockpit v0) + landing/release (ver docs/ROADMAP_LEVANTAMIENTO.md).
