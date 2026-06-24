@@ -5,6 +5,7 @@ import {
   usePreviewChanges,
   useWorkspaceFiles,
 } from '../api/hooks';
+import { Panel, PageHeader } from '../components/ui/Panel';
 
 export default function ProjectsPage() {
   const [root, setRoot] = useState('.');
@@ -20,15 +21,13 @@ export default function ProjectsPage() {
 
   const diff = preview.data?.diffs[target];
   const change = { root: activeRoot ?? root, changes: [{ path: target, new_content: content }] };
+  const inputStyle = {
+    background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--fg)',
+  };
 
   return (
-    <div className="flex flex-col gap-5">
-      <header>
-        <p className="eyebrow">Proyectos & Archivos</p>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--fg)' }}>
-          Workspace seguro
-        </h1>
-      </header>
+    <div className="flex flex-col gap-4">
+      <PageHeader eyebrow="Proyectos & Archivos" title="Workspace seguro" />
 
       {/* Selector de raiz */}
       <div className="flex gap-2">
@@ -36,24 +35,23 @@ export default function ProjectsPage() {
           value={root}
           onChange={(e) => setRoot(e.target.value)}
           placeholder="Ruta del proyecto local"
-          className="flex-1 rounded-lg px-3 h-10 text-sm border"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--fg)' }}
+          className="h-10 flex-1 rounded-lg border px-3 text-sm"
+          style={inputStyle}
         />
         <button
           type="button"
           onClick={() => setActiveRoot(root)}
-          className="px-4 h-10 rounded-lg text-sm font-medium"
-          style={{ background: 'rgba(139,92,246,0.16)', color: 'var(--purple-soft)' }}
+          className="h-10 rounded-lg bg-primary/15 px-4 text-sm font-medium text-primary"
         >
           Abrir
         </button>
       </div>
 
-      <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
         {/* Arbol de archivos */}
-        <div
-          className="glass p-3 flex flex-col gap-1"
-          style={{ maxHeight: 460, overflowY: 'auto' }}
+        <Panel
+          title="Archivos"
+          bodyClassName="flex flex-col gap-1 max-h-[460px] overflow-y-auto scrollbar-thin"
         >
           {files.isError && (
             <p className="text-xs" style={{ color: 'var(--alert)' }}>
@@ -61,48 +59,48 @@ export default function ProjectsPage() {
             </p>
           )}
           {activeRoot === null && (
-            <p className="text-xs" style={{ color: 'var(--fg-faint)' }}>Abre una carpeta.</p>
+            <p className="text-xs text-muted-foreground">Abre una carpeta.</p>
           )}
           {(files.data?.files ?? []).map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => setTarget(f)}
-              className="flex items-center gap-2 text-left text-xs px-2 py-1.5 rounded-md hover:bg-[var(--bg-raised)]"
-              style={{ color: f === target ? 'var(--amber-soft)' : 'var(--fg-mute)', fontFamily: 'var(--font-mono)' }}
+              className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left font-mono text-xs hover:bg-secondary/50 ${
+                f === target ? 'text-primary' : 'text-muted-foreground'
+              }`}
             >
               <FileText size={13} /> {f}
             </button>
           ))}
-        </div>
+        </Panel>
 
         {/* Editor + diff + aprobacion */}
-        <div className="flex flex-col gap-3">
+        <Panel title="Cambio propuesto" bodyClassName="flex flex-col gap-3">
           <input
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             placeholder="Ruta del archivo a cambiar (relativa a la raiz)"
-            className="rounded-lg px-3 h-10 text-sm border"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}
+            className="h-10 rounded-lg border px-3 font-mono text-sm"
+            style={inputStyle}
           />
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Contenido nuevo propuesto"
-            className="rounded-lg p-3 text-xs border resize-y"
-            style={{ minHeight: 140, background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}
+            className="resize-y rounded-lg border p-3 font-mono text-xs"
+            style={{ minHeight: 140, ...inputStyle }}
           />
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => preview.mutate(change)}
               disabled={!target}
-              className="flex items-center gap-2 px-4 h-9 rounded-lg text-sm disabled:opacity-50"
-              style={{ background: 'var(--bg-raised)', color: 'var(--fg-mute)' }}
+              className="flex h-9 items-center gap-2 rounded-lg bg-secondary px-4 text-sm text-muted-foreground disabled:opacity-50"
             >
               <Eye size={15} /> Previsualizar diff
             </button>
-            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--fg-mute)' }}>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input type="checkbox" checked={approved} onChange={(e) => setApproved(e.target.checked)} />
               apruebo aplicar (irreversible)
             </label>
@@ -110,7 +108,7 @@ export default function ProjectsPage() {
               type="button"
               onClick={() => apply.mutate({ ...change, approved })}
               disabled={!target || !approved}
-              className="flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-semibold disabled:opacity-50"
+              className="flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-semibold disabled:opacity-50"
               style={{ background: 'var(--amber)', color: '#1a1006' }}
             >
               <Check size={15} /> Aplicar
@@ -119,8 +117,8 @@ export default function ProjectsPage() {
 
           {diff !== undefined && (
             <pre
-              className="rounded-lg border p-3 text-xs whitespace-pre-wrap"
-              style={{ background: 'var(--bg-app)', borderColor: 'var(--border)', color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}
+              className="whitespace-pre-wrap rounded-lg border border-border p-3 font-mono text-xs"
+              style={{ background: 'var(--bg-app)', color: 'var(--fg)' }}
             >
               {diff || '(archivo nuevo o sin cambios)'}
             </pre>
@@ -143,7 +141,7 @@ export default function ProjectsPage() {
               {(apply.error as Error).message}
             </p>
           )}
-        </div>
+        </Panel>
       </div>
     </div>
   );

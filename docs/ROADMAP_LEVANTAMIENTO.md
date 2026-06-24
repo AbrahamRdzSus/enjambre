@@ -15,7 +15,10 @@
     orquestacion live. Sin mock (empty-states honestos). build+lint+react-doctor verdes.
     Gate: `docs/gates/faseA-cockpit-overview.md`.
   - [ ] sidebar/topbar del cockpit (chrome) si se quiere acercar mas al mockup.
-- [ ] **Replicar el lenguaje del cockpit en las demas pestañas** (Lanzar/Logs/Proyectos/Estadisticas/Agentes).
+- [x] **Replicar el lenguaje del cockpit en las demas pestañas**: chrome `Panel`/`PageHeader`
+  reutilizable (`components/ui/Panel.tsx`, header mono-uppercase tracked + borde) aplicado a
+  Lanzar/Logs/Proyectos/Estadisticas/Agentes; tokens semanticos y empty-states consistentes con
+  Overview. build+lint verdes, react-doctor 0 errores (28->26 issues, sin regresiones).
 
 ## Fase B — Instalador desktop (doble-click)
 - [x] **PyInstaller**: sidecar congelado (`sidecar_entry.py` -> `enjambre.serve`) -> `enjambre-sidecar.exe` (26MB), verificado.
