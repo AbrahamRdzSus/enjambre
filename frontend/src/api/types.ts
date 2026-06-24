@@ -65,6 +65,13 @@ export interface Project {
   created_at: string;
 }
 
+export interface Session {
+  id: string;
+  kind: string;
+  created_at: string;
+  prompt: string;
+}
+
 export interface LogEvent {
   ts: number;
   level: string;

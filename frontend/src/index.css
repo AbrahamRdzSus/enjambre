@@ -1,6 +1,31 @@
 @import "tailwindcss";
 
 /*
+ * @theme inline: aliasea los tokens semanticos (estilo shadcn) que usan los
+ * componentes portados del cockpit v0 a las vars de identidad de ENJAMBRE.
+ * Asi `text-muted-foreground`, `bg-primary/12`, `border-border`, etc. pintan con
+ * la paleta morado/ambar existente. Una sola fuente de verdad: las vars de :root.
+ */
+@theme inline {
+  --color-background: var(--bg-app);
+  --color-foreground: var(--fg);
+  --color-card: var(--bg-card);
+  --color-card-foreground: var(--fg);
+  --color-primary: var(--purple);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--bg-raised);
+  --color-secondary-foreground: var(--fg-mute);
+  --color-muted: var(--bg-raised);
+  --color-muted-foreground: var(--fg-mute);
+  --color-accent: var(--amber);
+  --color-accent-foreground: #1a1206;
+  --color-success: var(--ok);
+  --color-destructive: var(--alert);
+  --color-border: var(--border);
+  --color-ring: var(--purple);
+}
+
+/*
  * Identidad ENJAMBRE: oscuro, morado (agentes/enjambre) + ambar (accion/energia).
  * Sin logos de terceros (politica del proyecto). Hexagono/nodos = concepto enjambre.
  */
@@ -102,6 +127,31 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
 }
+
+/* Glass mas opaco para cards flotantes (agentes en la viz, paneles destacados). */
+.glass-strong {
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--bg-card) 90%, transparent),
+    color-mix(in srgb, var(--bg-raised) 88%, transparent));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--purple) 22%, transparent);
+  border-radius: var(--r-lg);
+}
+
+.glow-purple {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--purple) 25%, transparent),
+    0 0 24px -4px color-mix(in srgb, var(--purple) 40%, transparent);
+}
+.glow-amber {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--amber) 30%, transparent),
+    0 0 28px -2px color-mix(in srgb, var(--amber) 45%, transparent);
+}
+
+/* Scrollbar fino para paneles densos del cockpit (arbol de archivos, feeds). */
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--purple) 35%, transparent) transparent; }
+.scrollbar-thin::-webkit-scrollbar { width: 7px; height: 7px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--purple) 35%, transparent); border-radius: 999px; }
 
 /* Borde con gradiente morado->ambar (para acentos/hero). */
 .gradient-border {

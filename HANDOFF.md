@@ -37,10 +37,13 @@
   ENJAMBRE_DATA_DIR). registry/sessions/projects/stats persisten ahi.
 
 ## Siguiente paso
-1. Fase A levantamiento (diseño final): integrar el cockpit v0
-   (`diseno/frontend-v0-Cockpit.zip`) -> tokens shadcn + componentes a Vite/
-   Tailwind4 cableados a hooks reales (useAgents/useStats/useRun/useLogs);
-   replicar el lenguaje en las pestañas restantes.
+1. Fase A levantamiento (diseño final): integrar el cockpit v0. HECHO el slice
+   Overview (tokens shadcn via `@theme inline` + utilidades glass/glow en index.css;
+   `components/overview/` MetricsRow/Conversations/FilePanel/BottomRow cableados a
+   hooks reales; HexSwarm como orquestacion live; sin mock). Gate:
+   `docs/gates/faseA-cockpit-overview.md`. PENDIENTE: replicar el lenguaje cockpit en
+   las pestañas restantes (Lanzar/Logs/Proyectos/Stats/Agentes) y, opcional, el chrome
+   sidebar/topbar del mockup.
 2. Fases C+D levantamiento: landing estatica en Vercel + GitHub Release con el
    instalador ya horneado + `tauri-plugin-updater` (Eye ya lo usa).
 Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`

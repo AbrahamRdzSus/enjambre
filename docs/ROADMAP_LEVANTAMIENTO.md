@@ -7,7 +7,14 @@
 ## Fase A — Diseño final (EN CURSO)
 - [x] 6 pantallas con look glass + viz hexagonal + stat cards/charts + modos + entidad proyecto + estado live.
 - [x] Pulido: fondo texturizado, gauge, sparklines, efectos Magic UI (BorderBeam, Particles).
-- [ ] **Integrar el cockpit v0** (`diseno/frontend-v0-Cockpit.zip`): adoptar sus tokens shadcn + portar componentes (sidebar/topbar/metrics-row/orchestration/conversations/file-panel/bottom-row) a Vite/Tailwind4, cablear a hooks reales (useAgents/useStats/useRun/useLogs).
+- [~] **Integrar el cockpit v0** (`diseno/frontend-v0-Cockpit.zip`): EN CURSO.
+  - [x] Slice Overview: tokens shadcn mapeados a la identidad via `@theme inline` +
+    utilidades (`glass-strong`/`glow-*`/`scrollbar-thin`); portados MetricsRow,
+    Conversations (sesiones reales), FilePanel (workspace del proyecto activo) y
+    BottomRow (tokens/actividad/rendimiento) cableados a hooks reales; HexSwarm como
+    orquestacion live. Sin mock (empty-states honestos). build+lint+react-doctor verdes.
+    Gate: `docs/gates/faseA-cockpit-overview.md`.
+  - [ ] sidebar/topbar del cockpit (chrome) si se quiere acercar mas al mockup.
 - [ ] **Replicar el lenguaje del cockpit en las demas pestañas** (Lanzar/Logs/Proyectos/Estadisticas/Agentes).
 
 ## Fase B — Instalador desktop (doble-click)

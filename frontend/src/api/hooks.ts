@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
-import type { Agent, Project, Provider, RunReport, Stats, LogEvent } from './types';
+import type { Agent, Project, Provider, RunReport, Stats, LogEvent, Session } from './types';
 
 export function useProjects() {
   return useQuery({ queryKey: ['projects'], queryFn: () => api.get<Project[]>('/projects') });
@@ -66,6 +66,14 @@ export function useProviders() {
 
 export function useStats() {
   return useQuery({ queryKey: ['stats'], queryFn: () => api.get<Stats>('/stats') });
+}
+
+export function useSessions() {
+  return useQuery({
+    queryKey: ['sessions'],
+    queryFn: () => api.get<Session[]>('/sessions'),
+    refetchInterval: 5000,
+  });
 }
 
 export function useLogs(agent?: string) {

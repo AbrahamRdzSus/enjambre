@@ -1,15 +1,20 @@
-import { useAgents, useLogs, useProviders, useStats } from '../api/hooks';
+import { useNavigate } from 'react-router-dom';
+import { Users, ListChecks, FolderKanban, Coins, Wallet, Gauge } from 'lucide-react';
+import {
+  useAgents,
+  useLogs,
+  useProjects,
+  useSessions,
+  useStats,
+  useWorkspaceFiles,
+} from '../api/hooks';
+import { useProjectStore } from '../stores/project-store';
 import HexSwarm from '../components/HexSwarm';
-import StatCard from '../components/StatCard';
-import CircularProgress from '../components/CircularProgress';
 import { BorderBeam } from '../components/ui/border-beam';
-import { ProviderCostBars, ProviderTokenDonut } from '../components/UsageCharts';
-import { useRunStore } from '../stores/run-store';
-
-const DOT: Record<string, string> = {
-  running: 'var(--amber)', ok: 'var(--ok)', error: 'var(--alert)',
-  enabled: 'var(--purple)', idle: 'var(--fg-faint)',
-};
+import MetricsRow, { type Metric } from '../components/overview/MetricsRow';
+import Conversations from '../components/overview/Conversations';
+import FilePanel from '../components/overview/FilePanel';
+import BottomRow from '../components/overview/BottomRow';
 
 function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -17,166 +22,120 @@ function fmtTokens(n: number): string {
   return String(Math.round(n));
 }
 
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function OverviewPage() {
+  const navigate = useNavigate();
   const agents = useAgents();
-  const providers = useProviders();
+  const projects = useProjects();
   const stats = useStats();
   const logs = useLogs();
-  const runStatus = useRunStore((s) => s.status);
+  const sessions = useSessions();
 
-  const enabled = (agents.data ?? []).filter((a) => a.enabled).length;
-  const total = agents.data?.length ?? 0;
-  const tallies = Object.values(stats.data?.by_provider ?? {});
-  const runs = tallies.reduce((s, t) => s + t.runs, 0);
-  const ok = tallies.reduce((s, t) => s + t.ok, 0);
+  const activeId = useProjectStore((s) => s.activeId);
+  const activeRoot =
+    (projects.data ?? []).find((p) => p.id === activeId)?.root ?? null;
+  const workspace = useWorkspaceFiles(activeRoot ?? '', !!activeRoot);
+
+  const agentList = agents.data ?? [];
+  const enabled = agentList.filter((a) => a.enabled).length;
+  const totalAgents = agentList.length;
+  const agentPct = totalAgents > 0 ? (enabled / totalAgents) * 100 : 0;
+
+  const byProvider = Object.entries(stats.data?.by_provider ?? {});
+  const byAgent = Object.entries(stats.data?.by_agent ?? {});
+  const runs = byProvider.reduce((s, [, t]) => s + t.runs, 0);
+  const ok = byProvider.reduce((s, [, t]) => s + t.ok, 0);
   const success = runs > 0 ? (ok / runs) * 100 : 0;
-  const tokenBars = tallies.map((t) => t.input_tokens + t.output_tokens);
-  const costBars = tallies.map((t) => t.cost_usd);
-  const runBars = tallies.map((t) => t.runs);
+  const costToday = stats.data?.by_day?.[todayKey()] ?? 0;
+
+  const metrics: Metric[] = [
+    {
+      label: 'Agentes activos',
+      value: `${enabled} / ${totalAgents}`,
+      extra: `${agentPct.toFixed(0)}%`,
+      pct: agentPct,
+      icon: Users,
+    },
+    {
+      label: 'Sesiones',
+      value: String(stats.data?.sessions ?? 0),
+      extra: `${sessions.data?.length ?? 0} guardadas`,
+      tone: 'muted',
+      icon: ListChecks,
+    },
+    {
+      label: 'Proyectos',
+      value: String(projects.data?.length ?? 0),
+      tone: 'muted',
+      icon: FolderKanban,
+    },
+    {
+      label: 'Tokens usados',
+      value: fmtTokens(stats.data?.total_tokens ?? 0),
+      extra: `$${(stats.data?.total_cost_usd ?? 0).toFixed(2)} acumulado`,
+      icon: Coins,
+    },
+    {
+      label: 'Costo hoy',
+      value: `$${costToday.toFixed(2)}`,
+      tone: 'muted',
+      icon: Wallet,
+    },
+    {
+      label: 'Tasa de exito',
+      value: runs > 0 ? `${success.toFixed(1)}%` : '—',
+      pct: success,
+      icon: Gauge,
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <header>
+    <div className="flex flex-col gap-3">
+      <header className="px-1">
         <p className="eyebrow">Panel</p>
         <h1 className="text-2xl font-semibold" style={{ color: 'var(--fg)' }}>
           Tu equipo de IAs trabajando en paralelo
         </h1>
       </header>
 
-      {/* Hero: viz hexagonal + panel de estado (2 columnas, densifica el ancho) */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)' }}>
-        <div
-          className="gradient-border relative overflow-hidden flex items-center"
-          style={{
-            background:
-              'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.12), transparent 60%), var(--bg-raised)',
-            padding: 8,
-          }}
-        >
-          <HexSwarm size={400} />
+      <MetricsRow items={metrics} />
+
+      {/* Orquestacion (hex live) + sesiones recientes */}
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)' }}
+      >
+        <div className="relative flex items-center justify-center overflow-hidden glass p-4">
+          <div className="absolute left-4 top-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            Orquestacion del enjambre
+          </div>
+          <HexSwarm size={420} />
           <BorderBeam size={90} duration={8} />
         </div>
 
-        <div className="glass p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--fg-mute)' }}>ESTADO DEL ENJAMBRE</h2>
-            <CircularProgress value={success} size={72} label="éxito" />
-          </div>
-          <div className="flex flex-col gap-2">
-            {(agents.data ?? []).map((a) => {
-              const st = runStatus[a.name] ?? (a.enabled ? 'enabled' : 'idle');
-              return (
-                <div key={a.name} className="flex items-center gap-2 text-xs">
-                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: DOT[st] }} />
-                  <span style={{ color: 'var(--fg)' }}>{a.name}</span>
-                  <span className="ml-auto" style={{ color: 'var(--fg-faint)', fontFamily: 'var(--font-mono)' }}>
-                    {st === 'running' ? 'pensando' : st === 'enabled' ? a.provider : st}
-                  </span>
-                </div>
-              );
-            })}
-            {agents.data?.length === 0 && (
-              <p className="text-xs" style={{ color: 'var(--fg-faint)' }}>Sin agentes.</p>
-            )}
-          </div>
-
-          <div className="border-t pt-2 mt-1" style={{ borderColor: 'var(--border)' }}>
-            <p className="eyebrow mb-2">Actividad</p>
-            <div className="flex flex-col gap-1" style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-              {(logs.data ?? []).slice(-6).reverse().map((e, i) => (
-                <div key={`${e.ts}-${i}`} className="flex gap-2 truncate">
-                  <span style={{ color: 'var(--purple-soft)' }}>{e.event}</span>
-                  {e.agent && <span style={{ color: 'var(--amber-soft)' }}>{e.agent}</span>}
-                </div>
-              ))}
-              {(logs.data ?? []).length === 0 && (
-                <span style={{ color: 'var(--fg-faint)' }}>Sin actividad. Lanza una tarea.</span>
-              )}
-            </div>
-          </div>
-        </div>
+        <Conversations
+          sessions={sessions.data ?? []}
+          loading={sessions.isLoading}
+          onLaunch={() => navigate('/run')}
+        />
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="skeleton" style={{ height: 84 }} />
-          ))
-        ) : (
-          <>
-            <StatCard label="Agentes activos" value={enabled} accent="var(--purple-soft)" hint={`de ${total} registrados`} bars={runBars} />
-            <StatCard label="Sesiones" value={stats.data?.sessions ?? 0} accent="var(--fg)" />
-            <StatCard label="Tokens" value={stats.data?.total_tokens ?? 0} format={fmtTokens} accent="var(--purple-soft)" bars={tokenBars} />
-            <StatCard label="Costo acumulado" value={stats.data?.total_cost_usd ?? 0} format={(n) => `$${n.toFixed(4)}`} accent="var(--amber)" bars={costBars} />
-          </>
-        )}
-      </div>
+      <FilePanel
+        root={activeRoot}
+        files={workspace.data?.files ?? []}
+        loading={workspace.isLoading && !!activeRoot}
+        error={workspace.isError}
+      />
 
-      {/* Charts */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="glass p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--fg-mute)' }}>Costo por proveedor</h2>
-            <span className="text-xs" style={{ color: 'var(--amber)' }}>{success.toFixed(1)}% éxito</span>
-          </div>
-          <ProviderCostBars stats={stats.data} />
-        </div>
-        <div className="glass p-4">
-          <h2 className="text-sm font-semibold mb-2" style={{ color: 'var(--fg-mute)' }}>Tokens por proveedor</h2>
-          <ProviderTokenDonut stats={stats.data} />
-        </div>
-      </div>
-
-      {/* Agentes */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-mute)' }}>AGENTES</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {(agents.data ?? []).map((a) => (
-            <div key={a.name} className="glass p-4">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold" style={{ color: 'var(--fg)' }}>{a.name}</span>
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full"
-                  style={{
-                    background: a.enabled ? 'rgba(34,197,94,0.15)' : 'rgba(111,102,144,0.15)',
-                    color: a.enabled ? 'var(--ok)' : 'var(--fg-faint)',
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                >
-                  {a.enabled ? 'activo' : 'inactivo'}
-                </span>
-              </div>
-              <p className="text-xs mt-2" style={{ color: 'var(--fg-mute)' }}>
-                {a.role} · {a.provider}/{a.model || 'default'}
-              </p>
-            </div>
-          ))}
-          {agents.data?.length === 0 && (
-            <p className="text-sm" style={{ color: 'var(--fg-faint)' }}>Sin agentes registrados.</p>
-          )}
-        </div>
-      </section>
-
-      {/* API Keys (BYOK) */}
-      <section>
-        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-mute)' }}>API KEYS (BYOK)</h2>
-        <div className="flex flex-wrap gap-2">
-          {(providers.data ?? []).map((p) => (
-            <span
-              key={p.provider}
-              className="text-xs px-3 py-1.5 rounded-lg border"
-              style={{
-                borderColor: 'var(--border)',
-                color: p.key_present ? 'var(--ok)' : 'var(--fg-faint)',
-                fontFamily: 'var(--font-mono)',
-              }}
-            >
-              {p.provider}: {p.key_present ? 'OK' : 'falta'}
-            </span>
-          ))}
-        </div>
-      </section>
+      <BottomRow
+        byProvider={byProvider}
+        logs={logs.data ?? []}
+        byAgent={byAgent}
+        onSeeLogs={() => navigate('/logs')}
+      />
     </div>
   );
 }
