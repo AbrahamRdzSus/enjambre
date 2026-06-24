@@ -43,10 +43,15 @@
    hooks reales; HexSwarm como orquestacion live; sin mock). Gate:
    `docs/gates/faseA-cockpit-overview.md`. HECHO tambien la replica del lenguaje cockpit
    en las 5 pestañas restantes via chrome reutilizable `components/ui/Panel.tsx`.
-   HECHAS Fases C+D: landing publica en `landing/` (React/Vite + Magic UI) y GitHub
-   Release `v0.5.0` con el instalador + `CHANGELOG.md`. PENDIENTE: deploy de la landing
-   a Vercel (lo corre el usuario: `cd landing && vercel`), opcional chrome sidebar/topbar,
-   y auto-update (`tauri-plugin-updater`).
+   HECHAS Fases C+D: landing publica en `landing/` (React/Vite + Magic UI; Hero/Features/
+   Screenshots/HowItWorks/Download/Footer) y GitHub Release `v0.5.0` (latest) con el
+   instalador + `CHANGELOG.md`. El repo es PUBLICO (descarga anonima verificada 200).
+   La descarga se resuelve en runtime (`useLatestInstaller`, sin hardcodear version).
+   Seguridad: secret scanning + push protection habilitados; historial limpio.
+   PENDIENTE: deploy de la landing a Vercel (lo corre el usuario:
+   `cd landing && vercel` + `vercel --prod`), opcional chrome sidebar/topbar, CI-Node
+   (build+lint de frontend/landing, hoy CI solo cubre Python), OG social card 1200x630,
+   refrescar screenshots al look cockpit, y auto-update (`tauri-plugin-updater`).
 2. Fases C+D levantamiento: landing estatica en Vercel + GitHub Release con el
    instalador ya horneado + `tauri-plugin-updater` (Eye ya lo usa).
 Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`

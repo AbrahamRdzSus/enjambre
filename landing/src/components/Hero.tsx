@@ -2,9 +2,11 @@ import { Download, GitFork } from 'lucide-react';
 import { Particles } from './ui/particles';
 import { BorderBeam } from './ui/border-beam';
 import HexCore from './HexCore';
-import { DOWNLOAD_WIN, REPO } from '../links';
+import { REPO } from '../links';
+import { useLatestInstaller } from '../useLatestInstaller';
 
 export default function Hero() {
+  const { href: downloadHref } = useLatestInstaller();
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-10">
       <Particles
@@ -34,7 +36,7 @@ export default function Hero() {
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <a
-              href={DOWNLOAD_WIN}
+              href={downloadHref}
               className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
               style={{ background: 'var(--amber)', color: '#1a1006' }}
             >

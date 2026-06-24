@@ -1,8 +1,10 @@
 import { Download as DownloadIcon, Terminal, GitFork } from 'lucide-react';
 import { BorderBeam } from './ui/border-beam';
-import { DOWNLOAD_WIN, REPO, RELEASES } from '../links';
+import { REPO, RELEASES } from '../links';
+import { useLatestInstaller } from '../useLatestInstaller';
 
 export default function Download() {
+  const { href: downloadHref, version } = useLatestInstaller();
   return (
     <section id="descargar" className="px-6 py-16">
       <div className="mx-auto w-full max-w-4xl">
@@ -17,11 +19,12 @@ export default function Download() {
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a
-              href={DOWNLOAD_WIN}
+              href={downloadHref}
               className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold"
               style={{ background: 'var(--amber)', color: '#1a1006' }}
             >
               <DownloadIcon size={18} /> Descargar .exe (Windows x64)
+              {version && <span className="font-mono opacity-70">{version}</span>}
             </a>
             <a
               href={RELEASES}

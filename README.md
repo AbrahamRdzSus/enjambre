@@ -98,8 +98,8 @@ Los modelos son configurables. El proyecto debe evitar hardcodear dependencias e
 ## Instalación propuesta
 
 ```bash
-git clone https://github.com/obsidia-studio/enjambre-ia-coder.git
-cd enjambre-ia-coder
+git clone https://github.com/AbrahamRdzSus/enjambre.git
+cd enjambre
 
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
