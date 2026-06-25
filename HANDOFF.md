@@ -48,10 +48,12 @@
    instalador + `CHANGELOG.md`. El repo es PUBLICO (descarga anonima verificada 200).
    La descarga se resuelve en runtime (`useLatestInstaller`, sin hardcodear version).
    Seguridad: secret scanning + push protection habilitados; historial limpio.
-   PENDIENTE: deploy de la landing a Vercel (lo corre el usuario:
-   `cd landing && vercel` + `vercel --prod`), opcional chrome sidebar/topbar, CI-Node
-   (build+lint de frontend/landing, hoy CI solo cubre Python), OG social card 1200x630,
-   refrescar screenshots al look cockpit, y auto-update (`tauri-plugin-updater`).
+   Landing DESPLEGADA en Vercel (proyecto "landing") y LIVE en dominio propio:
+   https://enjambre.obsidia.mx (A enjambre -> 76.76.21.21 DNS-only en Cloudflare;
+   cert SSL emitido con `vercel certs issue`). CI cubre ahora frontend+landing (job web).
+   PENDIENTE: opcional renombrar el proyecto Vercel "landing" -> "enjambre"; chrome
+   sidebar/topbar; OG social card 1200x630; refrescar screenshots al look cockpit nuevo;
+   auto-update (`tauri-plugin-updater`).
 2. Fases C+D levantamiento: landing estatica en Vercel + GitHub Release con el
    instalador ya horneado + `tauri-plugin-updater` (Eye ya lo usa).
 Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`

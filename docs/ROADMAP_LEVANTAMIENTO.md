@@ -34,8 +34,8 @@
   BorderBeam, look cyber). Reusa la identidad (`diseno/assets/enjambre`) y logos. Secciones:
   Hero (HexCore + CTA descarga), Features (BYOK/local-first/no-training/multi-proveedor/gate
   humano), HowItWorks, Download, Footer. build verde (`npm run build`).
-- [ ] **Deploy a Vercel**: PREPARADO (`landing/vercel.json`). Pendiente que el usuario corra
-  `cd landing && vercel` (login interactivo) + `vercel --prod`.
+- [x] **Deploy a Vercel**: LIVE en https://enjambre.obsidia.mx (A enjambre -> 76.76.21.21
+  DNS-only en Cloudflare; cert SSL via `vercel certs issue`). Proyecto Vercel "landing".
 - NOTA: el **dashboard NO se hostea** (es local-first, necesita el sidecar local) -> se distribuye como instalador. Solo la landing va a web.
 
 ## Fase D — Release / distribucion
