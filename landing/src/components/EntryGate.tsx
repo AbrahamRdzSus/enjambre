@@ -5,8 +5,9 @@ import PowerHex from './ui/PowerHex';
 // Experiencia de entrada cinematografica. Secuencia: idle (tecla hex apagada) ->
 // igniting (encendido) -> portal (hexagonos concentricos que se expanden/rotan/
 // desvanecen + fade de textos) -> done (overlay se disuelve y se revela la landing).
-// Bloquea el scroll durante la secuencia. Respeta prefers-reduced-motion (entra
-// directo). Llama onDone() al terminar para que el padre habilite el scroll.
+// Bloquea el scroll durante la secuencia. La intro SIEMPRE se ve; con
+// prefers-reduced-motion se muestra una version calmada (sin portal ni vibracion,
+// entrada rapida). Llama onDone() al terminar para que el padre habilite el scroll.
 const HEX = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
 type Phase = 'idle' | 'igniting' | 'portal';
 
@@ -14,14 +15,6 @@ export default function EntryGate({ onDone }: { onDone: () => void }) {
   const reduce = useReducedMotion();
   const [show, setShow] = useState(true);
   const [phase, setPhase] = useState<Phase>('idle');
-
-  // Bypass por accesibilidad: con reduced-motion no hay gate.
-  useEffect(() => {
-    if (reduce) {
-      setShow(false);
-      onDone();
-    }
-  }, [reduce, onDone]);
 
   function finish() {
     setShow(false);
@@ -31,11 +24,24 @@ export default function EntryGate({ onDone }: { onDone: () => void }) {
   function ignite() {
     if (phase !== 'idle') return;
     setPhase('igniting');
+    if (reduce) {
+      // Version calmada: sin portal, entrada rapida.
+      setTimeout(finish, 600);
+      return;
+    }
     setTimeout(() => setPhase('portal'), 520);
     setTimeout(finish, 3200);
   }
 
-  if (reduce) return null;
+  // Esc salta la intro (accesibilidad / recurrentes).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') finish();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const textGone = phase === 'portal';
 
