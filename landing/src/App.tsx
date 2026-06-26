@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { GitFork } from 'lucide-react';
 import Hero from './components/Hero';
 import Features from './components/Features';
@@ -6,7 +7,8 @@ import HowItWorks from './components/HowItWorks';
 import Download from './components/Download';
 import Footer from './components/Footer';
 import Ecosystem from './components/Ecosystem';
-import Splash from './components/Splash';
+import EntryGate from './components/EntryGate';
+import SiteBackground from './components/ui/SiteBackground';
 import { REPO, OBSIDIA } from './links';
 
 function TopNav() {
@@ -48,19 +50,32 @@ function TopNav() {
 }
 
 export default function App() {
+  const [entered, setEntered] = useState(false);
+
+  // Bloquea el scroll durante la intro; lo libera al entrar.
+  useEffect(() => {
+    document.body.style.overflow = entered ? '' : 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [entered]);
+
   return (
     <div id="top">
-      <Splash />
-      <TopNav />
-      <main>
-        <Hero />
-        <Features />
-        <Screenshots />
-        <HowItWorks />
-        <Download />
-        <Ecosystem />
-      </main>
-      <Footer />
+      <SiteBackground />
+      <EntryGate onDone={() => setEntered(true)} />
+      <div className="relative z-10">
+        <TopNav />
+        <main>
+          <Hero />
+          <Features />
+          <Screenshots />
+          <HowItWorks />
+          <Download />
+          <Ecosystem />
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }

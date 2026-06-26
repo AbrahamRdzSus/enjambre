@@ -1,6 +1,5 @@
 import { Download, GitFork } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import GalaxyBg from './ui/GalaxyBg';
 import MicroHex from './ui/MicroHex';
 import HexBloom from './ui/HexBloom';
 import HexCore from './HexCore';
@@ -12,7 +11,6 @@ export default function Hero() {
   const reduce = useReducedMotion();
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-10">
-      <GalaxyBg />
       <MicroHex />
 
       <div
