@@ -12,7 +12,7 @@ export default function SiteBackground() {
       <div
         className="absolute inset-0"
         style={{
-          opacity: 0.4,
+          opacity: 0.3,
           maskImage: 'radial-gradient(95% 85% at 50% 30%, #000 45%, transparent 100%)',
           WebkitMaskImage: 'radial-gradient(95% 85% at 50% 30%, #000 45%, transparent 100%)',
         }}

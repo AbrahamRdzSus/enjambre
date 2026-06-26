@@ -11,12 +11,25 @@ import PowerHex from './ui/PowerHex';
 const HEX = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
 type Phase = 'idle' | 'igniting' | 'portal';
 
+const SEEN_KEY = 'enjambre_intro_seen';
+
 export default function EntryGate({ onDone }: { onDone: () => void }) {
   const reduce = useReducedMotion();
-  const [show, setShow] = useState(true);
+  // REC: una vez por sesion + bypass si llega con deep-link a una seccion.
+  const [show, setShow] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const seen = sessionStorage.getItem(SEEN_KEY) === '1';
+    const deepLink = window.location.hash.length > 1;
+    return !seen && !deepLink;
+  });
   const [phase, setPhase] = useState<Phase>('idle');
 
   function finish() {
+    try {
+      sessionStorage.setItem(SEEN_KEY, '1');
+    } catch {
+      /* sessionStorage no disponible: no pasa nada */
+    }
     setShow(false);
     onDone();
   }
@@ -26,12 +39,19 @@ export default function EntryGate({ onDone }: { onDone: () => void }) {
     setPhase('igniting');
     if (reduce) {
       // Version calmada: sin portal, entrada rapida.
-      setTimeout(finish, 600);
+      setTimeout(finish, 500);
       return;
     }
-    setTimeout(() => setPhase('portal'), 520);
-    setTimeout(finish, 3200);
+    // REC: portal mas corto (~1.6s, total ~2.1s).
+    setTimeout(() => setPhase('portal'), 380);
+    setTimeout(finish, 2150);
   }
+
+  // Si la intro no debe mostrarse, entra directo.
+  useEffect(() => {
+    if (!show) onDone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Esc salta la intro (accesibilidad / recurrentes).
   useEffect(() => {
@@ -75,9 +95,9 @@ export default function EntryGate({ onDone }: { onDone: () => void }) {
                   initial={{ scale: 0, opacity: 0, rotate: 0 }}
                   animate={{ scale: [0, 2], opacity: [0, 0.8, 0], rotate: 180 }}
                   transition={{
-                    duration: 2.4,
+                    duration: 1.5,
                     ease: 'easeInOut',
-                    delay: i * 0.09,
+                    delay: i * 0.05,
                     times: [0, 1],
                   }}
                 />
@@ -100,7 +120,7 @@ export default function EntryGate({ onDone }: { onDone: () => void }) {
                     opacity: [0, 1, 0],
                     rotate: 120,
                   }}
-                  transition={{ duration: 1.8, ease: 'easeOut', delay: 0.3 + i * 0.12 }}
+                  transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 + i * 0.1 }}
                 />
               ))}
             </div>
