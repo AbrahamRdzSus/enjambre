@@ -1,6 +1,8 @@
 import { Download, GitFork } from 'lucide-react';
-import { Particles } from './ui/particles';
 import { BorderBeam } from './ui/border-beam';
+import XenonBg from './ui/XenonBg';
+import HexBloom from './ui/HexBloom';
+import HudReticle from './ui/HudReticle';
 import HexCore from './HexCore';
 import { REPO } from '../links';
 import { useLatestInstaller } from '../useLatestInstaller';
@@ -9,14 +11,7 @@ export default function Hero() {
   const { href: downloadHref } = useLatestInstaller();
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-10">
-      <Particles
-        className="absolute inset-0"
-        style={{ zIndex: 0, opacity: 0.6 }}
-        quantity={90}
-        color="#8b5cf6"
-        size={0.5}
-        staticity={60}
-      />
+      <XenonBg />
 
       <div
         className="relative mx-auto grid w-full max-w-6xl items-center gap-10 py-10 lg:grid-cols-2"
@@ -64,7 +59,11 @@ export default function Hero() {
                 'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.14), transparent 60%), color-mix(in srgb, var(--panel-2) 80%, transparent)',
             }}
           >
-            <HexCore size={420} />
+            <HexBloom />
+            <div className="relative">
+              <HudReticle />
+              <HexCore size={420} />
+            </div>
             <BorderBeam size={100} duration={8} />
           </div>
         </div>

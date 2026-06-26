@@ -6,6 +6,7 @@ import HowItWorks from './components/HowItWorks';
 import Download from './components/Download';
 import Footer from './components/Footer';
 import Ecosystem from './components/Ecosystem';
+import Splash from './components/Splash';
 import { REPO, OBSIDIA } from './links';
 
 function TopNav() {
@@ -49,6 +50,7 @@ function TopNav() {
 export default function App() {
   return (
     <div id="top">
+      <Splash />
       <TopNav />
       <main>
         <Hero />
