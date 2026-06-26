@@ -8,6 +8,7 @@ import Download from './components/Download';
 import Footer from './components/Footer';
 import Ecosystem from './components/Ecosystem';
 import EntryGate from './components/EntryGate';
+import HeroReveal from './components/HeroReveal';
 import SiteBackground from './components/ui/SiteBackground';
 import { REPO, OBSIDIA } from './links';
 
@@ -67,7 +68,9 @@ export default function App() {
       <div className="relative z-10">
         <TopNav />
         <main>
-          <Hero />
+          <HeroReveal active={entered}>
+            <Hero />
+          </HeroReveal>
           <Features />
           <Screenshots />
           <HowItWorks />
