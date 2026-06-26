@@ -1,6 +1,7 @@
 import { Download, GitFork } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import XenonBg from './ui/XenonBg';
+import GalaxyBg from './ui/GalaxyBg';
+import MicroHex from './ui/MicroHex';
 import HexBloom from './ui/HexBloom';
 import HexCore from './HexCore';
 import { REPO } from '../links';
@@ -11,7 +12,8 @@ export default function Hero() {
   const reduce = useReducedMotion();
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-10">
-      <XenonBg />
+      <GalaxyBg />
+      <MicroHex />
 
       <div
         className="relative mx-auto grid w-full max-w-6xl items-center gap-10 py-10 lg:grid-cols-2"
