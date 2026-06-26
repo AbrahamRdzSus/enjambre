@@ -4,6 +4,7 @@ import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users } from 'luci
 import { api } from '../api/client';
 import { useAgents, useStats } from '../api/hooks';
 import ProjectSelector from '../components/ProjectSelector';
+import UpdateBanner from '../components/UpdateBanner';
 import { Particles } from '../components/ui/particles';
 import { useRunEvents, useRunStore } from '../stores/run-store';
 
@@ -163,6 +164,7 @@ export default function AppShell() {
           <Outlet />
         </div>
       </main>
+      <UpdateBanner />
     </div>
   );
 }

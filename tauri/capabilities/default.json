@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Capacidad por defecto: ventana principal con permisos core.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "updater:default", "process:default"]
 }

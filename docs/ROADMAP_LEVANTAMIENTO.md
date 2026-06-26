@@ -42,7 +42,12 @@
 - [x] **GitHub Release** `v0.5.0` con el instalador `ENJAMBRE_0.5.0_x64-setup.exe` adjunto +
   `CHANGELOG.md`. Release normal (latest) para que la landing linkee `/releases/latest/download`.
 - [x] **Pagina de descarga** en la landing apuntando al release (`landing/src/links.ts`).
-- [ ] **Auto-update**: `tauri-plugin-updater` (Eye ya lo usa) + endpoint de releases. Pendiente.
+- [~] **Auto-update**: `tauri-plugin-updater` + `tauri-plugin-process` cableados (Cargo,
+  lib.rs, tauri.conf.json `createUpdaterArtifacts`+`plugins.updater`, capabilities) +
+  frontend `src/lib/updater.ts` (no-op fuera de Tauri) y `UpdateBanner` en AppShell.
+  Endpoint = `releases/latest/download/latest.json`. PENDIENTE operativo (no codigo):
+  generar par de claves de firma, poner la pubkey en la config, y publicar `latest.json`+`.sig`
+  en cada release. Runbook en `docs/AUTO_UPDATE.md`.
 
 ## Fase E — Pre-venta / negocio (si aplica)
 - [x] BYOK + local-first + no-training (diferenciador de privacidad ya implementado).

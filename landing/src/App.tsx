@@ -5,7 +5,8 @@ import Screenshots from './components/Screenshots';
 import HowItWorks from './components/HowItWorks';
 import Download from './components/Download';
 import Footer from './components/Footer';
-import { REPO } from './links';
+import Ecosystem from './components/Ecosystem';
+import { REPO, OBSIDIA } from './links';
 
 function TopNav() {
   return (
@@ -23,6 +24,14 @@ function TopNav() {
         </a>
         <nav className="flex items-center gap-6 text-sm text-muted-foreground">
           <a href="#descargar" className="hidden hover:text-foreground sm:inline">Descargar</a>
+          <a
+            href={OBSIDIA}
+            target="_blank"
+            rel="noreferrer"
+            className="hidden hover:text-foreground sm:inline"
+          >
+            Ecosistema
+          </a>
           <a
             href={REPO}
             target="_blank"
@@ -47,6 +56,7 @@ export default function App() {
         <Screenshots />
         <HowItWorks />
         <Download />
+        <Ecosystem />
       </main>
       <Footer />
     </div>

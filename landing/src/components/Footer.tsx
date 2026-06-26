@@ -1,4 +1,4 @@
-import { REPO, SECURITY, PROVIDER_POLICY, LICENSE } from '../links';
+import { REPO, SECURITY, PROVIDER_POLICY, LICENSE, OBSIDIA } from '../links';
 
 export default function Footer() {
   return (
@@ -8,10 +8,17 @@ export default function Footer() {
           <img src="/logos/hex.png" alt="ENJAMBRE" width={28} height={28} />
           <div className="leading-tight">
             <span className="wordmark text-sm">ENJAMBRE</span>
-            <p className="text-xs text-muted-foreground">by Obsidia Studio · Apache-2.0</p>
+            <p className="text-xs text-muted-foreground">
+              by{' '}
+              <a href={OBSIDIA} target="_blank" rel="noreferrer" className="hover:text-foreground">
+                Obsidia Studio
+              </a>{' '}
+              · Apache-2.0
+            </p>
           </div>
         </div>
         <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+          <a href={OBSIDIA} target="_blank" rel="noreferrer" className="hover:text-foreground">Ecosistema</a>
           <a href={REPO} target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a>
           <a href={LICENSE} target="_blank" rel="noreferrer" className="hover:text-foreground">Licencia</a>
           <a href={SECURITY} target="_blank" rel="noreferrer" className="hover:text-foreground">Seguridad</a>
