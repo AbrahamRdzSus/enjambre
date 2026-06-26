@@ -23,7 +23,7 @@ export default function Hero() {
         style={{ zIndex: 1 }}
       >
         <div className="flex flex-col gap-6">
-          <span className="eyebrow">by Obsidia Studio · local-first · BYOK</span>
+          <span className="kicker">by Obsidia Studio · local-first · BYOK</span>
           <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
             Tu equipo de IAs<br />
             <span className="wordmark">trabajando en paralelo</span>
@@ -37,8 +37,8 @@ export default function Hero() {
           <div className="flex flex-wrap items-center gap-3">
             <a
               href={downloadHref}
-              className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
-              style={{ background: 'var(--amber)', color: '#1a1006' }}
+              className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-transform active:scale-[0.97]"
+              style={{ background: 'var(--amber)', color: '#1a1006', boxShadow: '0 10px 40px -12px rgba(255,176,32,0.5)' }}
             >
               <Download size={18} /> Descargar para Windows
             </a>
@@ -46,7 +46,7 @@ export default function Hero() {
               href={REPO}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2 rounded-xl border border-border px-5 py-3 text-sm font-medium text-foreground hover:border-primary"
+              className="flex items-center gap-2 rounded-xl border border-border px-5 py-3 text-sm font-medium text-foreground transition-colors active:scale-[0.97] hover:border-primary"
             >
               <GitFork size={18} /> Ver en GitHub
             </a>

@@ -1,5 +1,6 @@
 import { ArrowUpRight } from 'lucide-react';
 import { OBSIDIA, ECOSYSTEM } from '../links';
+import Reveal from './ui/Reveal';
 
 // Parte del ecosistema Obsidia. ENJAMBRE es un nodo (activo) de la constelacion;
 // enlaza de vuelta a la landing paraguas y a las apps hermanas. La landing de
@@ -21,44 +22,47 @@ export default function Ecosystem() {
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Nodo activo: este producto */}
-          <div
-            className="glass relative overflow-hidden p-5"
-            style={{
-              borderColor: 'var(--purple)',
-              background:
-                'radial-gradient(120% 90% at 0% 0%, rgba(139,92,246,0.16), transparent 60%), color-mix(in srgb, var(--panel-2) 80%, transparent)',
-            }}
-          >
-            <div className="flex items-center gap-2.5">
-              <img src="/logos/hex.png" alt="" width={26} height={26} />
-              <span className="wordmark text-sm">ENJAMBRE</span>
+          <Reveal>
+            <div
+              className="glass hex-field relative h-full overflow-hidden p-5"
+              style={{
+                borderColor: 'var(--purple)',
+                background:
+                  'radial-gradient(120% 90% at 0% 0%, rgba(139,92,246,0.16), transparent 60%), color-mix(in srgb, var(--panel-2) 80%, transparent)',
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <img src="/logos/hex.png" alt="" width={26} height={26} />
+                <span className="wordmark text-sm">ENJAMBRE</span>
+              </div>
+              <p className="mt-3 text-xs" style={{ color: 'var(--amber)' }}>
+                Estas aqui
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Orquestador de agentes IA de codificacion.
+              </p>
             </div>
-            <p className="mt-3 text-xs" style={{ color: 'var(--amber)' }}>
-              Estas aqui
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Orquestador de agentes IA de codificacion.
-            </p>
-          </div>
+          </Reveal>
 
           {/* Nodos hermanos + vuelta al paraguas */}
-          {ECOSYSTEM.map((node) => (
-            <a
-              key={node.name}
-              href={node.href}
-              target="_blank"
-              rel="noreferrer"
-              className="glass group p-5 transition-colors hover:border-primary"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">{node.name}</span>
-                <ArrowUpRight
-                  size={16}
-                  className="text-muted-foreground transition-colors group-hover:text-foreground"
-                />
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">{node.tagline}</p>
-            </a>
+          {ECOSYSTEM.map((node, i) => (
+            <Reveal key={node.name} index={i + 1}>
+              <a
+                href={node.href}
+                target="_blank"
+                rel="noreferrer"
+                className="glass card-hover group block h-full p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">{node.name}</span>
+                  <ArrowUpRight
+                    size={16}
+                    className="text-muted-foreground transition-colors group-hover:text-foreground"
+                  />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">{node.tagline}</p>
+              </a>
+            </Reveal>
           ))}
         </div>
 

@@ -6,10 +6,10 @@ import { useLatestInstaller } from '../useLatestInstaller';
 export default function Download() {
   const { href: downloadHref, version } = useLatestInstaller();
   return (
-    <section id="descargar" className="px-6 py-16">
+    <section id="descargar" className="px-6 py-20">
       <div className="mx-auto w-full max-w-4xl">
-        <div className="glass relative overflow-hidden p-8 text-center sm:p-12">
-          <p className="eyebrow mb-3">Descarga</p>
+        <div className="glass hex-field relative overflow-hidden p-8 text-center sm:p-12">
+          <span className="kicker mb-3 justify-center">Descarga</span>
           <h2 className="mb-3 text-3xl font-bold">Instala ENJAMBRE en Windows</h2>
           <p className="mx-auto mb-8 max-w-2xl text-sm text-muted-foreground">
             Instalador de escritorio (Tauri). Doble clic y listo: incluye el motor local.

@@ -1,3 +1,6 @@
+import SectionHeading from './ui/SectionHeading';
+import Reveal from './ui/Reveal';
+
 const SHOTS = [
   {
     src: '/shots/overview.png',
@@ -18,29 +21,44 @@ const SHOTS = [
 
 export default function Screenshots() {
   return (
-    <section className="px-6 py-16">
+    <section className="px-6 py-20">
       <div className="mx-auto w-full max-w-6xl">
-        <p className="eyebrow mb-2">El dashboard</p>
-        <h2 className="mb-3 text-3xl font-bold">Asi se ve ENJAMBRE</h2>
-        <p className="mb-10 max-w-2xl text-sm text-muted-foreground">
-          Aplicacion de escritorio local-first. Capturas reales del dashboard (beta).
-        </p>
+        <SectionHeading
+          kicker="El dashboard"
+          title="Asi se ve"
+          accent="ENJAMBRE"
+          subtitle="Aplicacion de escritorio local-first. Capturas reales del dashboard (beta)."
+        />
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {SHOTS.map((s) => (
-            <figure key={s.src} className="glass overflow-hidden">
-              <img
-                src={s.src}
-                alt={`Captura de ENJAMBRE: ${s.title}`}
-                loading="lazy"
-                className="w-full border-b border-border"
-                style={{ aspectRatio: '16 / 10', objectFit: 'cover', objectPosition: 'top left' }}
-              />
-              <figcaption className="p-5">
-                <h3 className="mb-1 text-base font-semibold text-foreground">{s.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{s.body}</p>
-              </figcaption>
-            </figure>
+        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          {SHOTS.map((s, i) => (
+            <Reveal key={s.src} index={i}>
+              <figure className="glass card-hover h-full overflow-hidden">
+                {/* Barra de ventana: da contexto de app de escritorio */}
+                <div
+                  className="flex items-center gap-1.5 border-b px-3 py-2"
+                  style={{ borderColor: 'var(--line)', background: 'rgba(8,13,22,0.6)' }}
+                >
+                  <span className="size-2 rounded-full" style={{ background: '#ff5f57' }} />
+                  <span className="size-2 rounded-full" style={{ background: '#febc2e' }} />
+                  <span className="size-2 rounded-full" style={{ background: '#28c840' }} />
+                  <span className="ml-2 font-mono text-[10px]" style={{ color: 'var(--fg-3)' }}>
+                    enjambre — {s.src.replace('/shots/', '').replace('.png', '')}
+                  </span>
+                </div>
+                <img
+                  src={s.src}
+                  alt={`Captura de ENJAMBRE: ${s.title}`}
+                  loading="lazy"
+                  className="w-full"
+                  style={{ aspectRatio: '16 / 10', objectFit: 'cover', objectPosition: 'top left' }}
+                />
+                <figcaption className="p-5">
+                  <h3 className="mb-1 text-base font-semibold text-foreground">{s.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{s.body}</p>
+                </figcaption>
+              </figure>
+            </Reveal>
           ))}
         </div>
       </div>

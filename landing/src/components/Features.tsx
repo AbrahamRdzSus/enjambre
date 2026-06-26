@@ -7,12 +7,14 @@ import {
   Boxes,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import SectionHeading from './ui/SectionHeading';
+import Reveal from './ui/Reveal';
 
 const FEATURES: Array<{ icon: LucideIcon; title: string; body: string }> = [
   {
     icon: Layers,
     title: 'Agentes en paralelo',
-    body: 'Despacha un mismo prompt a varios agentes a la vez y compara sus salidas lado a lado, por modelo y por rol.',
+    body: 'Despacha un mismo prompt a varios agentes a la vez y compara sus salidas lado a lado, por modelo y por rol. El enjambre trabaja, tu decides.',
   },
   {
     icon: KeyRound,
@@ -41,21 +43,69 @@ const FEATURES: Array<{ icon: LucideIcon; title: string; body: string }> = [
   },
 ];
 
-export default function Features() {
+function IconBadge({ icon: Icon, large = false }: { icon: LucideIcon; large?: boolean }) {
   return (
-    <section className="px-6 py-16">
+    <span
+      className="grid place-items-center rounded-xl"
+      style={{
+        width: large ? 56 : 40,
+        height: large ? 56 : 40,
+        background: 'rgba(139,92,246,0.14)',
+        color: 'var(--purple-2)',
+        boxShadow: 'inset 0 0 0 1px rgba(139,92,246,0.22)',
+      }}
+    >
+      <Icon size={large ? 26 : 20} strokeWidth={1.8} />
+    </span>
+  );
+}
+
+export default function Features() {
+  const [hero, ...rest] = FEATURES;
+  return (
+    <section className="px-6 py-20">
       <div className="mx-auto w-full max-w-6xl">
-        <p className="eyebrow mb-2">Por que ENJAMBRE</p>
-        <h2 className="mb-10 text-3xl font-bold">Orquestacion seria, control local</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="glass p-6">
-              <span className="mb-4 grid size-10 place-items-center rounded-lg" style={{ background: 'rgba(139,92,246,0.14)', color: 'var(--purple)' }}>
-                <f.icon size={20} />
-              </span>
-              <h3 className="mb-2 text-lg font-semibold text-foreground">{f.title}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{f.body}</p>
-            </div>
+        <SectionHeading
+          kicker="Por que ENJAMBRE"
+          title="Orquestacion seria,"
+          accent="control local"
+        />
+
+        {/* Bento: celda principal grande + dos a la derecha + fila de tres */}
+        <div className="mt-10 grid gap-4 lg:grid-cols-3 lg:auto-rows-[minmax(0,1fr)]">
+          <Reveal className="lg:col-span-2 lg:row-span-2">
+            <article className="glass card-hover hex-field relative flex h-full flex-col justify-between overflow-hidden p-7">
+              <div>
+                <IconBadge icon={hero.icon} large />
+                <h3 className="mb-2 mt-5 text-2xl font-bold text-foreground">{hero.title}</h3>
+                <p className="max-w-md text-[15px] leading-relaxed text-muted-foreground">
+                  {hero.body}
+                </p>
+              </div>
+              <p className="mt-6 font-mono text-xs" style={{ color: 'var(--amber-2)' }}>
+                parallel · sequential · debate · vote
+              </p>
+            </article>
+          </Reveal>
+
+          {rest.slice(0, 2).map((f, i) => (
+            <Reveal key={f.title} index={i + 1}>
+              <article className="glass card-hover flex h-full flex-col p-6">
+                <IconBadge icon={f.icon} />
+                <h3 className="mb-2 mt-4 text-lg font-semibold text-foreground">{f.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+              </article>
+            </Reveal>
+          ))}
+
+          {rest.slice(2).map((f, i) => (
+            <Reveal key={f.title} index={i + 3}>
+              <article className="glass card-hover flex h-full flex-col p-6">
+                <IconBadge icon={f.icon} />
+                <h3 className="mb-2 mt-4 text-lg font-semibold text-foreground">{f.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+              </article>
+            </Reveal>
           ))}
         </div>
       </div>
