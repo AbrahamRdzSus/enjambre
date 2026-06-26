@@ -21,9 +21,10 @@ Se re-crearon adaptados a la identidad (hexagono morado/ambar):
   Inspirado en "honeycomb-loader" de @theutkarshmail.
 - **HexBloom** (`ui/HexBloom.tsx`) — anillos hexagonales concentricos (ripple).
   Inspirado en "bloom/hero" de @h0bb5 (adaptado de cuadrados a hexagonos).
-- **HudReticle** (`ui/HudReticle.tsx`) — reticula de enfoque del nucleo.
-  Inspirado en "animated-hud-targeting-ui" de @isaiahbjork (re-interpretado en
-  clave de marca, sin estetica militar).
+
+Nota: "animated-hud-targeting-ui" (@isaiahbjork) se probo como reticula del nucleo
+pero se RETIRO a pedido del usuario (anillo giratorio mecanico, off-brand). El hero
+usa ahora un halo organico que respira (referencia: hero de Obsidia Eye).
 
 Si en el futuro se quiere usar el codigo original de alguno, hay que copiarlo
 desde 21st.dev confirmando su licencia declarada y anadiendo el enlace de

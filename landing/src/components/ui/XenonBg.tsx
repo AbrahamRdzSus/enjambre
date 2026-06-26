@@ -4,7 +4,7 @@ import { Opulento } from 'uvcanvas';
 // Fondo shader "Xenon/Opulento" (paquete uvcanvas, MIT). Va a baja opacidad detras
 // del hero, enmascarado y tintado para armonizar con la identidad morado/ambar y
 // preservar contraste del texto. Se omite bajo prefers-reduced-motion (GPU + motion).
-export default function XenonBg({ opacity = 0.32 }: { opacity?: number }) {
+export default function XenonBg({ opacity = 0.46 }: { opacity?: number }) {
   const reduce = useReducedMotion();
   if (reduce) return null;
   return (

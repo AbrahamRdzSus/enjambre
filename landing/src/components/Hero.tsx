@@ -1,14 +1,14 @@
 import { Download, GitFork } from 'lucide-react';
-import { BorderBeam } from './ui/border-beam';
+import { motion, useReducedMotion } from 'motion/react';
 import XenonBg from './ui/XenonBg';
 import HexBloom from './ui/HexBloom';
-import HudReticle from './ui/HudReticle';
 import HexCore from './HexCore';
 import { REPO } from '../links';
 import { useLatestInstaller } from '../useLatestInstaller';
 
 export default function Hero() {
   const { href: downloadHref } = useLatestInstaller();
+  const reduce = useReducedMotion();
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-10">
       <XenonBg />
@@ -52,20 +52,33 @@ export default function Hero() {
         </div>
 
         <div className="relative flex items-center justify-center">
-          <div
+          {/* Halo que respira (referencia hero Obsidia Eye): glow organico, sin anillos mecanicos */}
+          <motion.div
+            className="pointer-events-none absolute"
+            aria-hidden
+            style={{
+              width: '78%',
+              aspectRatio: '1',
+              borderRadius: '50%',
+              background:
+                'radial-gradient(circle at 50% 45%, rgba(255,176,32,0.20), rgba(139,92,246,0.16) 38%, transparent 68%)',
+              filter: 'blur(8px)',
+            }}
+            animate={reduce ? undefined : { scale: [1, 1.08, 1], opacity: [0.65, 1, 0.65] }}
+            transition={reduce ? undefined : { duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
             className="glass relative w-full max-w-md overflow-hidden p-6"
             style={{
               background:
                 'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.14), transparent 60%), color-mix(in srgb, var(--panel-2) 80%, transparent)',
             }}
+            animate={reduce ? undefined : { y: [0, -12, 0] }}
+            transition={reduce ? undefined : { duration: 7, repeat: Infinity, ease: 'easeInOut' }}
           >
             <HexBloom />
-            <div className="relative">
-              <HudReticle />
-              <HexCore size={420} />
-            </div>
-            <BorderBeam size={100} duration={8} />
-          </div>
+            <HexCore size={420} />
+          </motion.div>
         </div>
       </div>
     </section>

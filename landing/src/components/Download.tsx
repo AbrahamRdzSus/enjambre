@@ -1,5 +1,4 @@
 import { Download as DownloadIcon, Terminal, GitFork } from 'lucide-react';
-import { BorderBeam } from './ui/border-beam';
 import { REPO, RELEASES } from '../links';
 import { useLatestInstaller } from '../useLatestInstaller';
 
@@ -44,8 +43,6 @@ export default function Download() {
               <GitFork size={14} /> Instrucciones en el README
             </a>
           </div>
-
-          <BorderBeam size={120} duration={10} />
         </div>
       </div>
     </section>
