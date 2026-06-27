@@ -8,6 +8,12 @@ from .anthropic import AnthropicProvider
 from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult
 from .google import GoogleProvider
 from .openai_compat import OpenAICompatProvider, XAIProvider
+from .openai_free import (
+    CerebrasProvider,
+    GitHubModelsProvider,
+    GroqProvider,
+    OpenRouterProvider,
+)
 
 #: nombre canonico -> clase adapter. Es la unica lista de proveedores soportados.
 PROVIDERS: dict[str, type[BaseProvider]] = {
@@ -15,6 +21,11 @@ PROVIDERS: dict[str, type[BaseProvider]] = {
     "anthropic": AnthropicProvider,
     "google": GoogleProvider,
     "xai": XAIProvider,
+    # Free tier (OpenAI-compatible, BYOK):
+    "groq": GroqProvider,
+    "openrouter": OpenRouterProvider,
+    "cerebras": CerebrasProvider,
+    "github_models": GitHubModelsProvider,
 }
 
 
@@ -58,4 +69,5 @@ __all__ = [
     "PROVIDERS", "build_provider", "register_provider", "unregister_provider",
     "BaseProvider", "Message", "ProviderResult", "Usage", "ValidationResult",
     "OpenAICompatProvider", "XAIProvider", "AnthropicProvider", "GoogleProvider",
+    "GroqProvider", "OpenRouterProvider", "CerebrasProvider", "GitHubModelsProvider",
 ]
