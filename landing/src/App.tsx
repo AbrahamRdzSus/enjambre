@@ -23,7 +23,7 @@ function TopNav() {
     >
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between">
         <a href="#top" className="flex items-center gap-2.5">
-          <img src="/logos/hex.png" alt="ENJAMBRE" width={30} height={30} />
+          <img src="/logos/hex.svg" alt="ENJAMBRE" width={30} height={30} />
           <span className="wordmark text-base">ENJAMBRE</span>
         </a>
         <nav className="flex items-center gap-5 text-sm text-muted-foreground">

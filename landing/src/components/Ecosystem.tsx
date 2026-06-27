@@ -32,7 +32,7 @@ export default function Ecosystem() {
               }}
             >
               <div className="flex items-center gap-2.5">
-                <img src="/logos/hex.png" alt="" width={26} height={26} />
+                <img src="/logos/hex.svg" alt="" width={26} height={26} />
                 <span className="wordmark text-sm">ENJAMBRE</span>
               </div>
               <p className="mt-3 text-xs" style={{ color: 'var(--amber)' }}>
