@@ -33,7 +33,15 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
+
+/* Foco visible para navegacion por teclado (accesibilidad). Se aplica solo a
+   :focus-visible, asi que el mouse no dibuja anillos pero el teclado si. */
+:where(a, button, [role='button'], [tabindex]):focus-visible {
+  outline: 2px solid var(--purple-2);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
 body {
   margin: 0;
   font-family: var(--font-ui);
@@ -102,11 +110,19 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* Tesela hexagonal de fondo: textura de identidad, muy sutil. */
-.hex-field {
+.hex-field { position: relative; }
+.hex-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='96' viewBox='0 0 56 96'%3E%3Cg fill='none' stroke='%238b5cf6' stroke-opacity='0.06' stroke-width='1'%3E%3Cpath d='M28 0l24 14v28L28 56 4 42V14z'/%3E%3Cpath d='M28 48l24 14v28L28 104 4 90V62z'/%3E%3C/g%3E%3C/svg%3E");
-  mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 100%);
   -webkit-mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 100%);
 }
+/* El contenido va por encima de la textura, nitido (la mascara solo afecta ::before). */
+.hex-field > * { position: relative; z-index: 1; }
 
 /* Hover de tarjeta: borde vivo morado/ambar + glow, sin desplazar layout. */
 .card-hover {
@@ -120,6 +136,19 @@ a { color: inherit; text-decoration: none; }
 }
 
 .tnum { font-variant-numeric: tabular-nums; }
+
+/* Boton primario ambar (CTA): unifica Hero + Download, con hover/active. */
+.btn-amber {
+  background: var(--amber);
+  color: #1a1006;
+  box-shadow: 0 10px 40px -12px rgba(255, 176, 32, 0.5);
+  transition: filter 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+}
+.btn-amber:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 14px 48px -12px rgba(255, 176, 32, 0.62);
+}
+.btn-amber:active { transform: scale(0.97); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

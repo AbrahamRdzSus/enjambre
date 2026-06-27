@@ -7,7 +7,7 @@ import Reveal from './ui/Reveal';
 // Obsidia (otro repo) coloca el nodo de ENJAMBRE en su mapa y apunta aca.
 export default function Ecosystem() {
   return (
-    <section className="px-6 py-20">
+    <section id="ecosistema" className="px-6 py-20">
       <div className="mx-auto w-full max-w-6xl">
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="eyebrow">Parte de algo mas grande</span>

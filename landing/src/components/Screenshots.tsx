@@ -21,7 +21,7 @@ const SHOTS = [
 
 export default function Screenshots() {
   return (
-    <section className="px-6 py-20">
+    <section id="capturas" className="px-6 py-20">
       <div className="mx-auto w-full max-w-6xl">
         <SectionHeading
           kicker="El dashboard"

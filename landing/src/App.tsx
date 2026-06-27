@@ -26,23 +26,30 @@ function TopNav() {
           <img src="/logos/hex.png" alt="ENJAMBRE" width={30} height={30} />
           <span className="wordmark text-base">ENJAMBRE</span>
         </a>
-        <nav className="flex items-center gap-6 text-sm text-muted-foreground">
-          <a href="#descargar" className="hidden hover:text-foreground sm:inline">Descargar</a>
+        <nav className="flex items-center gap-5 text-sm text-muted-foreground">
+          <a href="#funciones" className="hidden hover:text-foreground lg:inline">Funciones</a>
+          <a href="#como" className="hidden hover:text-foreground lg:inline">Como funciona</a>
+          <a href="#capturas" className="hidden hover:text-foreground lg:inline">Capturas</a>
+          <a href="#ecosistema" className="hidden hover:text-foreground lg:inline">Ecosistema</a>
           <a
             href={OBSIDIA}
             target="_blank"
             rel="noreferrer"
-            className="hidden hover:text-foreground sm:inline"
+            className="hidden hover:text-foreground md:inline"
           >
-            Ecosistema
+            Obsidia
           </a>
           <a
             href={REPO}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 hover:text-foreground"
+            aria-label="GitHub"
+            className="hidden hover:text-foreground sm:inline"
           >
-            <GitFork size={16} /> GitHub
+            <GitFork size={18} />
+          </a>
+          <a href="#descargar" className="btn-amber rounded-lg px-4 py-2 text-sm font-semibold">
+            Descargar
           </a>
         </nav>
       </div>

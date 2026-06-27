@@ -26,7 +26,7 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <section className="px-6 py-20">
+    <section id="como" className="px-6 py-20">
       <div className="mx-auto w-full max-w-6xl">
         <SectionHeading
           kicker="Como funciona"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import PowerHex from './ui/PowerHex';
+import HoneycombBurst from './ui/HoneycombBurst';
 
 // Experiencia de entrada cinematografica. Secuencia: idle (tecla hex apagada) ->
 // igniting (encendido) -> portal (hexagonos concentricos que se expanden/rotan/
@@ -8,7 +9,7 @@ import PowerHex from './ui/PowerHex';
 // Bloquea el scroll durante la secuencia. La intro SIEMPRE se ve; con
 // prefers-reduced-motion se muestra una version calmada (sin portal ni vibracion,
 // entrada rapida). Llama onDone() al terminar para que el padre habilite el scroll.
-const HEX = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
+
 type Phase = 'idle' | 'igniting' | 'portal';
 
 export default function EntryGate({ onDone }: { onDone: () => void }) {
@@ -58,53 +59,8 @@ export default function EntryGate({ onDone }: { onDone: () => void }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.7, ease: 'easeInOut' }}
         >
-          {/* Portal: cinematica "nested" pero de HEXAGONOS — muchos hexagonos
-              anidados que escalan 0->2x y rotan 180deg en cascada (ripple). */}
-          {phase === 'portal' && (
-            <div className="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden>
-              {Array.from({ length: 16 }).map((_, i) => (
-                <motion.span
-                  key={i}
-                  className="absolute"
-                  style={{
-                    width: 340,
-                    height: 340,
-                    clipPath: HEX,
-                    boxShadow: `inset 0 0 0 1.5px ${i % 2 ? 'rgba(255,176,32,0.55)' : 'rgba(139,92,246,0.55)'}`,
-                  }}
-                  initial={{ scale: 0, opacity: 0, rotate: 0 }}
-                  animate={{ scale: [0, 2], opacity: [0, 0.8, 0], rotate: 180 }}
-                  transition={{
-                    duration: 2.4,
-                    ease: 'easeInOut',
-                    delay: i * 0.09,
-                    times: [0, 1],
-                  }}
-                />
-              ))}
-              {/* Algunas particulas geometricas cruzando */}
-              {Array.from({ length: 5 }).map((_, i) => (
-                <motion.span
-                  key={`p-${i}`}
-                  className="absolute"
-                  style={{
-                    width: 12 + i * 4,
-                    height: 12 + i * 4,
-                    clipPath: HEX,
-                    boxShadow: 'inset 0 0 0 1px rgba(167,139,250,0.7)',
-                  }}
-                  initial={{ x: 0, y: 0, opacity: 0 }}
-                  animate={{
-                    x: (i % 2 ? 1 : -1) * (220 + i * 60),
-                    y: (i % 3 - 1) * (160 + i * 30),
-                    opacity: [0, 1, 0],
-                    rotate: 120,
-                  }}
-                  transition={{ duration: 1.8, ease: 'easeOut', delay: 0.3 + i * 0.12 }}
-                />
-              ))}
-            </div>
-          )}
+          {/* Acceso: panal hexagonal en secuencia radial + lineas que giran. */}
+          {phase === 'portal' && <HoneycombBurst />}
 
           <div className="relative flex flex-col items-center gap-7 px-6 text-center">
             <motion.span

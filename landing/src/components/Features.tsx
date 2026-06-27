@@ -63,7 +63,7 @@ function IconBadge({ icon: Icon, large = false }: { icon: LucideIcon; large?: bo
 export default function Features() {
   const [hero, ...rest] = FEATURES;
   return (
-    <section className="px-6 py-20">
+    <section id="funciones" className="px-6 py-20">
       <div className="mx-auto w-full max-w-6xl">
         <SectionHeading
           kicker="Por que ENJAMBRE"
