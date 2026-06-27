@@ -10,7 +10,6 @@ import {
 } from '../api/hooks';
 import { Panel, PageHeader } from '../components/ui/Panel';
 
-const PROVIDERS = ['openai', 'anthropic', 'google', 'xai'];
 const ROLES = ['builder', 'architect'];
 
 export default function AgentsPage() {
@@ -113,7 +112,9 @@ export default function AgentsPage() {
             onChange={(e) => setForm({ ...form, provider: e.target.value })}
             className="h-9 rounded border px-2 text-xs" style={inputStyle}
           >
-            {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
+            {(providers.data ?? []).map((p) => (
+              <option key={p.provider} value={p.provider}>{p.provider}</option>
+            ))}
           </select>
           <input
             value={form.model}
