@@ -33,11 +33,13 @@ export default function BottomRow({
   logs,
   byAgent,
   onSeeLogs,
+  layout = 'row',
 }: {
   byProvider: Array<[string, Tally]>;
   logs: LogEvent[];
   byAgent: Array<[string, Tally]>;
   onSeeLogs: () => void;
+  layout?: 'row' | 'column';
 }) {
   const totalTokens = byProvider.reduce(
     (s, [, t]) => s + t.input_tokens + t.output_tokens,
@@ -45,7 +47,13 @@ export default function BottomRow({
   );
 
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+    <div
+      className={
+        layout === 'column'
+          ? 'flex flex-col gap-3'
+          : 'grid grid-cols-1 gap-3 lg:grid-cols-3'
+      }
+    >
       {/* Uso de tokens por IA */}
       <div className="flex flex-col glass">
         <PanelHeader title="Uso de tokens por proveedor" />

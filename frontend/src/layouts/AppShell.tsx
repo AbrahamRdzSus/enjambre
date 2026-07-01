@@ -237,7 +237,7 @@ export default function AppShell() {
 
       <main className="flex-1 ml-60 flex flex-col relative" style={{ zIndex: 10 }}>
         <Header healthy={healthy} />
-        <div className="mx-auto w-full" style={{ maxWidth: 1280, padding: 28 }}>
+        <div className="mx-auto w-full" style={{ maxWidth: 1760, padding: 28 }}>
           <Outlet />
         </div>
       </main>
