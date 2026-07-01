@@ -10,6 +10,7 @@ import {
 } from '../api/hooks';
 import { useProjectStore } from '../stores/project-store';
 import HexSwarm from '../components/HexSwarm';
+import SwarmFlow from '../components/SwarmFlow';
 import MetricsRow, { type Metric } from '../components/overview/MetricsRow';
 import Conversations from '../components/overview/Conversations';
 import FilePanel from '../components/overview/FilePanel';
@@ -101,6 +102,9 @@ export default function OverviewPage() {
       </header>
 
       <MetricsRow items={metrics} />
+
+      {/* Flujo del enjambre en vivo (prompt -> agentes -> comparar -> aprobar) */}
+      <SwarmFlow />
 
       {/* Orquestacion (hex live) + sesiones recientes */}
       <div
