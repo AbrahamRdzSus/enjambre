@@ -29,6 +29,15 @@
   /* Fuentes para las utilidades Tailwind (font-sans / font-mono) */
   --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+  /* Escala de radio Tailwind → dirección Apple: suaviza TODO rounded-* de golpe
+     (botones, cards, inputs, chips) sin tocar cada componente. */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  --radius-3xl: 30px;
 }
 
 /*
