@@ -51,6 +51,11 @@ export default function ProjectsPage() {
         {/* Arbol de archivos */}
         <Panel
           title="Archivos"
+          action={
+            (files.data?.files?.length ?? 0) > 0
+              ? <span className="font-mono text-[10px] text-muted-foreground">{files.data!.files.length} archivos</span>
+              : undefined
+          }
           bodyClassName="flex flex-col gap-1 max-h-[460px] overflow-y-auto scrollbar-thin"
         >
           {files.isError && (
@@ -116,12 +121,20 @@ export default function ProjectsPage() {
           </div>
 
           {diff !== undefined && (
-            <pre
-              className="whitespace-pre-wrap rounded-lg border border-border p-3 font-mono text-xs"
-              style={{ background: 'var(--bg-app)', color: 'var(--fg)' }}
+            <div
+              className="overflow-x-auto rounded-lg border border-border p-3 font-mono text-xs scrollbar-thin"
+              style={{ background: 'var(--bg-app)' }}
             >
-              {diff || '(archivo nuevo o sin cambios)'}
-            </pre>
+              {diff
+                ? diff.split('\n').map((line, i) => {
+                    const c = line.startsWith('+') && !line.startsWith('+++') ? 'var(--ok)'
+                      : line.startsWith('-') && !line.startsWith('---') ? 'var(--alert)'
+                      : line.startsWith('@@') ? 'var(--purple-soft)'
+                      : 'var(--fg-mute)';
+                    return <div key={i} className="whitespace-pre-wrap" style={{ color: c }}>{line || ' '}</div>;
+                  })
+                : <span className="text-muted-foreground">(archivo nuevo o sin cambios)</span>}
+            </div>
           )}
 
           {apply.data && (

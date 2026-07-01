@@ -10,7 +10,6 @@ import {
 } from '../api/hooks';
 import { useProjectStore } from '../stores/project-store';
 import HexSwarm from '../components/HexSwarm';
-import { BorderBeam } from '../components/ui/border-beam';
 import MetricsRow, { type Metric } from '../components/overview/MetricsRow';
 import Conversations from '../components/overview/Conversations';
 import FilePanel from '../components/overview/FilePanel';
@@ -113,7 +112,6 @@ export default function OverviewPage() {
             Orquestacion del enjambre
           </div>
           <HexSwarm size={420} />
-          <BorderBeam size={90} duration={8} />
         </div>
 
         <Conversations
