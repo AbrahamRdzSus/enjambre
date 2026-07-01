@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENJAMBRE — Marca, app de escritorio y landing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/enjambre/enjambre.css">
+<link rel="icon" href="assets/enjambre/logos/06_icono_app_dark.png">
+<style>
+  body{min-height:100vh;background:radial-gradient(90% 60% at 80% -5%,#16093a 0,transparent 55%),
+    radial-gradient(70% 60% at 0% 100%,#1a1206 0,transparent 50%),#040409}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 28px}
+  .top{display:flex;align-items:center;gap:16px;padding:26px 0}
+  .top img{height:36px}
+  .top a.obs{margin-left:auto;color:var(--purple-2);font-size:13.5px;text-decoration:none;display:flex;align-items:center;gap:8px}
+  .top a.obs:hover{color:#fff}
+  .hero{padding:clamp(26px,5vw,56px) 0 clamp(30px,4vw,46px);display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center}
+  .hero .eyebrow{margin-bottom:14px;display:block}
+  .hero h1{font-family:var(--font-display);font-weight:800;font-size:clamp(40px,7vw,78px);letter-spacing:.04em;margin:0 0 18px;line-height:.98}
+  .hero p{color:var(--fg-2);font-size:clamp(16px,1.6vw,19px);max-width:50ch;line-height:1.6}
+  .hero .sym{filter:drop-shadow(0 30px 70px rgba(139,92,246,.4))}
+  @media(max-width:780px){.hero{grid-template-columns:1fr}.hero .sym{order:-1}}
+
+  .cards{padding-bottom:clamp(36px,5vw,60px);display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:900px){.cards{grid-template-columns:1fr}}
+  .hcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;
+    text-decoration:none;color:#fff;display:flex;flex-direction:column;gap:14px;min-height:330px;
+    transition:transform .15s,border-color .15s,background .15s}
+  .hcard:hover{transform:translateY(-5px);border-color:var(--purple);background:#0a0a16}
+  .hcard .n{font-family:var(--font-display);font-weight:800;font-size:12px;color:var(--purple);letter-spacing:.12em}
+  .hcard .preview{flex:1;border:1px solid var(--line);border-radius:14px;overflow:hidden;position:relative;
+    min-height:140px;display:grid;place-items:center;background:#06060d}
+  .hcard h2{font-size:23px;margin:0} .hcard p{color:var(--fg-2);font-size:13.5px;margin:0;line-height:1.55}
+  .hcard .go{margin-top:auto;display:flex;align-items:center;gap:8px;color:var(--amber);font-weight:700;font-size:14px}
+
+  /* mini app preview */
+  .miniwin{width:88%;background:#06060d;border:1px solid #1c1730;border-radius:9px;overflow:hidden}
+  .miniwin .tb{height:18px;background:#0a0a12;display:flex;align-items:center;gap:4px;padding:0 7px}
+  .miniwin .tb i{width:5px;height:5px;border-radius:50%;background:#2a2140}
+  .miniwin .b{padding:12px;display:grid;place-items:center}
+
+  .dlbar{border-top:1px solid var(--line);padding:22px 0 50px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .dlbar .txt{color:var(--fg-2);font-size:14px}.dlbar .txt b{color:#fff}
+  .dlbar .btn{margin-left:auto}
+  @media(max-width:640px){.dlbar .btn{margin-left:0;width:100%;justify-content:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <img src="assets/enjambre/logos/08_logo_horizontal_compacto_izq.png" alt="ENJAMBRE IA Coder" class="blend">
+    <a class="obs" href="https://www.obsidia.mx/">⬡ Parte del ecosistema Obsidia ↗</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <span class="eyebrow">Identidad · App de escritorio · Landing</span>
+      <h1>ENJAMBRE</h1>
+      <p>La herramienta de <b>Obsidia Studio</b> para coordinar tu equipo de IAs en paralelo. Aquí está todo el paquete: el sistema de marca con sus 16 logos asignados, la app de escritorio para Windows y la landing descriptiva.</p>
+    </div>
+    <div class="sym" id="hubSym"></div>
+  </section>
+
+  <section class="cards">
+    <a class="hcard" href="Marca ENJAMBRE.html">
+      <div class="n">01 · MARCA</div>
+      <div class="preview" id="pvBrand"></div>
+      <h2>Sistema de marca</h2>
+      <p>Las 16 variantes de logo con su uso, apartado y tamaño asignado. Paleta, espacio libre y reglas de uso.</p>
+      <span class="go">Abrir hoja de marca →</span>
+    </a>
+    <a class="hcard" href="App ENJAMBRE.html">
+      <div class="n">02 · APP DESKTOP</div>
+      <div class="preview"><div class="miniwin"><div class="tb"><i></i><i></i><i></i></div><div class="b"><div id="pvApp"></div></div></div></div>
+      <h2>App de escritorio</h2>
+      <p>Ventana Windows 11 con navegación funcional: splash, inicio, dashboard de orquestación y lanzar tarea en paralelo.</p>
+      <span class="go">Abrir la app →</span>
+    </a>
+    <a class="hcard" href="Landing ENJAMBRE.html">
+      <div class="n">03 · LANDING</div>
+      <div class="preview" id="pvLand" style="padding:18px;text-align:center"></div>
+      <h2>Landing descriptiva</h2>
+      <p>Página de producto en el estilo de Obsidia, que ubica a ENJAMBRE dentro de Obsidia Studio. Con Tweaks para explorar direcciones.</p>
+      <span class="go">Ver la landing →</span>
+    </a>
+  </section>
+
+  <div class="dlbar">
+    <span class="txt"><b>¿Necesitas los logos?</b> 16 archivos PNG listos, asignados por apartado y tamaño.</span>
+    <a class="btn btn-amber" href="Marca ENJAMBRE.html">Ver y asignar logos</a>
+  </div>
+</div>
+
+<script src="assets/enjambre/enjambre-core.js"></script>
+<script>
+  document.getElementById('hubSym').innerHTML = ENJ.core(220,{nodes:8});
+  document.getElementById('pvBrand').innerHTML = ENJ.mark(96,{});
+  document.getElementById('pvApp').innerHTML = ENJ.core(120,{nodes:8});
+  document.getElementById('pvLand').innerHTML =
+    '<img src="assets/enjambre/logos/16_icono_hex_gradiente.png" class="blend" style="height:96px;filter:drop-shadow(0 14px 40px rgba(139,92,246,.5))" alt="">';
+</script>
+</body>
+</html>

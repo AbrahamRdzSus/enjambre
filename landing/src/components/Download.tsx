@@ -19,8 +19,7 @@ export default function Download() {
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a
               href={downloadHref}
-              className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold"
-              style={{ background: 'var(--amber)', color: '#1a1006' }}
+              className="btn-amber flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold"
             >
               <DownloadIcon size={18} /> Descargar .exe (Windows x64)
               {version && <span className="font-mono opacity-70">{version}</span>}

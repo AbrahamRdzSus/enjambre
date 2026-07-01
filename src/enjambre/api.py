@@ -40,6 +40,7 @@ from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
 from .multiagent import MODES, MultiAgent, MultiAgentReport
 from .orchestrator import Orchestrator
+from .providers import PROVIDERS
 from .registry import Agent, Registry
 
 
@@ -216,9 +217,20 @@ def create_app(*, registry: Registry | None = None,
     @app.get("/providers")
     def providers() -> list[dict[str, Any]]:
         eff = _effective_keys() or {}
-        return [{"provider": p, "env": config.PROVIDER_ENV[p],
-                 "key_present": bool(eff.get(p))}
-                for p in sorted(config.PROVIDER_ENV)]
+        out: list[dict[str, Any]] = []
+        for p in sorted(config.PROVIDER_ENV):
+            cls = PROVIDERS.get(p)
+            models = sorted(cls.pricing) if cls else []
+            default_model = cls.default_model if cls else ""
+            # el modelo por defecto va primero para que la UI lo preseleccione
+            if default_model and default_model in models:
+                models = [default_model, *[m for m in models if m != default_model]]
+            pricing = {m: list(price) for m, price in cls.pricing.items()} if cls else {}
+            out.append({"provider": p, "env": config.PROVIDER_ENV[p],
+                        "key_present": bool(eff.get(p)),
+                        "default_model": default_model, "models": models,
+                        "pricing": pricing})
+        return out
 
     @app.post("/agents", status_code=201)
     def add_agent(body: AgentIn) -> dict[str, Any]:

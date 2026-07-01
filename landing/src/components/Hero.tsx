@@ -1,6 +1,6 @@
 import { Download, GitFork } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import XenonBg from './ui/XenonBg';
+import MicroHex from './ui/MicroHex';
 import HexBloom from './ui/HexBloom';
 import HexCore from './HexCore';
 import { REPO } from '../links';
@@ -11,7 +11,7 @@ export default function Hero() {
   const reduce = useReducedMotion();
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-10">
-      <XenonBg />
+      <MicroHex />
 
       <div
         className="relative mx-auto grid w-full max-w-6xl items-center gap-10 py-10 lg:grid-cols-2"
@@ -32,8 +32,7 @@ export default function Hero() {
           <div className="flex flex-wrap items-center gap-3">
             <a
               href={downloadHref}
-              className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-transform active:scale-[0.97]"
-              style={{ background: 'var(--amber)', color: '#1a1006', boxShadow: '0 10px 40px -12px rgba(255,176,32,0.5)' }}
+              className="btn-amber flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
             >
               <Download size={18} /> Descargar para Windows
             </a>
@@ -64,8 +63,8 @@ export default function Hero() {
                 'radial-gradient(circle at 50% 45%, rgba(255,176,32,0.20), rgba(139,92,246,0.16) 38%, transparent 68%)',
               filter: 'blur(8px)',
             }}
-            animate={reduce ? undefined : { scale: [1, 1.08, 1], opacity: [0.65, 1, 0.65] }}
-            transition={reduce ? undefined : { duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            animate={reduce ? undefined : { scale: [1, 1.04, 1], opacity: [0.6, 0.85, 0.6] }}
+            transition={reduce ? undefined : { duration: 8, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
             className="glass relative w-full max-w-md overflow-hidden p-6"
@@ -73,8 +72,8 @@ export default function Hero() {
               background:
                 'radial-gradient(120% 90% at 50% 0%, rgba(139,92,246,0.14), transparent 60%), color-mix(in srgb, var(--panel-2) 80%, transparent)',
             }}
-            animate={reduce ? undefined : { y: [0, -12, 0] }}
-            transition={reduce ? undefined : { duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+            animate={reduce ? undefined : { y: [0, -6, 0] }}
+            transition={reduce ? undefined : { duration: 11, repeat: Infinity, ease: 'easeInOut' }}
           >
             <HexBloom />
             <HexCore size={420} />
