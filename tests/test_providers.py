@@ -75,3 +75,32 @@ def test_unknown_provider_raises():
         assert "desconocido" in str(exc)
     else:
         raise AssertionError("debio lanzar ValueError")
+
+
+def test_free_providers_chat_parsing():
+    # Proveedores free OpenAI-compatible: mismo parsing, costo 0 (free tier).
+    for name, model in [
+        ("groq", "llama-3.3-70b-versatile"),
+        ("openrouter", "meta-llama/llama-3.3-70b-instruct:free"),
+        ("cerebras", "llama-3.3-70b"),
+        ("github_models", "openai/gpt-4o-mini"),
+    ]:
+        res = _run(_chat(name))
+        assert res.ok, name
+        assert res.model == model
+        assert res.cost_usd == 0.0  # free tier: pricing vacio
+
+
+def test_github_models_validate_via_catalog():
+    async def go():
+        async with mock_api.make_client() as client:
+            prov = build_provider("github_models", "ok", client=client)
+            return await prov.validate_key()
+    res = _run(go())
+    assert res.ok
+
+
+def test_free_provider_missing_key():
+    res = _run(_chat("groq", key=""))
+    assert not res.ok
+    assert "API key" in res.error

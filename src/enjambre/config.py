@@ -14,6 +14,11 @@ PROVIDER_ENV: dict[str, str] = {
     "anthropic": "ANTHROPIC_API_KEY",
     "google": "GOOGLE_API_KEY",
     "xai": "XAI_API_KEY",
+    # Free tier (BYOK):
+    "groq": "GROQ_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "cerebras": "CEREBRAS_API_KEY",
+    "github_models": "GITHUB_MODELS_TOKEN",
 }
 
 
