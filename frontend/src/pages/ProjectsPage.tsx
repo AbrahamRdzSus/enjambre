@@ -6,6 +6,7 @@ import {
   useWorkspaceFiles,
 } from '../api/hooks';
 import { Panel, PageHeader } from '../components/ui/Panel';
+import DiffViewer from '../components/DiffViewer';
 
 export default function ProjectsPage() {
   const [root, setRoot] = useState('.');
@@ -19,7 +20,6 @@ export default function ProjectsPage() {
   const preview = usePreviewChanges();
   const apply = useApplyChanges();
 
-  const diff = preview.data?.diffs[target];
   const change = { root: activeRoot ?? root, changes: [{ path: target, new_content: content }] };
   const inputStyle = {
     background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--fg)',
@@ -120,22 +120,7 @@ export default function ProjectsPage() {
             </button>
           </div>
 
-          {diff !== undefined && (
-            <div
-              className="overflow-x-auto rounded-lg border border-border p-3 font-mono text-xs scrollbar-thin"
-              style={{ background: 'var(--bg-app)' }}
-            >
-              {diff
-                ? diff.split('\n').map((line, i) => {
-                    const c = line.startsWith('+') && !line.startsWith('+++') ? 'var(--ok)'
-                      : line.startsWith('-') && !line.startsWith('---') ? 'var(--alert)'
-                      : line.startsWith('@@') ? 'var(--purple-soft)'
-                      : 'var(--fg-mute)';
-                    return <div key={i} className="whitespace-pre-wrap" style={{ color: c }}>{line || ' '}</div>;
-                  })
-                : <span className="text-muted-foreground">(archivo nuevo o sin cambios)</span>}
-            </div>
-          )}
+          {preview.data && <DiffViewer diffs={preview.data.diffs ?? {}} />}
 
           {apply.data && (
             apply.data.ok ? (
