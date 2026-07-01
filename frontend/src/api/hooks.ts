@@ -64,6 +64,14 @@ export function useProviders() {
   });
 }
 
+export interface ValidationResult { ok: boolean; detail: string }
+
+export function useValidateKeys() {
+  return useMutation({
+    mutationFn: () => api.post<Record<string, ValidationResult>>('/validate'),
+  });
+}
+
 export function useStats() {
   return useQuery({ queryKey: ['stats'], queryFn: () => api.get<Stats>('/stats') });
 }

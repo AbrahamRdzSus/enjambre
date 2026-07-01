@@ -1,5 +1,6 @@
 import { useStats } from '../api/hooks';
 import { Panel, PageHeader } from '../components/ui/Panel';
+import ProviderIcon from '../components/ProviderIcon';
 
 function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -43,7 +44,10 @@ export default function StatsPage() {
           providers.map(([name, t]) => (
             <div key={name}>
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">{name}</span>
+                <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <ProviderIcon provider={name} size={16} />
+                  {name}
+                </span>
                 <span className="font-mono text-xs text-muted-foreground">
                   {t.runs} runs · {fmtTokens(t.input_tokens + t.output_tokens)} tokens · $
                   {t.cost_usd.toFixed(6)}

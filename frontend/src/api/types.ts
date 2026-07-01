@@ -13,6 +13,10 @@ export interface Provider {
   provider: string;
   env: string;
   key_present: boolean;
+  default_model: string;
+  models: string[];
+  // model -> [precio_input, precio_output] en USD por 1M tokens (estimado)
+  pricing: Record<string, [number, number]>;
 }
 
 export interface AgentResult {

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
-import { useAgents, useRun } from '../api/hooks';
+import { useAgents, useProviders, useRun } from '../api/hooks';
 import CircularProgress from '../components/CircularProgress';
+import ProviderIcon from '../components/ProviderIcon';
 import { Panel, PageHeader } from '../components/ui/Panel';
 
 const PURPLE = '#8b5cf6';
@@ -14,6 +15,7 @@ const MODES = [
 
 export default function RunPage() {
   const agents = useAgents();
+  const providers = useProviders();
   const run = useRun();
   const [prompt, setPrompt] = useState('');
   const [selected, setSelected] = useState<string[] | null>(null);
@@ -24,6 +26,14 @@ export default function RunPage() {
   const enabled = all.filter((a) => a.enabled).map((a) => a.name);
   const chosen = selected ?? enabled;
   const report = run.data;
+
+  // providers sin key configurada: sus agentes fallarán al lanzar
+  const keyless = new Set(
+    (providers.data ?? []).filter((p) => !p.key_present).map((p) => p.provider),
+  );
+  const chosenKeyless = all
+    .filter((a) => chosen.includes(a.name) && keyless.has(a.provider))
+    .map((a) => a.name);
 
   function toggle(name: string) {
     const base = selected ?? enabled;
@@ -61,12 +71,14 @@ export default function RunPage() {
             <div className="flex flex-wrap gap-2">
               {all.map((a) => {
                 const on = chosen.includes(a.name);
+                const noKey = keyless.has(a.provider);
                 const color = a.role === 'architect' ? AMBER : PURPLE;
                 return (
                   <button
                     key={a.name}
                     type="button"
                     onClick={() => toggle(a.name)}
+                    title={noKey ? `Sin API key para ${a.provider} — configúrala en Agentes` : ''}
                     className="flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-xs transition-colors"
                     style={{
                       borderColor: on ? color : 'var(--border)',
@@ -77,10 +89,20 @@ export default function RunPage() {
                     <span className="inline-block h-2 w-2 rounded-full" style={{ background: color, opacity: a.enabled ? 1 : 0.4 }} />
                     {a.name}
                     <span style={{ color: 'var(--fg-faint)' }}>· {a.provider}</span>
+                    {noKey && (
+                      <span className="rounded px-1 text-[10px] font-semibold" style={{ background: 'color-mix(in srgb, var(--alert) 18%, transparent)', color: 'var(--alert)' }}>
+                        sin key
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
+            {chosenKeyless.length > 0 && (
+              <p className="mt-2 text-[11px]" style={{ color: 'var(--warn)' }}>
+                ⚠ {chosenKeyless.length} agente(s) seleccionado(s) sin API key ({chosenKeyless.join(', ')}) fallarán al lanzar.
+              </p>
+            )}
           </div>
 
           {/* Modo */}
@@ -156,7 +178,8 @@ export default function RunPage() {
                 <div key={r.agent} className="rounded-lg border border-border bg-secondary/30 p-3">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-xs font-semibold text-primary">{r.agent}</span>
-                    <span className="font-mono text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                      <ProviderIcon provider={r.provider} size={14} />
                       {r.provider}/{r.model}
                     </span>
                   </div>
