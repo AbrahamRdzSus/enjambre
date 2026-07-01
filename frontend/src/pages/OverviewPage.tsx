@@ -125,7 +125,7 @@ export default function OverviewPage() {
             style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)' }}
           >
             <div className="relative flex items-center justify-center overflow-hidden glass p-4">
-              <div className="absolute left-4 top-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              <div className="absolute left-4 top-3 text-[13px] font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
                 Orquestacion del enjambre
               </div>
               <HexSwarm size={420} />

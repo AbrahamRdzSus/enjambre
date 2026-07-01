@@ -163,7 +163,7 @@ export default function SwarmFlow() {
   return (
     <div className="glass p-5">
       <div className="mb-4 flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-[13px] font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
           Flujo del enjambre
         </span>
         <span className="font-mono text-[10px]" style={{ color: 'var(--fg-faint)' }}>

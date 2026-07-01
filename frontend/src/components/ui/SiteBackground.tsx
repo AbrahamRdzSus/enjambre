@@ -145,7 +145,7 @@ export default function SiteBackground({ className }: { className?: string }) {
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(120% 90% at 50% 0%, rgba(12,10,20,0.35) 0%, rgba(12,10,20,0.62) 55%, rgba(12,10,20,0.8) 100%)',
+            'radial-gradient(120% 90% at 50% 0%, rgba(12,10,20,0.55) 0%, rgba(12,10,20,0.74) 55%, rgba(12,10,20,0.88) 100%)',
         }}
       />
     </div>
