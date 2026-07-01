@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { useAgents, useProviders, useRun } from '../api/hooks';
 import type { Agent } from '../api/types';
-import CircularProgress from '../components/CircularProgress';
+import CircleLoad from '../components/ui/CircleLoad';
 import ProviderIcon from '../components/ProviderIcon';
 import AgentCard from '../components/AgentCard';
 import { Panel, PageHeader } from '../components/ui/Panel';
@@ -244,9 +244,8 @@ export default function RunPage() {
           bodyClassName="flex flex-col gap-4 max-h-[720px] overflow-y-auto scrollbar-thin"
         >
           <div className="flex flex-col items-center gap-2">
-            <CircularProgress
-              indeterminate={run.isPending}
-              value={successPct}
+            <CircleLoad
+              progress={run.isPending ? null : successPct / 100}
               label={run.isPending ? 'corriendo' : 'éxito'}
             />
             <p className="text-center text-xs text-muted-foreground">

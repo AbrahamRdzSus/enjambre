@@ -1,19 +1,19 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { Loader2, CheckCircle2, XCircle, Circle, Coins, Timer } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Coins, Timer } from 'lucide-react';
 import type { Agent, AgentResult } from '../api/types';
 import type { AgentStatus } from '../stores/run-store';
 import ProviderIcon from './ProviderIcon';
+import StatusIcon from './ui/StatusIcon';
 
 // Tarjeta de agente EN VIVO: estado (idle/running/ok/error) + modelo/rol y, cuando
 // hay resultado del run, tokens/costo/latencia. Presentacional: recibe el estado
 // del run-store y el AgentResult del RunReport desde el padre. Tokens ENJAMBRE.
 
-const STATUS_META: Record<AgentStatus, { color: string; label: string; icon: LucideIcon }> = {
-  idle: { color: 'var(--fg-faint)', label: 'En espera', icon: Circle },
-  running: { color: 'var(--amber)', label: 'Pensando', icon: Loader2 },
-  ok: { color: 'var(--ok)', label: 'Listo', icon: CheckCircle2 },
-  error: { color: 'var(--alert)', label: 'Error', icon: XCircle },
+const STATUS_META: Record<AgentStatus, { color: string; label: string }> = {
+  idle: { color: 'var(--fg-faint)', label: 'En espera' },
+  running: { color: 'var(--amber)', label: 'Pensando' },
+  ok: { color: 'var(--ok)', label: 'Listo' },
+  error: { color: 'var(--alert)', label: 'Error' },
 };
 
 function fmtTokens(n: number): string {
@@ -31,7 +31,6 @@ export interface AgentCardProps {
 export default function AgentCard({ agent, status = 'idle', result }: AgentCardProps) {
   const reduce = useReducedMotion();
   const meta = STATUS_META[status];
-  const StatusIcon = meta.icon;
   const running = status === 'running';
   const tokens = result ? result.usage.input_tokens + result.usage.output_tokens : null;
 
@@ -63,13 +62,7 @@ export default function AgentCard({ agent, status = 'idle', result }: AgentCardP
           animate={reduce || !running ? undefined : { opacity: [0.6, 1, 0.6] }}
           transition={reduce ? undefined : { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <motion.span
-            animate={running && !reduce ? { rotate: 360 } : undefined}
-            transition={running && !reduce ? { duration: 1.1, repeat: Infinity, ease: 'linear' } : undefined}
-            style={{ display: 'inline-flex' }}
-          >
-            <StatusIcon size={12} />
-          </motion.span>
+          <StatusIcon status={status} size={12} />
           {meta.label}
         </motion.span>
       </div>

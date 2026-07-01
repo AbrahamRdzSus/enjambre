@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useAgents } from '../api/hooks';
 import { useRunStore, type AgentStatus } from '../stores/run-store';
 import ProviderIcon from './ProviderIcon';
+import StatusIcon from './ui/StatusIcon';
 
 // Pipeline del enjambre: prompt -> agentes en paralelo -> comparar -> aprobar.
 // Cableado a datos reales: useAgents() para el roster, useRunStore() para el
@@ -129,7 +130,7 @@ function AgentChip({ name, provider, status }: { name: string; provider: string;
         animate={reduce || !running ? undefined : { opacity: [0.6, 1, 0.6] }}
         transition={reduce ? undefined : { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+        <StatusIcon status={status} size={11} />
         {statusLabel(status)}
       </motion.span>
     </div>
