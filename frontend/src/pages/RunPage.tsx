@@ -5,6 +5,7 @@ import {
 import { useAgents, useProviders, useRun } from '../api/hooks';
 import type { Agent } from '../api/types';
 import CircleLoad from '../components/ui/CircleLoad';
+import MicroLoader from '../components/ui/MicroLoader';
 import ProviderIcon from '../components/ProviderIcon';
 import AgentCard from '../components/AgentCard';
 import { Panel, PageHeader } from '../components/ui/Panel';
@@ -224,7 +225,7 @@ export default function RunPage() {
                 className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
                 style={{ background: AMBER, color: '#1a1006' }}
               >
-                <Send size={17} strokeWidth={2} />
+                {run.isPending ? <MicroLoader variant="dots" size={8} /> : <Send size={17} strokeWidth={2} />}
                 {run.isPending ? 'Consultando...' : 'Lanzar enjambre'}
               </button>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">

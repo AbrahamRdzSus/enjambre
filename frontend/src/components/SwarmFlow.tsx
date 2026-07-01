@@ -63,6 +63,19 @@ function StageNode({
         animate={reduce || !active ? undefined : { scale: [1, 1.06, 1] }}
         transition={reduce ? undefined : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
       >
+        {/* anillo de gradiente que gira alrededor del nodo activo */}
+        {active && !reduce && (
+          <motion.span
+            className="absolute -inset-[3px]"
+            style={{
+              clipPath: 'polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%)',
+              background: `conic-gradient(from 0deg, transparent 0deg, ${accent} 90deg, ${AMBER} 200deg, transparent 300deg)`,
+              opacity: 0.55,
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: 'linear' }}
+          />
+        )}
         <span
           className="absolute inset-0"
           style={{
