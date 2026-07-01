@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Send } from 'lucide-react';
+import {
+  Send, Network, Settings, Sparkles, Target, Paperclip, Code2, Boxes, FileText,
+} from 'lucide-react';
 import { useAgents, useProviders, useRun } from '../api/hooks';
 import CircularProgress from '../components/CircularProgress';
 import ProviderIcon from '../components/ProviderIcon';
@@ -8,10 +10,37 @@ import { Panel, PageHeader } from '../components/ui/Panel';
 const PURPLE = '#8b5cf6';
 const AMBER = '#ffb020';
 const MODES = [
-  { id: 'parallel', label: 'Paralelo', ready: true },
-  { id: 'sequential', label: 'Secuencial', ready: true },
-  { id: 'debate', label: 'Debate', ready: true },
+  { id: 'parallel', label: 'Paralelo' },
+  { id: 'sequential', label: 'Secuencial' },
+  { id: 'debate', label: 'Debate' },
 ];
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+      {children}
+    </h3>
+  );
+}
+
+// Toggle estilo cockpit (verde = activo). Reutiliza el patrón del mockup nexus.
+function Toggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={on}
+      className="relative h-5 w-9 shrink-0 rounded-full transition-colors"
+      style={{ background: on ? 'var(--ok)' : 'var(--bg-raised)', boxShadow: on ? '0 0 8px color-mix(in srgb, var(--ok) 50%, transparent)' : 'none' }}
+    >
+      <span
+        className="absolute top-0.5 size-4 rounded-full bg-white transition-all"
+        style={{ left: on ? 18 : 2 }}
+      />
+    </button>
+  );
+}
 
 export default function RunPage() {
   const agents = useAgents();
@@ -27,7 +56,6 @@ export default function RunPage() {
   const chosen = selected ?? enabled;
   const report = run.data;
 
-  // providers sin key configurada: sus agentes fallarán al lanzar
   const keyless = new Set(
     (providers.data ?? []).filter((p) => !p.key_present).map((p) => p.provider),
   );
@@ -49,107 +77,170 @@ export default function RunPage() {
     ? (report.runs.filter((r) => !r.result.error).length / report.runs.length) * 100
     : 0;
 
+  // Botones de composición aún sin backend: visibles como placeholder deshabilitado.
+  const composerActions = [
+    { icon: Paperclip, label: 'Adjuntar archivo' },
+    { icon: Code2, label: 'Variables' },
+    { icon: Boxes, label: 'Contexto del proyecto' },
+    { icon: FileText, label: 'Plantillas' },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader eyebrow="Lanzar tarea / Chats" title="Despacha un prompt en paralelo" />
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)' }}>
-        {/* Columna izquierda: prompt + agentes + modo */}
-        <Panel title="Tarea" bodyClassName="flex flex-col gap-4">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Refactoriza esta funcion para que sea mas legible..."
-            aria-label="Prompt de la tarea"
-            className="w-full resize-y rounded-lg border border-border bg-secondary/30 p-3 text-sm text-foreground"
-            style={{ minHeight: 130 }}
-          />
-
-          {/* Chips de agente */}
-          <div>
-            <p className="eyebrow mb-2">Agentes</p>
-            <div className="flex flex-wrap gap-2">
-              {all.map((a) => {
-                const on = chosen.includes(a.name);
-                const noKey = keyless.has(a.provider);
-                const color = a.role === 'architect' ? AMBER : PURPLE;
-                return (
+      <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0,1fr) 420px' }}>
+        {/* Columna izquierda: composer */}
+        <div className="flex flex-col gap-5">
+          {/* Cabecera: modo + config */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[13px] text-muted-foreground">
+              Trabaja con múltiples agentes de IA en paralelo sobre el mismo objetivo.
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center gap-1 rounded-lg glass p-1">
+                <Network size={15} className="mx-1.5 text-primary" />
+                {MODES.map((m) => (
                   <button
-                    key={a.name}
+                    key={m.id}
                     type="button"
-                    onClick={() => toggle(a.name)}
-                    title={noKey ? `Sin API key para ${a.provider} — configúrala en Agentes` : ''}
-                    className="flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-xs transition-colors"
+                    onClick={() => setMode(m.id)}
+                    className="h-7 rounded-md px-2.5 font-mono text-xs transition-colors"
                     style={{
-                      borderColor: on ? color : 'var(--border)',
-                      background: on ? `color-mix(in srgb, ${color} 16%, transparent)` : 'transparent',
-                      color: on ? 'var(--fg)' : 'var(--fg-mute)',
+                      background: mode === m.id ? 'rgba(139,92,246,0.18)' : 'transparent',
+                      color: mode === m.id ? 'var(--purple-soft)' : 'var(--fg-mute)',
                     }}
                   >
-                    <span className="inline-block h-2 w-2 rounded-full" style={{ background: color, opacity: a.enabled ? 1 : 0.4 }} />
-                    {a.name}
-                    <span style={{ color: 'var(--fg-faint)' }}>· {a.provider}</span>
-                    {noKey && (
-                      <span className="rounded px-1 text-[10px] font-semibold" style={{ background: 'color-mix(in srgb, var(--alert) 18%, transparent)', color: 'var(--alert)' }}>
-                        sin key
-                      </span>
-                    )}
+                    {m.label}
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
-            {chosenKeyless.length > 0 && (
-              <p className="mt-2 text-[11px]" style={{ color: 'var(--warn)' }}>
-                ⚠ {chosenKeyless.length} agente(s) seleccionado(s) sin API key ({chosenKeyless.join(', ')}) fallarán al lanzar.
-              </p>
-            )}
           </div>
 
-          {/* Modo */}
-          <div>
-            <p className="eyebrow mb-2">Modo</p>
-            <div className="inline-flex rounded-lg border border-border p-1">
-              {MODES.map((m) => (
+          {/* 1. Prompt */}
+          <Panel title={<SectionTitle>1. Escribe tu prompt / tarea</SectionTitle>} bodyClassName="flex flex-col gap-4">
+            <div className="rounded-lg border border-border bg-secondary/30 p-4">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Prompt / Instrucciones
+                </label>
+                <Sparkles size={15} style={{ color: 'var(--amber)' }} />
+              </div>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Refactoriza esta funcion para que sea mas legible..."
+                aria-label="Prompt de la tarea"
+                className="w-full resize-y bg-transparent text-sm text-foreground outline-none"
+                style={{ minHeight: 120 }}
+              />
+            </div>
+
+            {/* Acciones (placeholder: aún sin backend) */}
+            <div className="flex flex-wrap items-center gap-2">
+              {composerActions.map((b) => (
                 <button
-                  key={m.id}
+                  key={b.label}
                   type="button"
-                  disabled={!m.ready}
-                  onClick={() => m.ready && setMode(m.id)}
-                  title={m.ready ? '' : 'próximamente'}
-                  className="h-8 rounded-md px-3 font-mono text-xs transition-colors disabled:opacity-40"
-                  style={{
-                    background: mode === m.id ? 'rgba(139,92,246,0.18)' : 'transparent',
-                    color: mode === m.id ? 'var(--purple-soft)' : 'var(--fg-mute)',
-                  }}
+                  disabled
+                  title="Próximamente"
+                  className="flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-[13px] text-muted-foreground opacity-50"
                 >
-                  {m.label}{!m.ready && ' ·pronto'}
+                  <b.icon size={14} style={{ color: 'var(--purple)' }} /> {b.label}
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={launch}
-              disabled={run.isPending || !prompt.trim() || chosen.length === 0}
-              className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
-              style={{ background: AMBER, color: '#1a1006' }}
-            >
-              <Send size={17} strokeWidth={2} />
-              {run.isPending ? 'Consultando...' : 'Lanzar enjambre'}
-            </button>
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-              <input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} aria-label="Guardar sesion" />
-              guardar sesion
-            </label>
-          </div>
-        </Panel>
+            {/* Objetivo = espejo del prompt actual */}
+            {prompt.trim() && (
+              <div className="flex items-center gap-3 rounded-lg p-4" style={{ border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', background: 'color-mix(in srgb, var(--amber) 6%, transparent)' }}>
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg glow-amber" style={{ background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
+                  <Target size={16} />
+                </span>
+                <span className="flex-1 text-[13px] leading-snug text-foreground line-clamp-2">
+                  {prompt.trim()}
+                </span>
+                <span className="shrink-0 rounded-md px-2.5 py-1 font-mono text-[11px] font-medium" style={{ background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
+                  {mode}
+                </span>
+              </div>
+            )}
+          </Panel>
 
-        {/* Columna derecha: progreso + salidas */}
+          {/* 2. Selección de agentes */}
+          <Panel title={<SectionTitle>2. Selecciona agentes de IA</SectionTitle>} bodyClassName="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+              {all.map((a) => {
+                const on = chosen.includes(a.name);
+                const noKey = keyless.has(a.provider);
+                return (
+                  <div
+                    key={a.name}
+                    className="rounded-lg border p-3 transition-colors"
+                    style={{
+                      borderColor: on ? 'color-mix(in srgb, var(--purple) 40%, transparent)' : 'var(--border)',
+                      background: on ? 'color-mix(in srgb, var(--purple) 7%, transparent)' : 'color-mix(in srgb, var(--bg-raised) 30%, transparent)',
+                    }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <ProviderIcon provider={a.provider} size={22} />
+                      <Toggle on={on} onClick={() => toggle(a.name)} label={`Alternar ${a.name}`} />
+                    </div>
+                    <p className="mt-3 text-[14px] font-semibold text-foreground">{a.name}</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">
+                      {a.provider}/{a.model || 'default'} · {a.role}
+                    </p>
+                    {noKey ? (
+                      <p className="mt-3 flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--alert)' }}>
+                        <span className="size-1.5 rounded-full" style={{ background: 'var(--alert)' }} /> Sin API key
+                      </p>
+                    ) : (
+                      <p className="mt-3 flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--ok)' }}>
+                        <span className="size-1.5 rounded-full" style={{ background: 'var(--ok)' }} /> Listo
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              {all.length === 0 && (
+                <p className="col-span-full text-xs text-muted-foreground">
+                  Sin agentes. Crea uno en la pestaña Agentes.
+                </p>
+              )}
+            </div>
+            {chosenKeyless.length > 0 && (
+              <p className="text-[11px]" style={{ color: 'var(--warn)' }}>
+                ⚠ {chosenKeyless.length} agente(s) sin API key ({chosenKeyless.join(', ')}) fallarán al lanzar.
+              </p>
+            )}
+
+            <div className="flex items-center gap-4 border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={launch}
+                disabled={run.isPending || !prompt.trim() || chosen.length === 0}
+                className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
+                style={{ background: AMBER, color: '#1a1006' }}
+              >
+                <Send size={17} strokeWidth={2} />
+                {run.isPending ? 'Consultando...' : 'Lanzar enjambre'}
+              </button>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} aria-label="Guardar sesion" />
+                guardar sesion
+              </label>
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Settings size={14} /> {chosen.length} seleccionado(s)
+              </span>
+            </div>
+          </Panel>
+        </div>
+
+        {/* Columna derecha: salidas en paralelo */}
         <Panel
-          title="Salidas de los agentes"
-          bodyClassName="flex flex-col gap-4 max-h-[640px] overflow-y-auto scrollbar-thin"
+          title={<SectionTitle>3. Chats / Salidas en paralelo</SectionTitle>}
+          bodyClassName="flex flex-col gap-4 max-h-[720px] overflow-y-auto scrollbar-thin"
         >
           <div className="flex flex-col items-center gap-2">
             <CircularProgress
@@ -175,25 +266,23 @@ export default function RunPage() {
                 <p className="text-[11px] text-muted-foreground">sesión {report.session_id}</p>
               )}
               {report.runs.map((r) => (
-                <div key={r.agent} className="rounded-lg border border-border bg-secondary/30 p-3">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-primary">{r.agent}</span>
-                    <span className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-                      <ProviderIcon provider={r.provider} size={14} />
-                      {r.provider}/{r.model}
-                    </span>
+                <div key={r.agent} className="rounded-lg border border-border bg-secondary/25 p-3">
+                  <div className="flex items-center gap-2">
+                    <ProviderIcon provider={r.provider} size={18} />
+                    <span className="text-[13px] font-semibold text-primary">{r.agent}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">{r.provider}/{r.model}</span>
+                    {!r.result.error && (
+                      <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                        {r.result.latency_ms} ms · ${r.result.cost_usd.toFixed(6)}
+                      </span>
+                    )}
                   </div>
                   {r.result.error ? (
-                    <p className="text-xs" style={{ color: 'var(--alert)' }}>{r.result.error}</p>
+                    <p className="mt-2 text-xs" style={{ color: 'var(--alert)' }}>{r.result.error}</p>
                   ) : (
-                    <>
-                      <p className="mb-1 text-[10px] text-muted-foreground">
-                        {r.result.latency_ms} ms · ${r.result.cost_usd.toFixed(6)}
-                      </p>
-                      <pre className="whitespace-pre-wrap font-mono text-xs text-foreground">
-                        {r.result.text || '(respuesta vacia)'}
-                      </pre>
-                    </>
+                    <pre className="mt-2 whitespace-pre-wrap font-mono text-xs text-secondary-foreground">
+                      {r.result.text || '(respuesta vacia)'}
+                    </pre>
                   )}
                 </div>
               ))}
