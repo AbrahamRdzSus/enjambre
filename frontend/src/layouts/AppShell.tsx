@@ -192,7 +192,7 @@ export default function AppShell() {
       >
         {/* Marca */}
         <div className="flex items-center gap-2.5 h-16 px-5 shrink-0">
-          <img src="/logos/hex.png" alt="ENJAMBRE" width={32} height={32}
+          <img src="/logos/hex.svg" alt="ENJAMBRE" width={32} height={32}
                style={{ filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.4))' }} />
           <span className="leading-none">
             <span className="wordmark block text-base" style={{ letterSpacing: '0.14em' }}>ENJAMBRE</span>

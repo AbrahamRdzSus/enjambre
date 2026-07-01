@@ -38,7 +38,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
           }}
         >
           <motion.img
-            src="/logos/hex.png"
+            src="/logos/hex.svg"
             alt="ENJAMBRE"
             width={132}
             height={132}
