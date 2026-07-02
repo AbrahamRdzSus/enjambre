@@ -11,6 +11,7 @@ import {
 } from '../api/hooks';
 import { Panel, PageHeader } from '../components/ui/Panel';
 import ProviderIcon from '../components/ProviderIcon';
+import MicroLoader from '../components/ui/MicroLoader';
 
 const ROLES = ['builder', 'architect'];
 
@@ -62,7 +63,7 @@ export default function AgentsPage() {
             disabled={validate.isPending}
             className="flex h-8 items-center gap-1.5 rounded bg-primary/15 px-2.5 text-xs text-primary disabled:opacity-50"
           >
-            <ShieldCheck size={14} />
+            {validate.isPending ? <MicroLoader variant="dots" size={7} /> : <ShieldCheck size={14} />}
             {validate.isPending ? 'Validando…' : 'Validar claves'}
           </button>
         }

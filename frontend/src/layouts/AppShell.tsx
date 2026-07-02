@@ -6,13 +6,9 @@ import { useAgents, useProviders, usePatchAgent, useStats } from '../api/hooks';
 import ProjectSelector from '../components/ProjectSelector';
 import ProviderIcon from '../components/ProviderIcon';
 import UpdateBanner from '../components/UpdateBanner';
-import { Particles } from '../components/ui/particles';
+import SiteBackground from '../components/ui/SiteBackground';
+import StatusIcon, { type Status } from '../components/ui/StatusIcon';
 import { useRunEvents, useRunStore } from '../stores/run-store';
-
-const DOT: Record<string, string> = {
-  running: 'var(--amber)', ok: 'var(--ok)', error: 'var(--alert)',
-  enabled: 'var(--purple)', idle: 'var(--fg-faint)',
-};
 
 const NAV = [
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
@@ -82,10 +78,10 @@ function SidebarAgents() {
       <p className="eyebrow px-2 mb-2">Agentes registrados</p>
       <div className="flex flex-col gap-0.5">
         {agents.slice(0, 8).map((a) => {
-          const st = status[a.name] ?? (a.enabled ? 'enabled' : 'idle');
+          const st: Status = status[a.name] ?? (a.enabled ? 'enabled' : 'idle');
           return (
             <div key={a.name} className="flex items-center gap-2 px-2 h-9 text-xs">
-              <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ background: DOT[st] }} />
+              <span className="grid w-3.5 shrink-0 place-items-center"><StatusIcon status={st} size={11} /></span>
               <span className="min-w-0 leading-tight">
                 <span className="block truncate" style={{ color: 'var(--fg-mute)', fontFamily: 'var(--font-mono)' }}>{a.name}</span>
                 <span className="block truncate text-[10px]" style={{ color: 'var(--fg-faint)' }}>{a.provider}/{a.model || 'default'}</span>
@@ -178,14 +174,7 @@ export default function AppShell() {
 
   return (
     <div className="flex min-h-screen app-texture">
-      <Particles
-        className="fixed inset-0"
-        style={{ zIndex: 0, opacity: 0.5 }}
-        quantity={70}
-        color="#8b5cf6"
-        size={0.5}
-        staticity={70}
-      />
+      <SiteBackground />
       <aside
         className="fixed top-0 left-0 h-screen w-60 flex flex-col border-r z-30"
         style={{ background: 'var(--bg-raised)', borderColor: 'var(--border)' }}
@@ -248,7 +237,7 @@ export default function AppShell() {
 
       <main className="flex-1 ml-60 flex flex-col relative" style={{ zIndex: 10 }}>
         <Header healthy={healthy} />
-        <div className="mx-auto w-full" style={{ maxWidth: 1280, padding: 28 }}>
+        <div className="mx-auto w-full" style={{ maxWidth: 1760, padding: 28 }}>
           <Outlet />
         </div>
       </main>

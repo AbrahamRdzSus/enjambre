@@ -51,10 +51,10 @@
   --bg-card: #1a1530;
   --border: #2a2342;
 
-  /* Texto */
+  /* Texto (contraste subido para legibilidad en el cockpit) */
   --fg: #f3f0fa;
-  --fg-mute: #a99fc7;
-  --fg-faint: #6f6690;
+  --fg-mute: #c2bae0;
+  --fg-faint: #8a80ad;
 
   /* Acentos: morado (primario) + ambar (accion) */
   --purple: #8b5cf6;
@@ -125,9 +125,10 @@ body {
 }
 
 .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.22em;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--purple-soft);
 }
@@ -140,7 +141,7 @@ body {
 /* Glassmorphism: superficie translucida con blur (cards, paneles).
    Dirección Apple: borde sutil (menos contraste) + sombra suave en capas + hairline superior. */
 .glass {
-  background: color-mix(in srgb, var(--bg-card) 76%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
   backdrop-filter: blur(16px) saturate(1.1);
   -webkit-backdrop-filter: blur(16px) saturate(1.1);
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);

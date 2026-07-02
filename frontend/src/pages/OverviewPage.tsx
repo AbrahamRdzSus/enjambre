@@ -10,6 +10,7 @@ import {
 } from '../api/hooks';
 import { useProjectStore } from '../stores/project-store';
 import HexSwarm from '../components/HexSwarm';
+import SwarmFlow from '../components/SwarmFlow';
 import MetricsRow, { type Metric } from '../components/overview/MetricsRow';
 import Conversations from '../components/overview/Conversations';
 import FilePanel from '../components/overview/FilePanel';
@@ -100,40 +101,55 @@ export default function OverviewPage() {
         </h1>
       </header>
 
-      <MetricsRow items={metrics} />
-
-      {/* Orquestacion (hex live) + sesiones recientes */}
-      <div
-        className="grid gap-3"
-        style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)' }}
-      >
-        <div className="relative flex items-center justify-center overflow-hidden glass p-4">
-          <div className="absolute left-4 top-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Orquestacion del enjambre
-          </div>
-          <HexSwarm size={420} />
+      {/* Cockpit de 3 columnas que aprovecha el ancho de la ventana:
+          izquierda = proyecto en trabajo, centro = metricas + flujo +
+          orquestacion + sesiones, derecha = tokens/actividad/rendimiento.
+          Colapsa a 1 columna en ventanas angostas (< xl). */}
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_minmax(320px,360px)]">
+        {/* Riel izquierdo: proyecto en trabajo */}
+        <div className="order-2 flex flex-col gap-3 xl:order-1">
+          <FilePanel
+            root={activeRoot}
+            files={workspace.data?.files ?? []}
+            loading={workspace.isLoading && !!activeRoot}
+            error={workspace.isError}
+          />
         </div>
 
-        <Conversations
-          sessions={sessions.data ?? []}
-          loading={sessions.isLoading}
-          onLaunch={() => navigate('/run')}
-        />
+        {/* Centro: metricas + flujo + orquestacion + sesiones */}
+        <div className="order-1 flex flex-col gap-3 xl:order-2">
+          <MetricsRow items={metrics} />
+          <SwarmFlow />
+          <div
+            className="grid gap-3"
+            style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)' }}
+          >
+            <div className="relative flex items-center justify-center overflow-hidden glass p-4">
+              <div className="absolute left-4 top-3 text-[13px] font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
+                Orquestacion del enjambre
+              </div>
+              <HexSwarm size={420} />
+            </div>
+
+            <Conversations
+              sessions={sessions.data ?? []}
+              loading={sessions.isLoading}
+              onLaunch={() => navigate('/run')}
+            />
+          </div>
+        </div>
+
+        {/* Riel derecho: tokens por proveedor + actividad + rendimiento */}
+        <div className="order-3 flex flex-col gap-3">
+          <BottomRow
+            byProvider={byProvider}
+            logs={logs.data ?? []}
+            byAgent={byAgent}
+            onSeeLogs={() => navigate('/logs')}
+            layout="column"
+          />
+        </div>
       </div>
-
-      <FilePanel
-        root={activeRoot}
-        files={workspace.data?.files ?? []}
-        loading={workspace.isLoading && !!activeRoot}
-        error={workspace.isError}
-      />
-
-      <BottomRow
-        byProvider={byProvider}
-        logs={logs.data ?? []}
-        byAgent={byAgent}
-        onSeeLogs={() => navigate('/logs')}
-      />
     </div>
   );
 }
