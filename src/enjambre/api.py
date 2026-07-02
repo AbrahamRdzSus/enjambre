@@ -25,6 +25,7 @@ Seguridad (3 controles, todos opt-in para no estorbar el uso local):
 from __future__ import annotations
 
 import os
+import uuid
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -35,7 +36,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import config, projects, sessions, stats, workspace
+from . import cli_agent, config, projects, sessions, stats, workspace
 from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
 from .multiagent import MODES, MultiAgent, MultiAgentReport
@@ -98,6 +99,15 @@ class ProjectIn(BaseModel):
     root: str = "."
 
 
+class CliRunIn(BaseModel):
+    project_id: str
+    prompt: str
+
+
+class CliApproveIn(BaseModel):
+    approved: bool = False
+
+
 def _multiagent_out(report: MultiAgentReport) -> dict[str, Any]:
     """Aplana un MultiAgentReport (candidatos finales) a la forma 'runs' del /run."""
     runs = [
@@ -131,7 +141,8 @@ def create_app(*, registry: Registry | None = None,
                bus: LogBus | None = None,
                api_token: str | None = None,
                allowed_roots: list[str] | None = None,
-               dev_docs: bool | None = None) -> FastAPI:
+               dev_docs: bool | None = None,
+               cli_agents: bool | None = None) -> FastAPI:
     """Crea la app. Sin args usa el registro en disco y claves del entorno.
 
     `registry`/`keys`/`client`/`bus` permiten inyeccion en tests. `api_token`/
@@ -144,6 +155,9 @@ def create_app(*, registry: Registry | None = None,
     show_docs = (dev_docs if dev_docs is not None
                  else os.getenv("ENJAMBRE_API_DEV", "").strip().lower()
                  in ("1", "true", "yes"))
+    cli_on = (cli_agents if cli_agents is not None
+              else os.getenv("ENJAMBRE_CLI_AGENTS", "").strip().lower()
+              in ("1", "true", "yes"))
 
     docs = dict(docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json") \
         if show_docs else dict(docs_url=None, redoc_url=None, openapi_url=None)
@@ -407,6 +421,76 @@ def create_app(*, registry: Registry | None = None,
                      message="; ".join(f"{p}: {m}" for p, m in report.rejected))
         return {"ok": report.ok, "written": report.written,
                 "rejected": report.rejected, "temp_branch": report.temp_branch}
+
+    # --- agente CLI (tipo "CLI", opt-in con ENJAMBRE_CLI_AGENTS=1) ----------
+    if cli_on:
+        # Resultados en memoria por run_id (no se persisten). run_id -> dict.
+        cli_runs: dict[str, dict[str, Any]] = {}
+
+        def _cli_root(project_id: str) -> Path:
+            for p in projects.list_projects():
+                if p.id == project_id:
+                    return _ensure_root(p.root)
+            raise HTTPException(status_code=404,
+                                detail=f"proyecto {project_id!r} no existe")
+
+        def _cli_payload(run_id: str, res: cli_agent.CliTaskResult) -> dict[str, Any]:
+            return {"run_id": run_id, "ok": res.ok, "diff": res.diff,
+                    "changed_files": res.changed_files, "log": res.log,
+                    "error": res.error}
+
+        @app.post("/cli/run")
+        async def cli_run(req: CliRunIn) -> dict[str, Any]:
+            root = _cli_root(req.project_id)
+            bus.emit("cli.run.start", message=f"prompt ({len(req.prompt)} chars)")
+            res = await cli_agent.run_cli_task(req.prompt, root)
+            run_id = uuid.uuid4().hex
+            cli_runs[run_id] = {
+                "status": "done" if res.ok else "error",
+                "result": res, "root": str(root)}
+            bus.emit("cli.run.done", level="info" if res.ok else "error",
+                     message=res.error or f"{len(res.changed_files)} archivo(s)")
+            return _cli_payload(run_id, res)
+
+        @app.get("/cli/{run_id}")
+        def cli_status(run_id: str) -> dict[str, Any]:
+            rec = cli_runs.get(run_id)
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"run {run_id!r} no existe")
+            res: cli_agent.CliTaskResult = rec["result"]
+            return {"status": rec["status"], **_cli_payload(run_id, res)}
+
+        @app.post("/cli/{run_id}/approve")
+        def cli_approve(run_id: str, body: CliApproveIn) -> dict[str, Any]:
+            rec = cli_runs.get(run_id)
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"run {run_id!r} no existe")
+            res: cli_agent.CliTaskResult = rec["result"]
+            root = Path(rec["root"])
+            report_out: dict[str, Any] = {"ok": True, "written": [],
+                                          "rejected": [], "temp_branch": None}
+            try:
+                if body.approved and res.ok:
+                    wt = Path(res.worktree_path)
+                    changes: list[Change] = []
+                    for rel in res.changed_files:
+                        fp = wt / rel
+                        if fp.is_file():  # v1: borrados quedan fuera de alcance
+                            changes.append(Change(rel, fp.read_text(encoding="utf-8")))
+                    report = ChangeSet(changes).apply(root, approved=True)
+                    if not report.ok:
+                        bus.emit("cli.rejected", level="warn",
+                                 message="; ".join(f"{p}: {m}"
+                                                   for p, m in report.rejected))
+                    report_out = {"ok": report.ok, "written": report.written,
+                                  "rejected": report.rejected,
+                                  "temp_branch": report.temp_branch}
+            finally:
+                # Cleanup del worktree/rama corra o no la aprobacion.
+                if res.worktree_path:
+                    cli_agent.cleanup_worktree(res.worktree_path, res.branch, root)
+                cli_runs.pop(run_id, None)
+            return report_out
 
     # --- logs (tab Logs en Vivo) -------------------------------------------
     @app.get("/logs")

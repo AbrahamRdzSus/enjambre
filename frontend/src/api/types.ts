@@ -69,6 +69,23 @@ export interface Project {
   created_at: string;
 }
 
+export interface CliRunResult {
+  run_id: string;
+  ok: boolean;
+  diff: string;
+  changed_files: string[];
+  log: string;
+  error: string | null;
+  status?: 'done' | 'error';
+}
+
+export interface CliApplyReport {
+  ok: boolean;
+  written: string[];
+  rejected: [string, string][];
+  temp_branch: string | null;
+}
+
 export interface Session {
   id: string;
   kind: string;

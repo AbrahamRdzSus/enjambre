@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
-import type { Agent, Project, Provider, RunReport, Stats, LogEvent, Session } from './types';
+import type {
+  Agent, Project, Provider, RunReport, Stats, LogEvent, Session,
+  CliRunResult, CliApplyReport,
+} from './types';
 
 export function useProjects() {
   return useQuery({ queryKey: ['projects'], queryFn: () => api.get<Project[]>('/projects') });
@@ -145,5 +148,28 @@ export function useApplyChanges() {
     mutationFn: (body: { root: string; changes: ChangeIn[]; approved: boolean }) =>
       api.post<ApplyReport>('/changes/apply', body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['workspace'] }),
+  });
+}
+
+/* --- Agente CLI (tipo "CLI", opt-in con VITE_CLI_AGENTS) ------------------- */
+export function useRunCliTask() {
+  return useMutation({
+    mutationFn: (body: { project_id: string; prompt: string }) =>
+      api.post<CliRunResult>('/cli/run', body),
+  });
+}
+
+export function useCliRunStatus(runId: string | null) {
+  return useQuery({
+    queryKey: ['cli', runId],
+    queryFn: () => api.get<CliRunResult>(`/cli/${encodeURIComponent(runId!)}`),
+    enabled: !!runId,
+  });
+}
+
+export function useApproveCliRun() {
+  return useMutation({
+    mutationFn: ({ runId, approved }: { runId: string; approved: boolean }) =>
+      api.post<CliApplyReport>(`/cli/${encodeURIComponent(runId)}/approve`, { approved }),
   });
 }
