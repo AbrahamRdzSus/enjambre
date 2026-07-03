@@ -71,6 +71,12 @@ El sidecar escucha en `127.0.0.1`. Controles:
     e inyectarla al webview via init script / comando Tauri. Verificar con
     `cargo tauri build` (requiere Rust+MSVC). Este paso va con el empaque (E5).
 
+- **Rate limit (default-on, token-bucket):** acota a un proceso local abusivo que
+  martille endpoints caros (`/cli/run`, `/run`). Default generoso `240/8` (240 en
+  rafaga, recarga 8/s) para no estorbar el polling de la UI; `/health` exento.
+  Configurable con `ENJAMBRE_RATE_LIMIT="capacidad/refill_por_seg"`; `0` lo desactiva.
+  429 al exceder.
+
 - **Allowlist de roots** (`ENJAMBRE_ALLOWED_ROOTS`) y **docs apagadas por defecto**
   (`ENJAMBRE_API_DEV=1` para habilitarlas). Ver docstring de `src/enjambre/api.py`.
 
