@@ -52,7 +52,8 @@ pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # loopback (127.0.0.1/localhost/::1); anadir hosts con ENJAMBRE_ALLOWED_HOSTS o "*".
 # (2) token del sidecar: en arranque puro exige X-API-Token; se autogenera/persiste en
 # <data_dir>/api-token e imprime en stdout. Dev: `npm run dev` corre un predev que lo
-# carga a VITE_API_TOKEN (arranca el sidecar primero). Detalle: SECURITY.md.
+# carga a VITE_API_TOKEN (arranca el sidecar primero). (3) rate limit token-bucket
+# default 240/8 (ENJAMBRE_RATE_LIMIT="cap/refill", "0" desactiva). Detalle: SECURITY.md.
 # agente CLI (opt-in): ENJAMBRE_CLI_AGENTS=1 habilita los endpoints /cli/* (lanza
 # Claude Code headless en un git worktree aislado y aplica su diff bajo aprobacion).
 # Requiere el binario `claude` en el PATH del sidecar. En el frontend, activarlo con

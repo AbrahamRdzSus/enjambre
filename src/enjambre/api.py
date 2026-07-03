@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import time
 import uuid
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -187,7 +188,8 @@ def create_app(*, registry: Registry | None = None,
                allowed_roots: list[str] | None = None,
                dev_docs: bool | None = None,
                cli_agents: bool | None = None,
-               trusted_hosts: list[str] | None = None) -> FastAPI:
+               trusted_hosts: list[str] | None = None,
+               rate_limit: tuple[float, float] | None = None) -> FastAPI:
     """Crea la app. Sin args usa el registro en disco y claves del entorno.
 
     `registry`/`keys`/`client`/`bus` permiten inyeccion en tests. `api_token`/
@@ -212,6 +214,18 @@ def create_app(*, registry: Registry | None = None,
                    if h.strip()])
     allowed_hosts = {"127.0.0.1", "localhost", "::1", "testserver",
                      *(h.strip().lower() for h in hosts)}
+    # Rate limit (token-bucket): acota a un proceso local abusivo que martille
+    # endpoints caros (/cli/run, /run). Default generoso -> no estorba el polling de
+    # la UI. Env ENJAMBRE_RATE_LIMIT="capacidad/refill_por_seg"; "0" lo desactiva.
+    if rate_limit is None:
+        raw = os.getenv("ENJAMBRE_RATE_LIMIT", "").strip()
+        if raw == "0":
+            rate_limit = None
+        elif "/" in raw:
+            cap_s, ref_s = raw.split("/", 1)
+            rate_limit = (float(cap_s), float(ref_s))
+        else:
+            rate_limit = (240.0, 8.0)  # 240 en rafaga, recarga 8/s
 
     docs = dict(docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json") \
         if show_docs else dict(docs_url=None, redoc_url=None, openapi_url=None)
@@ -238,6 +252,27 @@ def create_app(*, registry: Registry | None = None,
                 return JSONResponse(
                     {"detail": "host no permitido (posible DNS-rebinding)"},
                     status_code=403)
+            return await call_next(request)
+
+    if rate_limit is not None:
+        capacity, refill = rate_limit
+        bucket = {"tokens": capacity, "last": time.monotonic()}
+
+        @app.middleware("http")
+        async def _rate_limit(request: Request, call_next):
+            # /health y preflight exentos (liveness/CORS). Sin await entre leer y
+            # escribir el bucket -> atomico en el event loop, no requiere lock.
+            if request.url.path == "/health" or request.method == "OPTIONS":
+                return await call_next(request)
+            now = time.monotonic()
+            bucket["tokens"] = min(capacity,
+                                   bucket["tokens"] + (now - bucket["last"]) * refill)
+            bucket["last"] = now
+            if bucket["tokens"] < 1:
+                return JSONResponse(
+                    {"detail": "demasiadas solicitudes (rate limit)"},
+                    status_code=429)
+            bucket["tokens"] -= 1
             return await call_next(request)
 
     if token:
