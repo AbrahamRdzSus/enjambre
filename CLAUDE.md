@@ -48,6 +48,9 @@ enjambre --config enjambre.yaml agents   # agentes declarativos (parser propio, 
 pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # seguridad (opt-in): ENJAMBRE_API_TOKEN (auth), ENJAMBRE_ALLOWED_ROOTS (allowlist
 # de carpetas para /workspace), ENJAMBRE_API_DEV=1 (habilita /docs, apagado por def).
+# seguridad (default-on): guard anti DNS-rebinding: solo atiende requests con Host
+# loopback (127.0.0.1/localhost/::1). Anadir hosts con ENJAMBRE_ALLOWED_HOSTS
+# (separado por os.pathsep) o "*" para desactivarlo (binds no-loopback conscientes).
 # agente CLI (opt-in): ENJAMBRE_CLI_AGENTS=1 habilita los endpoints /cli/* (lanza
 # Claude Code headless en un git worktree aislado y aplica su diff bajo aprobacion).
 # Requiere el binario `claude` en el PATH del sidecar. En el frontend, activarlo con

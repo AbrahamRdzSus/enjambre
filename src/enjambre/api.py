@@ -20,6 +20,11 @@ Seguridad (3 controles, todos opt-in para no estorbar el uso local):
   traversal/symlink). Sin definir = sin restriccion (app local BYOK navega libre).
 - Docs apagadas por defecto: /docs /redoc /openapi.json solo si ENJAMBRE_API_DEV=1
   (reduce superficie/divulgacion de esquema).
+- Guard anti DNS-rebinding (DEFAULT-ON): solo atiende requests cuyo Host sea loopback
+  (127.0.0.1/localhost/::1). Sin esto, un sitio web abierto en el navegador podria
+  disparar endpoints con side-effects (/cli/*, /changes/apply) via un dominio que
+  resuelva a 127.0.0.1 (CORS bloquea leer la respuesta, no ejecutar el request).
+  Anadir hosts con env ENJAMBRE_ALLOWED_HOSTS (os.pathsep) o "*" para desactivarlo.
 """
 
 from __future__ import annotations
@@ -142,7 +147,8 @@ def create_app(*, registry: Registry | None = None,
                api_token: str | None = None,
                allowed_roots: list[str] | None = None,
                dev_docs: bool | None = None,
-               cli_agents: bool | None = None) -> FastAPI:
+               cli_agents: bool | None = None,
+               trusted_hosts: list[str] | None = None) -> FastAPI:
     """Crea la app. Sin args usa el registro en disco y claves del entorno.
 
     `registry`/`keys`/`client`/`bus` permiten inyeccion en tests. `api_token`/
@@ -158,6 +164,14 @@ def create_app(*, registry: Registry | None = None,
     cli_on = (cli_agents if cli_agents is not None
               else os.getenv("ENJAMBRE_CLI_AGENTS", "").strip().lower()
               in ("1", "true", "yes"))
+    # Anti DNS-rebinding: solo se atienden requests cuyo Host sea loopback (o los
+    # que se agreguen explicitamente). "testserver" = host del TestClient de FastAPI.
+    # "*" desactiva el control (para binds no-loopback conscientes, ej. LAN).
+    hosts = (trusted_hosts if trusted_hosts is not None
+             else [h for h in os.getenv("ENJAMBRE_ALLOWED_HOSTS", "").split(os.pathsep)
+                   if h.strip()])
+    allowed_hosts = {"127.0.0.1", "localhost", "::1", "testserver",
+                     *(h.strip().lower() for h in hosts)}
 
     docs = dict(docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json") \
         if show_docs else dict(docs_url=None, redoc_url=None, openapi_url=None)
@@ -171,6 +185,20 @@ def create_app(*, registry: Registry | None = None,
                        "http://tauri.localhost", "https://tauri.localhost"],
         allow_methods=["*"], allow_headers=["*"],
     )
+
+    if "*" not in allowed_hosts:
+        @app.middleware("http")
+        async def _host_guard(request: Request, call_next):
+            host = request.headers.get("host", "")
+            if host.startswith("["):  # IPv6 literal, ej. [::1]:8000
+                hostname = host[1:host.find("]")] if "]" in host else host[1:]
+            else:
+                hostname = host.rsplit(":", 1)[0]
+            if hostname.lower() not in allowed_hosts:
+                return JSONResponse(
+                    {"detail": "host no permitido (posible DNS-rebinding)"},
+                    status_code=403)
+            return await call_next(request)
 
     if token:
         @app.middleware("http")
