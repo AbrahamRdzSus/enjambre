@@ -52,6 +52,7 @@ pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # Claude Code headless en un git worktree aislado y aplica su diff bajo aprobacion).
 # Requiere el binario `claude` en el PATH del sidecar. En el frontend, activarlo con
 # VITE_CLI_AGENTS=1 (muestra la pestana "Agente CLI"). Sin el flag, nada cambia.
+# Guia + ejemplo end-to-end (curl y dashboard): docs/CLI_AGENT.md.
 # frontend React (dashboard, consume el sidecar; ver frontend/):
 cd frontend; npm install; npm run dev   # http://localhost:5173 (sidecar en :8000)
 # app de escritorio (Tauri 2; requiere Rust+MSVC, ver docs/MIGRATION_TAURI.md):

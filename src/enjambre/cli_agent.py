@@ -18,6 +18,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -56,17 +57,33 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess:
 
 def cleanup_worktree(worktree_path: str | Path, branch: str,
                      project_root: str | Path) -> None:
-    """Borra el worktree (con --force) y la rama temporal. Idempotente/best-effort."""
-    root = Path(project_root)
+    """Borra el worktree (con --force) y la rama temporal. Idempotente/best-effort.
+
+    En Windows un handle rezagado (el proceso `claude` recien salido, un indexador
+    o antivirus) puede hacer fallar `git worktree remove` de forma transitoria; por
+    eso se reintenta, se `prune` los registros stale y, si el dir persiste, se borra
+    con `shutil.rmtree` + `prune` para no dejar worktrees huerfanos.
+    """
+    root = str(Path(project_root))
     wt = str(worktree_path)
-    try:
-        subprocess.run(["git", "-C", str(root), "worktree", "remove", "--force", wt],
-                       check=False, capture_output=True)
-    except FileNotFoundError:
-        pass
+
+    def _run(*args: str) -> int:
+        try:
+            return subprocess.run(["git", "-C", root, *args],
+                                  check=False, capture_output=True).returncode
+        except FileNotFoundError:
+            return 1
+
+    for attempt in range(3):
+        if _run("worktree", "remove", "--force", wt) == 0 or not Path(wt).exists():
+            break
+        time.sleep(0.3 * (attempt + 1))  # espera el release del handle
+    # Fallback: si git no pudo, borra el dir a mano y limpia el registro.
+    if Path(wt).exists():
+        shutil.rmtree(wt, ignore_errors=True)
+    _run("worktree", "prune")
     if branch:
-        subprocess.run(["git", "-C", str(root), "branch", "-D", branch],
-                       check=False, capture_output=True)
+        _run("branch", "-D", branch)
 
 
 async def run_cli_task(prompt: str, project_root: str | Path, *,

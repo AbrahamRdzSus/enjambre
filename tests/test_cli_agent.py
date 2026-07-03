@@ -77,3 +77,14 @@ def test_run_cli_task_not_a_git_repo(tmp_path, monkeypatch):
     _mock_claude(monkeypatch)  # binario presente, pero no hay repo git
     res = asyncio.run(cli_agent.run_cli_task("x", tmp_path))
     assert not res.ok and "git" in res.error
+
+
+def test_cleanup_worktree_fallback_removes_dir(tmp_path):
+    """Si `git worktree remove` no aplica (dir suelto, no worktree), el fallback
+    rmtree lo borra igual: nunca deja el directorio huerfano."""
+    _git_repo(tmp_path)
+    orphan = tmp_path / "huerfano"
+    orphan.mkdir()
+    (orphan / "f.txt").write_text("x", encoding="utf-8")
+    cli_agent.cleanup_worktree(orphan, "rama/inexistente", tmp_path)
+    assert not orphan.exists()
