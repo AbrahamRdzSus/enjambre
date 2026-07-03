@@ -84,8 +84,9 @@ Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`
   como instalador. Solo la landing va a web.
 
 ## Riesgos / bloqueos abiertos
-- ACCION DEL USUARIO: rotar/revocar las 2 claves filtradas en la carpeta vieja
-  (OpenAI sk-proj-..., Gemini AQ.Ab8...). No estan en el repo canonico.
+- RESUELTO 2026-07-03: las 2 claves filtradas en la carpeta vieja (OpenAI sk-proj-...,
+  Gemini AQ.Ab8...) fueron rotadas/revocadas por el usuario. No estaban en el repo
+  canonico (arbol e historial limpios).
 - Precios en los adapters son ESTIMACIONES (no facturacion real); revisar antes
   de mostrar costo a usuarios de pago.
 - (Opcional) sin firma Authenticode: el instalador dispara SmartScreen.
