@@ -3,11 +3,13 @@ import {
   Send, Network, Settings, Sparkles, Target, Paperclip, Code2, Boxes, FileText,
 } from 'lucide-react';
 import { useAgents, useProviders, useRun } from '../api/hooks';
-import CircularProgress from '../components/CircularProgress';
+import type { Agent } from '../api/types';
+import CircleLoad from '../components/ui/CircleLoad';
+import MicroLoader from '../components/ui/MicroLoader';
 import ProviderIcon from '../components/ProviderIcon';
+import AgentCard from '../components/AgentCard';
 import { Panel, PageHeader } from '../components/ui/Panel';
 
-const PURPLE = '#8b5cf6';
 const AMBER = '#ffb020';
 const MODES = [
   { id: 'parallel', label: 'Paralelo' },
@@ -223,7 +225,7 @@ export default function RunPage() {
                 className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
                 style={{ background: AMBER, color: '#1a1006' }}
               >
-                <Send size={17} strokeWidth={2} />
+                {run.isPending ? <MicroLoader variant="dots" size={8} /> : <Send size={17} strokeWidth={2} />}
                 {run.isPending ? 'Consultando...' : 'Lanzar enjambre'}
               </button>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -243,9 +245,8 @@ export default function RunPage() {
           bodyClassName="flex flex-col gap-4 max-h-[720px] overflow-y-auto scrollbar-thin"
         >
           <div className="flex flex-col items-center gap-2">
-            <CircularProgress
-              indeterminate={run.isPending}
-              value={successPct}
+            <CircleLoad
+              progress={run.isPending ? null : successPct / 100}
               label={run.isPending ? 'corriendo' : 'éxito'}
             />
             <p className="text-center text-xs text-muted-foreground">
@@ -265,27 +266,22 @@ export default function RunPage() {
               {report.session_id && (
                 <p className="text-[11px] text-muted-foreground">sesión {report.session_id}</p>
               )}
-              {report.runs.map((r) => (
-                <div key={r.agent} className="rounded-lg border border-border bg-secondary/25 p-3">
-                  <div className="flex items-center gap-2">
-                    <ProviderIcon provider={r.provider} size={18} />
-                    <span className="text-[13px] font-semibold text-primary">{r.agent}</span>
-                    <span className="font-mono text-[10px] text-muted-foreground">{r.provider}/{r.model}</span>
+              {report.runs.map((r) => {
+                const ag: Agent = all.find((a) => a.name === r.agent) ?? {
+                  name: r.agent, provider: r.provider, model: r.model,
+                  role: '', enabled: true, system_prompt: '',
+                };
+                return (
+                  <div key={r.agent} className="flex flex-col gap-2">
+                    <AgentCard agent={ag} status={r.result.error ? 'error' : 'ok'} result={r.result} />
                     {!r.result.error && (
-                      <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                        {r.result.latency_ms} ms · ${r.result.cost_usd.toFixed(6)}
-                      </span>
+                      <pre className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/25 p-3 font-mono text-xs text-secondary-foreground">
+                        {r.result.text || '(respuesta vacia)'}
+                      </pre>
                     )}
                   </div>
-                  {r.result.error ? (
-                    <p className="mt-2 text-xs" style={{ color: 'var(--alert)' }}>{r.result.error}</p>
-                  ) : (
-                    <pre className="mt-2 whitespace-pre-wrap font-mono text-xs text-secondary-foreground">
-                      {r.result.text || '(respuesta vacia)'}
-                    </pre>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Panel>

@@ -51,6 +51,46 @@ jobs:
       - name: Run tests
         run: pytest -q
 
+  audit:
+    name: deps audit (${{ matrix.kind }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [python, frontend, landing]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: ${{ matrix.kind == 'python' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # pip-audit: falla si alguna dependencia (incl. transitivas) tiene CVE conocido.
+      # --skip-editable salta el propio paquete `enjambre` (no esta en PyPI).
+      - name: pip-audit (core + api + gui + dev)
+        if: ${{ matrix.kind == 'python' }}
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip install -e ".[api,gui,dev]"
+          pip-audit --skip-editable
+
+      - name: Set up Node
+        if: ${{ matrix.kind != 'python' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ${{ matrix.kind }}/package-lock.json
+
+      # npm audit del arbol pineado (package-lock.json); falla en severidad high+.
+      - name: npm audit
+        if: ${{ matrix.kind != 'python' }}
+        working-directory: ${{ matrix.kind }}
+        run: npm audit --audit-level=high
+
   web:
     name: web (${{ matrix.dir }})
     runs-on: ubuntu-latest

@@ -10,6 +10,9 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const LogsPage = lazy(() => import('./pages/LogsPage'));
 const StatsPage = lazy(() => import('./pages/StatsPage'));
 const AgentsPage = lazy(() => import('./pages/AgentsPage'));
+const CliPage = lazy(() => import('./pages/CliPage'));
+
+const CLI_AGENTS = import.meta.env.VITE_CLI_AGENTS === '1';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -31,6 +34,7 @@ export default function App() {
               <Route path="logs" element={<LogsPage />} />
               <Route path="stats" element={<StatsPage />} />
               <Route path="agents" element={<AgentsPage />} />
+              {CLI_AGENTS && <Route path="cli" element={<CliPage />} />}
             </Route>
           </Routes>
         </Suspense>

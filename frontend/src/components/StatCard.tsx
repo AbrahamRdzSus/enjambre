@@ -60,11 +60,19 @@ export default function StatCard({ label, value, format, accent = 'var(--purple-
   const animated = useCountUp(value, !reduce);
   const shown = format ? format(animated) : String(Math.round(animated));
   return (
-    <div className="glass p-4 flex flex-col gap-1">
+    <div className="glass p-4 flex flex-col gap-1 transition-transform duration-200 will-change-transform hover:-translate-y-0.5">
       <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--fg-faint)' }}>
         {label}
       </span>
-      <span className="text-2xl font-semibold tnum" style={{ color: accent, fontFamily: 'var(--font-mono)' }}>
+      <span
+        className="text-2xl font-semibold tnum self-start"
+        style={{
+          color: accent,
+          fontFamily: 'var(--font-mono)',
+          borderBottom: `2px solid color-mix(in srgb, ${accent} 45%, transparent)`,
+          paddingBottom: 2,
+        }}
+      >
         {shown}
       </span>
       {hint && <span className="text-xs" style={{ color: 'var(--fg-mute)' }}>{hint}</span>}

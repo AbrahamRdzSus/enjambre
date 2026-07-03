@@ -28,7 +28,9 @@ aprobacion humana. Capa de orquestacion/UI; NO entrena ni revende modelos.
 
 ## Notas
 - Obsidia Studio. Apache-2.0, open-source (BYOK = el usuario trae sus claves).
-- PENDIENTE seguridad: rotar 2 claves filtradas en versiones viejas (OpenAI/Gemini).
+- Seguridad: 2 claves filtradas en versiones viejas (OpenAI/Gemini) ROTADAS/REVOCADAS
+  2026-07-03. Repo canonico limpio (sin keys en arbol ni historial). BYOK: el core
+  no persiste claves.
 - Lo primero que debe saber alguien nuevo: el core es REAL (no simulado); Fases 1-5
   del ROADMAP hechas. El frente abierto es el levantamiento a producto: terminar el
   diseño (cockpit v0) + landing/release (ver docs/ROADMAP_LEVANTAMIENTO.md).

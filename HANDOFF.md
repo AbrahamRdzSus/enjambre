@@ -5,8 +5,14 @@
 > que viva fuera del repo. Manten este archivo PODADO: indice, no historia completa.
 
 ## Estado actual
-- Rama / version: feature/nucleo-real / core v0.5.0 (main entra por PR). Ultimo
-  commit: instalador NSIS + sidecar congelado (Fase B del levantamiento).
+- Rama / version: feat/desktop-swarmflow-agentcard / core v0.5.0 (main entra por
+  PR). Ultimo commit: mockups diseno/ trackeados como cantera (6735f96). Antes:
+  spec agente CLI v1 (fa10acb) + tanda cockpit desktop (SwarmFlow/AgentCard/
+  DiffViewer/Overview 3 columnas/pass legibilidad).
+- Cockpit INTEGRADO y vigente: /overview con components/overview/* + AppShell +
+  Panel.tsx replicando el lenguaje en todas las pestañas, cableado a hooks
+  reales. diseno/ (scaffold v0 Next.js) es SOLO cantera de referencia, ya
+  consumida; su duplicado e-commerce-nexus-dashboard/ quedo en .gitignore.
 - Core REAL en `src/enjambre/` (~3450 LOC, 29 modulos, 170 tests verdes). Fases
   1-5 del ROADMAP tecnico implementadas; Fase 6 (SDK) parcial:
   - FASE 1 - orquestacion real: adapters httpx (OpenAI/xAI compat, Anthropic,
@@ -51,11 +57,17 @@
    Landing DESPLEGADA en Vercel (proyecto "landing") y LIVE en dominio propio:
    https://enjambre.obsidia.mx (A enjambre -> 76.76.21.21 DNS-only en Cloudflare;
    cert SSL emitido con `vercel certs issue`). CI cubre ahora frontend+landing (job web).
-   PENDIENTE: opcional renombrar el proyecto Vercel "landing" -> "enjambre"; chrome
-   sidebar/topbar; OG social card 1200x630; refrescar screenshots al look cockpit nuevo;
-   auto-update (`tauri-plugin-updater`).
-2. Fases C+D levantamiento: landing estatica en Vercel + GitHub Release con el
-   instalador ya horneado + `tauri-plugin-updater` (Eye ya lo usa).
+   PENDIENTE menor: opcional renombrar el proyecto Vercel "landing" -> "enjambre";
+   OG social card 1200x630; refrescar screenshots al look cockpit nuevo.
+2. Seguridad sidecar (ANTES del agente CLI): token default-on autogenerado +
+   handshake Tauri; validar Host/Origin (anti DNS-rebinding); confirmar bind
+   127.0.0.1; pip-audit + pin de deps en CI.
+3. Agente CLI: /build de `specs/cli-agent-v1.md` (Claude Code headless en
+   worktree aislado).
+4. Release real: `tauri-plugin-updater` con firma (patron de Eye) + script de
+   release unico (PyInstaller+NSIS+Release).
+5. Precios: consumir el JSON de precios de litellm en vez de estimaciones
+   hardcodeadas en los adapters.
 Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`
 (producto distribuible, Fases A-E).
 
@@ -72,13 +84,14 @@ Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`
   como instalador. Solo la landing va a web.
 
 ## Riesgos / bloqueos abiertos
-- ACCION DEL USUARIO: rotar/revocar las 2 claves filtradas en la carpeta vieja
-  (OpenAI sk-proj-..., Gemini AQ.Ab8...). No estan en el repo canonico.
+- RESUELTO 2026-07-03: las 2 claves filtradas en la carpeta vieja (OpenAI sk-proj-...,
+  Gemini AQ.Ab8...) fueron rotadas/revocadas por el usuario. No estaban en el repo
+  canonico (arbol e historial limpios).
 - Precios en los adapters son ESTIMACIONES (no facturacion real); revisar antes
   de mostrar costo a usuarios de pago.
 - (Opcional) sin firma Authenticode: el instalador dispara SmartScreen.
-- Pendiente en working tree: `agents/registered.json` modificado + `.zip` de
-  diseño sin trackear.
+- Sidecar: auth es OPT-IN (ENJAMBRE_API_TOKEN); endurecer a default-on +
+  validacion Host/Origin antes de crecer la superficie (agente CLI).
 
 ## Gates de aceptacion (docs/gates/)
 Gates congelados presentes: core-real-orchestration, fase2-workspace-seguro,
@@ -95,4 +108,4 @@ el diff contra la intencion, no solo "pasan los tests".
 4. REVISA: pase separado que lee el diff contra la intencion + corre los gates.
 5. ACTUALIZA este HANDOFF y poda lo viejo.
 
-_Ultima actualizacion: 2026-06-23_
+_Ultima actualizacion: 2026-07-01_

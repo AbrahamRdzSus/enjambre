@@ -72,6 +72,18 @@ export default function HexSwarm({ size = 420 }: { size?: number }) {
         style={{ transformOrigin: `${c}px ${c}px` }}
       />
 
+      {/* anillo interior contra-rotando (profundidad) */}
+      <motion.polygon
+        points={hexPoints(c, c, R * 0.86)}
+        fill="none"
+        stroke={AMBER}
+        strokeOpacity="0.08"
+        strokeWidth="1"
+        animate={reduce ? undefined : { rotate: -360 }}
+        transition={reduce ? undefined : { duration: 120, repeat: Infinity, ease: 'linear' }}
+        style={{ transformOrigin: `${c}px ${c}px` }}
+      />
+
       {/* halo del nucleo (pulso) */}
       <motion.circle
         cx={c}

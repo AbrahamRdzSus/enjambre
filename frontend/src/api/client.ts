@@ -1,10 +1,15 @@
 /*
  * Cliente HTTP del frontend -> sidecar FastAPI de ENJAMBRE (enjambre.api).
  * Base: 127.0.0.1:8000 por defecto (el sidecar permite el origen 5173 via CORS).
- * Token opcional (VITE_API_TOKEN) si el sidecar corre con ENJAMBRE_API_TOKEN.
+ * Token (sidecar DEFAULT-ON): en dev llega via VITE_API_TOKEN (lo carga el predev
+ * scripts/load-token.mjs desde el token-file del sidecar); en la app Tauri empaquetada
+ * el shell inyecta window.__ENJAMBRE_TOKEN__ (ver docs/SECURITY.md > token del sidecar).
  */
 const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-const TOKEN = import.meta.env.VITE_API_TOKEN || '';
+const TOKEN = import.meta.env.VITE_API_TOKEN
+  || (typeof window !== 'undefined'
+      ? (window as unknown as { __ENJAMBRE_TOKEN__?: string }).__ENJAMBRE_TOKEN__ ?? ''
+      : '');
 
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {

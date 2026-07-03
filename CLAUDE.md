@@ -48,6 +48,16 @@ enjambre --config enjambre.yaml agents   # agentes declarativos (parser propio, 
 pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # seguridad (opt-in): ENJAMBRE_API_TOKEN (auth), ENJAMBRE_ALLOWED_ROOTS (allowlist
 # de carpetas para /workspace), ENJAMBRE_API_DEV=1 (habilita /docs, apagado por def).
+# seguridad (default-on): (1) guard anti DNS-rebinding: solo atiende requests con Host
+# loopback (127.0.0.1/localhost/::1); anadir hosts con ENJAMBRE_ALLOWED_HOSTS o "*".
+# (2) token del sidecar: en arranque puro exige X-API-Token; se autogenera/persiste en
+# <data_dir>/api-token e imprime en stdout. Dev: `npm run dev` corre un predev que lo
+# carga a VITE_API_TOKEN (arranca el sidecar primero). Detalle: SECURITY.md.
+# agente CLI (opt-in): ENJAMBRE_CLI_AGENTS=1 habilita los endpoints /cli/* (lanza
+# Claude Code headless en un git worktree aislado y aplica su diff bajo aprobacion).
+# Requiere el binario `claude` en el PATH del sidecar. En el frontend, activarlo con
+# VITE_CLI_AGENTS=1 (muestra la pestana "Agente CLI"). Sin el flag, nada cambia.
+# Guia + ejemplo end-to-end (curl y dashboard): docs/CLI_AGENT.md.
 # frontend React (dashboard, consume el sidecar; ver frontend/):
 cd frontend; npm install; npm run dev   # http://localhost:5173 (sidecar en :8000)
 # app de escritorio (Tauri 2; requiere Rust+MSVC, ver docs/MIGRATION_TAURI.md):

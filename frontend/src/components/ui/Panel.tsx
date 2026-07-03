@@ -24,7 +24,7 @@ export function Panel({
     <div className={cn('flex flex-col glass', className)}>
       {title != null && (
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-[13px] font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
             {title}
           </p>
           {action}

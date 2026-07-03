@@ -72,3 +72,4 @@ build/
 dist/
 *.spec
 tauri/binaries/*.exe
+diseno/e-commerce-nexus-dashboard/

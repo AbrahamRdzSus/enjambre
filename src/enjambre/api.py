@@ -20,11 +20,18 @@ Seguridad (3 controles, todos opt-in para no estorbar el uso local):
   traversal/symlink). Sin definir = sin restriccion (app local BYOK navega libre).
 - Docs apagadas por defecto: /docs /redoc /openapi.json solo si ENJAMBRE_API_DEV=1
   (reduce superficie/divulgacion de esquema).
+- Guard anti DNS-rebinding (DEFAULT-ON): solo atiende requests cuyo Host sea loopback
+  (127.0.0.1/localhost/::1). Sin esto, un sitio web abierto en el navegador podria
+  disparar endpoints con side-effects (/cli/*, /changes/apply) via un dominio que
+  resuelva a 127.0.0.1 (CORS bloquea leer la respuesta, no ejecutar el request).
+  Anadir hosts con env ENJAMBRE_ALLOWED_HOSTS (os.pathsep) o "*" para desactivarlo.
 """
 
 from __future__ import annotations
 
 import os
+import secrets
+import uuid
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -35,7 +42,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import config, projects, sessions, stats, workspace
+from . import cli_agent, config, paths, projects, sessions, stats, workspace
 from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
 from .multiagent import MODES, MultiAgent, MultiAgentReport
@@ -98,6 +105,15 @@ class ProjectIn(BaseModel):
     root: str = "."
 
 
+class CliRunIn(BaseModel):
+    project_id: str
+    prompt: str
+
+
+class CliApproveIn(BaseModel):
+    approved: bool = False
+
+
 def _multiagent_out(report: MultiAgentReport) -> dict[str, Any]:
     """Aplana un MultiAgentReport (candidatos finales) a la forma 'runs' del /run."""
     runs = [
@@ -125,25 +141,77 @@ def _resolve_roots(allowed_roots: list[str] | None) -> list[Path] | None:
     return [Path(r).expanduser().resolve() for r in raw if r.strip()]
 
 
+def _token_file() -> Path:
+    return paths.data_dir() / "api-token"
+
+
+def _load_or_create_token() -> str:
+    """Lee el token persistido o genera uno nuevo (0600). Lo imprime SIEMPRE en
+    stdout como `ENJAMBRE_API_TOKEN=<tok>` para que el shell Tauri (que drena el
+    stdout del sidecar) y el loader del dev lo recojan."""
+    f = _token_file()
+    tok = ""
+    try:
+        tok = f.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+    if not tok:
+        tok = secrets.token_urlsafe(32)
+        try:
+            f.write_text(tok, encoding="utf-8")
+            os.chmod(f, 0o600)
+        except OSError:
+            pass
+    print(f"ENJAMBRE_API_TOKEN={tok}", flush=True)
+    return tok
+
+
+def _resolve_token(api_token: str | None, *, default_on: bool) -> str | None:
+    """api_token explicito gana (cadena vacia = opt-out consciente). Si no, env.
+    Si tampoco y estamos en el camino de produccion puro (sin inyeccion), el token
+    es DEFAULT-ON: se autogenera y persiste. En modo inyectado (embebido/tests) no
+    se fuerza, para no romper a quien maneja su propia auth."""
+    if api_token is not None:
+        return api_token or None
+    env = os.getenv("ENJAMBRE_API_TOKEN", "").strip()
+    if env:
+        return env
+    return _load_or_create_token() if default_on else None
+
+
 def create_app(*, registry: Registry | None = None,
                keys: dict[str, str] | None = None,
                client: httpx.AsyncClient | None = None,
                bus: LogBus | None = None,
                api_token: str | None = None,
                allowed_roots: list[str] | None = None,
-               dev_docs: bool | None = None) -> FastAPI:
+               dev_docs: bool | None = None,
+               cli_agents: bool | None = None,
+               trusted_hosts: list[str] | None = None) -> FastAPI:
     """Crea la app. Sin args usa el registro en disco y claves del entorno.
 
     `registry`/`keys`/`client`/`bus` permiten inyeccion en tests. `api_token`/
     `allowed_roots`/`dev_docs` controlan los 3 controles de seguridad (con
     fallback a env ENJAMBRE_API_TOKEN / ENJAMBRE_ALLOWED_ROOTS / ENJAMBRE_API_DEV).
     """
-    token = (api_token if api_token is not None
-             else os.getenv("ENJAMBRE_API_TOKEN", "").strip()) or None
+    # Token DEFAULT-ON en produccion pura (sin registry/keys inyectados). En modo
+    # inyectado (tests/embebido) queda opt-in para no romper a quien trae su auth.
+    token = _resolve_token(api_token, default_on=(registry is None and keys is None))
     roots = _resolve_roots(allowed_roots)
     show_docs = (dev_docs if dev_docs is not None
                  else os.getenv("ENJAMBRE_API_DEV", "").strip().lower()
                  in ("1", "true", "yes"))
+    cli_on = (cli_agents if cli_agents is not None
+              else os.getenv("ENJAMBRE_CLI_AGENTS", "").strip().lower()
+              in ("1", "true", "yes"))
+    # Anti DNS-rebinding: solo se atienden requests cuyo Host sea loopback (o los
+    # que se agreguen explicitamente). "testserver" = host del TestClient de FastAPI.
+    # "*" desactiva el control (para binds no-loopback conscientes, ej. LAN).
+    hosts = (trusted_hosts if trusted_hosts is not None
+             else [h for h in os.getenv("ENJAMBRE_ALLOWED_HOSTS", "").split(os.pathsep)
+                   if h.strip()])
+    allowed_hosts = {"127.0.0.1", "localhost", "::1", "testserver",
+                     *(h.strip().lower() for h in hosts)}
 
     docs = dict(docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json") \
         if show_docs else dict(docs_url=None, redoc_url=None, openapi_url=None)
@@ -157,6 +225,20 @@ def create_app(*, registry: Registry | None = None,
                        "http://tauri.localhost", "https://tauri.localhost"],
         allow_methods=["*"], allow_headers=["*"],
     )
+
+    if "*" not in allowed_hosts:
+        @app.middleware("http")
+        async def _host_guard(request: Request, call_next):
+            host = request.headers.get("host", "")
+            if host.startswith("["):  # IPv6 literal, ej. [::1]:8000
+                hostname = host[1:host.find("]")] if "]" in host else host[1:]
+            else:
+                hostname = host.rsplit(":", 1)[0]
+            if hostname.lower() not in allowed_hosts:
+                return JSONResponse(
+                    {"detail": "host no permitido (posible DNS-rebinding)"},
+                    status_code=403)
+            return await call_next(request)
 
     if token:
         @app.middleware("http")
@@ -407,6 +489,76 @@ def create_app(*, registry: Registry | None = None,
                      message="; ".join(f"{p}: {m}" for p, m in report.rejected))
         return {"ok": report.ok, "written": report.written,
                 "rejected": report.rejected, "temp_branch": report.temp_branch}
+
+    # --- agente CLI (tipo "CLI", opt-in con ENJAMBRE_CLI_AGENTS=1) ----------
+    if cli_on:
+        # Resultados en memoria por run_id (no se persisten). run_id -> dict.
+        cli_runs: dict[str, dict[str, Any]] = {}
+
+        def _cli_root(project_id: str) -> Path:
+            for p in projects.list_projects():
+                if p.id == project_id:
+                    return _ensure_root(p.root)
+            raise HTTPException(status_code=404,
+                                detail=f"proyecto {project_id!r} no existe")
+
+        def _cli_payload(run_id: str, res: cli_agent.CliTaskResult) -> dict[str, Any]:
+            return {"run_id": run_id, "ok": res.ok, "diff": res.diff,
+                    "changed_files": res.changed_files, "log": res.log,
+                    "error": res.error}
+
+        @app.post("/cli/run")
+        async def cli_run(req: CliRunIn) -> dict[str, Any]:
+            root = _cli_root(req.project_id)
+            bus.emit("cli.run.start", message=f"prompt ({len(req.prompt)} chars)")
+            res = await cli_agent.run_cli_task(req.prompt, root)
+            run_id = uuid.uuid4().hex
+            cli_runs[run_id] = {
+                "status": "done" if res.ok else "error",
+                "result": res, "root": str(root)}
+            bus.emit("cli.run.done", level="info" if res.ok else "error",
+                     message=res.error or f"{len(res.changed_files)} archivo(s)")
+            return _cli_payload(run_id, res)
+
+        @app.get("/cli/{run_id}")
+        def cli_status(run_id: str) -> dict[str, Any]:
+            rec = cli_runs.get(run_id)
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"run {run_id!r} no existe")
+            res: cli_agent.CliTaskResult = rec["result"]
+            return {"status": rec["status"], **_cli_payload(run_id, res)}
+
+        @app.post("/cli/{run_id}/approve")
+        def cli_approve(run_id: str, body: CliApproveIn) -> dict[str, Any]:
+            rec = cli_runs.get(run_id)
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"run {run_id!r} no existe")
+            res: cli_agent.CliTaskResult = rec["result"]
+            root = Path(rec["root"])
+            report_out: dict[str, Any] = {"ok": True, "written": [],
+                                          "rejected": [], "temp_branch": None}
+            try:
+                if body.approved and res.ok:
+                    wt = Path(res.worktree_path)
+                    changes: list[Change] = []
+                    for rel in res.changed_files:
+                        fp = wt / rel
+                        if fp.is_file():  # v1: borrados quedan fuera de alcance
+                            changes.append(Change(rel, fp.read_text(encoding="utf-8")))
+                    report = ChangeSet(changes).apply(root, approved=True)
+                    if not report.ok:
+                        bus.emit("cli.rejected", level="warn",
+                                 message="; ".join(f"{p}: {m}"
+                                                   for p, m in report.rejected))
+                    report_out = {"ok": report.ok, "written": report.written,
+                                  "rejected": report.rejected,
+                                  "temp_branch": report.temp_branch}
+            finally:
+                # Cleanup del worktree/rama corra o no la aprobacion.
+                if res.worktree_path:
+                    cli_agent.cleanup_worktree(res.worktree_path, res.branch, root)
+                cli_runs.pop(run_id, None)
+            return report_out
 
     # --- logs (tab Logs en Vivo) -------------------------------------------
     @app.get("/logs")
