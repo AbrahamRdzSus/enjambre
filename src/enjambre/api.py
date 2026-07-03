@@ -30,6 +30,7 @@ Seguridad (3 controles, todos opt-in para no estorbar el uso local):
 from __future__ import annotations
 
 import os
+import secrets
 import uuid
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -41,7 +42,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import cli_agent, config, projects, sessions, stats, workspace
+from . import cli_agent, config, paths, projects, sessions, stats, workspace
 from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
 from .multiagent import MODES, MultiAgent, MultiAgentReport
@@ -140,6 +141,44 @@ def _resolve_roots(allowed_roots: list[str] | None) -> list[Path] | None:
     return [Path(r).expanduser().resolve() for r in raw if r.strip()]
 
 
+def _token_file() -> Path:
+    return paths.data_dir() / "api-token"
+
+
+def _load_or_create_token() -> str:
+    """Lee el token persistido o genera uno nuevo (0600). Lo imprime SIEMPRE en
+    stdout como `ENJAMBRE_API_TOKEN=<tok>` para que el shell Tauri (que drena el
+    stdout del sidecar) y el loader del dev lo recojan."""
+    f = _token_file()
+    tok = ""
+    try:
+        tok = f.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+    if not tok:
+        tok = secrets.token_urlsafe(32)
+        try:
+            f.write_text(tok, encoding="utf-8")
+            os.chmod(f, 0o600)
+        except OSError:
+            pass
+    print(f"ENJAMBRE_API_TOKEN={tok}", flush=True)
+    return tok
+
+
+def _resolve_token(api_token: str | None, *, default_on: bool) -> str | None:
+    """api_token explicito gana (cadena vacia = opt-out consciente). Si no, env.
+    Si tampoco y estamos en el camino de produccion puro (sin inyeccion), el token
+    es DEFAULT-ON: se autogenera y persiste. En modo inyectado (embebido/tests) no
+    se fuerza, para no romper a quien maneja su propia auth."""
+    if api_token is not None:
+        return api_token or None
+    env = os.getenv("ENJAMBRE_API_TOKEN", "").strip()
+    if env:
+        return env
+    return _load_or_create_token() if default_on else None
+
+
 def create_app(*, registry: Registry | None = None,
                keys: dict[str, str] | None = None,
                client: httpx.AsyncClient | None = None,
@@ -155,8 +194,9 @@ def create_app(*, registry: Registry | None = None,
     `allowed_roots`/`dev_docs` controlan los 3 controles de seguridad (con
     fallback a env ENJAMBRE_API_TOKEN / ENJAMBRE_ALLOWED_ROOTS / ENJAMBRE_API_DEV).
     """
-    token = (api_token if api_token is not None
-             else os.getenv("ENJAMBRE_API_TOKEN", "").strip()) or None
+    # Token DEFAULT-ON en produccion pura (sin registry/keys inyectados). En modo
+    # inyectado (tests/embebido) queda opt-in para no romper a quien trae su auth.
+    token = _resolve_token(api_token, default_on=(registry is None and keys is None))
     roots = _resolve_roots(allowed_roots)
     show_docs = (dev_docs if dev_docs is not None
                  else os.getenv("ENJAMBRE_API_DEV", "").strip().lower()
