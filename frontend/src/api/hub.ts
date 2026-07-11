@@ -50,6 +50,12 @@ export const hub = {
   deploy: (app: string, only: DeployScope = 'full') =>
     api.post<{ started: boolean }>(`/hub/deploy/${encodeURIComponent(app)}`, { only }),
   history: () => api.get<HubDeployRecord[]>('/hub/history'),
+  // URL del stream SSE de progreso de deploy en vivo. EventSource no manda headers,
+  // asi que el token del sidecar viaja por query (?token=), como en /logs/stream.
+  eventsUrl: (): string => {
+    const t = api.token;
+    return `${api.base}/hub/events${t ? `?token=${encodeURIComponent(t)}` : ''}`;
+  },
   // Revierte una app a un commit (git checkout). Tras esto hay que redesplegar
   // para publicar. 403=PIN no admin, 404=app (los propaga el sidecar).
   rollback: (app: string, commit: string) =>

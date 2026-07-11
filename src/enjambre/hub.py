@@ -7,6 +7,9 @@ el frontend nunca ve el PIN/JWT del hub (decision F1: proxy por el sidecar).
 Rutas:
   GET  /hub/status        estado de las apps (read-only)
   POST /hub/deploy/{app}  dispara un deploy (body {only})
+  GET  /hub/history       ultimos deploys
+  POST /hub/rollback/{app}/{commit}  revierte a un commit (admin)
+  GET  /hub/events        stream SSE del progreso de deploy en vivo (proxy del WS del hub)
 
 `requireAdmin` del hub pasa con el Bearer si el JWT es de rol admin, y el hub
 mintea un JWT admin cuando el PIN de login es el HUB_PIN admin. Es decir: para
@@ -14,8 +17,10 @@ disparar deploys, ENJAMBRE_HUB_PIN debe ser el PIN ADMIN del hub (no el viewer).
 Si es viewer, el hub responde 403 y aqui se propaga como 403.
 
 El progreso del deploy en el hub va por WebSocket (broadcast deploy-step/output),
-no por HTTP; este proxy solo dispara y devuelve {started:true}. El cockpit refleja
-el avance con el poll de /hub/status (campo `deploying`). Proxear el WS = slice futuro.
+no por HTTP; POST /hub/deploy solo dispara y devuelve {started:true}. El avance en
+vivo se obtiene por GET /hub/events: el sidecar abre un WS al hub, autentica con el
+JWT admin y re-emite los frames deploy-* como SSE al cockpit (que no puede mandar
+headers, por eso el token del sidecar va en ?token=).
 
 Config (el router solo se monta si ENJAMBRE_HUB_URL esta definido):
   ENJAMBRE_HUB_URL   base del hub, p.ej. http://127.0.0.1:5099
@@ -24,16 +29,26 @@ Config (el router solo se monta si ENJAMBRE_HUB_URL esta definido):
 
 from __future__ import annotations
 
+import json
 import os
+from collections.abc import AsyncIterator
 
 import httpx
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
+try:  # websockets es del extra [api]; sin el, /hub/events degrada a 501.
+    import websockets
+except ImportError:  # pragma: no cover
+    websockets = None
 
 router = APIRouter(prefix="/hub", tags=["hub"])
 
 # only: alcance del deploy que acepta el hub. 'full' reconstruye front+back.
 _DEPLOY_SCOPES = {"full", "frontend", "backend"}
+# Eventos de progreso del deploy que el hub emite por WebSocket (broadcast).
+_DEPLOY_EVENTS = {"deploy-step", "deploy-output", "deploy-complete"}
 
 
 class HubError(RuntimeError):
@@ -125,6 +140,49 @@ class HubClient:
             return r.json()
         raise HubError(f"rollback {app!r}@{commit}: {_err(r)}", status=r.status_code)
 
+    def _ws_url(self) -> str:
+        """URL WebSocket del hub (mismo host/puerto, path '/'). http->ws, https->wss."""
+        base = self.base_url
+        if base.startswith("https://"):
+            return "wss://" + base[len("https://"):] + "/"
+        if base.startswith("http://"):
+            return "ws://" + base[len("http://"):] + "/"
+        return base + "/"
+
+    async def stream_deploy_events(
+        self, client: httpx.AsyncClient | None = None
+    ) -> AsyncIterator[dict]:
+        """Conecta al WS del hub, autentica con el JWT admin y hace yield de los
+        frames deploy-step/deploy-output/deploy-complete. El hub emite el progreso
+        SOLO por WebSocket (broadcast), no por HTTP.
+
+        Contrato del hub: al conectar envia {type:'connected'}, exige {type:'auth',
+        token:<JWT>} en 15s -> responde {type:'auth-ok'} | {type:'auth-fail'}. Si el
+        token caduco (auth-fail), re-loguea (necesita `client`) y reintenta una vez.
+        """
+        if websockets is None:
+            raise HubError("falta el paquete 'websockets' (extra [api]) para el stream en vivo")
+        if not self._token:
+            if client is None:
+                raise HubError("sin JWT y sin http client para login")
+            await self.login(client)
+        relogged = False
+        async with websockets.connect(self._ws_url()) as ws:
+            await ws.send(json.dumps({"type": "auth", "token": self._token}))
+            async for raw in ws:
+                try:
+                    msg = json.loads(raw)
+                except (ValueError, TypeError):
+                    continue
+                mtype = msg.get("type")
+                if mtype == "auth-fail" and not relogged and client is not None:
+                    relogged = True  # token caduco: re-login y re-auth una sola vez
+                    await self.login(client)
+                    await ws.send(json.dumps({"type": "auth", "token": self._token}))
+                    continue
+                if mtype in _DEPLOY_EVENTS:
+                    yield msg
+
 
 _hub: HubClient | None = None
 
@@ -183,3 +241,25 @@ async def hub_rollback(app: str, commit: str):
         except HubError as exc:
             code = exc.status if exc.status in (403, 404) else 502
             raise HTTPException(status_code=code, detail=str(exc)) from exc
+
+
+@router.get("/events")
+async def hub_events():
+    """Stream SSE del progreso de deploy en vivo (deploy-step/output/complete),
+    proxeado desde el WebSocket del hub. El cockpit lo consume con EventSource
+    (que no manda headers -> el token del sidecar viaja por ?token=). Una conexion
+    por consumidor mantiene abierto un WS al hub mientras la pagina este abierta.
+    """
+    if websockets is None:
+        raise HTTPException(status_code=501, detail="stream no disponible (falta 'websockets')")
+    hub = _get_hub()
+
+    async def gen():
+        async with httpx.AsyncClient(timeout=None) as client:
+            try:
+                async for evt in hub.stream_deploy_events(client):
+                    yield f"data: {json.dumps(evt)}\n\n"
+            except HubError as exc:
+                yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
