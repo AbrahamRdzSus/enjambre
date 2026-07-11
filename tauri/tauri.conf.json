@@ -40,7 +40,7 @@
       "endpoints": [
         "https://github.com/AbrahamRdzSus/enjambre/releases/latest/download/latest.json"
       ],
-      "pubkey": "REEMPLAZAR_CON_LA_CLAVE_PUBLICA_DE_cargo_tauri_signer_generate",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc5NEY4NzVFMEQyMUUzMjgKUldRbzR5RU5Yb2RQZWM3bStjdklRZ2IwUTVQaVoxRGNnSUowSk10OFNZc3RTR2szOWcyZldvNEUK",
       "windows": {
         "installMode": "passive"
       }
