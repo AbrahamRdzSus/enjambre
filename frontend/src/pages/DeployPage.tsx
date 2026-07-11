@@ -7,9 +7,15 @@
  * Disparar un deploy pide confirmacion (step-up UX): el credencial vive
  * server-side, el frontend solo confirma la accion.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { hub, type HubAppStatus, type HubDeployRecord, type DeployScope } from '../api/hub';
+
+interface LiveState {
+  steps: Record<string, string>;
+  log: string;
+  done: null | { ok: boolean };
+}
 
 const SCOPES: DeployScope[] = ['full', 'frontend', 'backend'];
 
@@ -23,6 +29,29 @@ export default function DeployPage() {
   const qc = useQueryClient();
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [scopes, setScopes] = useState<Record<string, DeployScope>>({});
+  const [watching, setWatching] = useState(false);
+  const [live, setLive] = useState<LiveState>({ steps: {}, log: '', done: null });
+
+  // Stream SSE del progreso de deploy (deploy-step/output/complete) proxeado del WS
+  // del hub. Se abre solo mientras `watching`. En error/fin cierra y marca detenido
+  // (sin reconexion automatica: evita tormenta si el hub no esta configurado).
+  useEffect(() => {
+    if (!watching) return;
+    const es = new EventSource(hub.eventsUrl());
+    es.onmessage = (e) => {
+      let evt: { type?: string; step?: { name: string; status: string }; data?: string; ok?: boolean };
+      try { evt = JSON.parse(e.data); } catch { return; }
+      if (evt.type === 'deploy-step' && evt.step) {
+        setLive((s) => ({ ...s, steps: { ...s.steps, [evt.step!.name]: evt.step!.status } }));
+      } else if (evt.type === 'deploy-output') {
+        setLive((s) => ({ ...s, log: (s.log + (evt.data ?? '')).slice(-8000) }));
+      } else if (evt.type === 'deploy-complete') {
+        setLive((s) => ({ ...s, done: { ok: !!evt.ok } }));
+      }
+    };
+    es.onerror = () => { es.close(); setWatching(false); };
+    return () => es.close();
+  }, [watching]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['hub-status'],
@@ -175,6 +204,55 @@ export default function DeployPage() {
       {!isLoading && !isError && apps.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--fg-faint)' }}>El hub no reporto apps.</p>
       )}
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <p className="eyebrow">Deploy en vivo</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (!watching) setLive({ steps: {}, log: '', done: null });
+              setWatching((w) => !w);
+            }}
+            className="px-3 h-7 rounded-lg text-xs font-medium border"
+            style={{ borderColor: 'var(--border)', color: 'var(--fg)' }}
+          >
+            {watching ? 'Detener' : 'Ver en vivo'}
+          </button>
+          {watching && (
+            <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--ok)' }}>
+              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ok)' }} />
+              conectado
+            </span>
+          )}
+        </div>
+
+        {(Object.keys(live.steps).length > 0 || live.log || live.done) && (
+          <div className="rounded-lg border p-3 flex flex-col gap-2" style={{ borderColor: 'var(--border)' }}>
+            {Object.keys(live.steps).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(live.steps).map(([nombre, estado]) => (
+                  <span key={nombre} className="inline-flex items-center gap-1.5 text-[11px] rounded-md px-2 py-0.5 border"
+                        style={{ borderColor: 'var(--border)' }}>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full"
+                          style={{ background: estado === 'done' ? 'var(--ok)' : estado === 'error' ? 'var(--alert)' : 'var(--amber)' }} />
+                    {nombre}: {estado}
+                  </span>
+                ))}
+              </div>
+            )}
+            {live.log && (
+              <pre className="text-[11px] overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto"
+                   style={{ color: 'var(--fg-mute)', fontFamily: 'var(--font-mono)' }}>{live.log}</pre>
+            )}
+            {live.done && (
+              <p className="text-sm font-medium" style={{ color: live.done.ok ? 'var(--ok)' : 'var(--alert)' }}>
+                {live.done.ok ? 'Deploy completado' : 'Deploy fallido'}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {records.length > 0 && (
         <div className="flex flex-col gap-2">

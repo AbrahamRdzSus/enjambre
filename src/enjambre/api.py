@@ -30,6 +30,7 @@ Seguridad (3 controles, todos opt-in para no estorbar el uso local):
 from __future__ import annotations
 
 import os
+import re
 import secrets
 import time
 import uuid
@@ -130,6 +131,25 @@ def _multiagent_out(report: MultiAgentReport) -> dict[str, Any]:
     ]
     return {"prompt": "", "mode": report.mode, "runs": runs,
             "warnings": list(report.warnings), "total_cost_usd": report.total_cost_usd}
+
+
+_CODE_FENCE_RE = re.compile(r"```(\w+)?\n(.*?)```", re.DOTALL)
+_OUTPUT_PREVIEW_CHARS = 280
+
+
+def _classify_output(text: str) -> dict[str, Any]:
+    """Clasifica la salida (texto) de un agente tipo API para el panel de actividad.
+
+    Devuelve {kind, lang, preview}. kind='code' si un bloque cercado domina el
+    texto (>=50%), si no 'message'. NO infiere tool-calls: los agentes API son
+    completado de un tiro; los tool-calls solo existen en los agentes CLI.
+    """
+    stripped = (text or "").strip()
+    preview = stripped[:_OUTPUT_PREVIEW_CHARS]
+    m = _CODE_FENCE_RE.search(stripped)
+    if m and len(m.group(2) or "") >= len(stripped) * 0.5:
+        return {"kind": "code", "lang": (m.group(1) or None), "preview": preview}
+    return {"kind": "message", "lang": None, "preview": preview}
 
 
 def _resolve_roots(allowed_roots: list[str] | None) -> list[Path] | None:
@@ -438,6 +458,17 @@ def create_app(*, registry: Registry | None = None,
             bus.emit("agent.done", level="info" if ok else "error", agent=agent,
                      message="ok" if ok else (err or "error"), provider=provider,
                      cost_usd=cost)
+        # agent.output: contenido tipado por agente para el panel "Actividad por
+        # modelo" (feed en vivo + step badges). El contenido COMPLETO se lee de la
+        # respuesta (out["runs"]); aqui solo va el preview para no inflar el ring buffer.
+        for r in out.get("runs", []):
+            res = r.get("result", {})
+            if res.get("error"):
+                continue
+            cls = _classify_output(res.get("text", ""))
+            bus.emit("agent.output", agent=r.get("agent"), message=cls["preview"],
+                     provider=r.get("provider"), cost_usd=res.get("cost_usd"),
+                     kind=cls["kind"], lang=cls["lang"], preview=cls["preview"])
         n_ok = sum(1 for *_, ok, _, _ in runs_for_log if ok)
         bus.emit("run.done", message=f"{n_ok}/{len(runs_for_log)} ok",
                  cost_usd=out["total_cost_usd"])
@@ -553,6 +584,14 @@ def create_app(*, registry: Registry | None = None,
                 "result": res, "root": str(root)}
             bus.emit("cli.run.done", level="info" if res.ok else "error",
                      message=res.error or f"{len(res.changed_files)} archivo(s)")
+            if res.ok and res.changed_files:
+                # agent.output tipo tool_call para el panel (los agentes CLI SI editan
+                # archivos, a diferencia de los API); run_id permite al dock pedir el
+                # diff (GET /cli/{run_id}) y aprobar (POST /cli/{run_id}/approve).
+                bus.emit("agent.output", agent="cli",
+                         message=f"{len(res.changed_files)} archivo(s)",
+                         kind="tool_call", changed_files=res.changed_files,
+                         run_id=run_id)
             return _cli_payload(run_id, res)
 
         @app.get("/cli/{run_id}")

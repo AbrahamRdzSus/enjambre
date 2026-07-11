@@ -55,6 +55,14 @@ def test_cli_run_status_and_approve(tmp_path, monkeypatch):
     run = c.post("/cli/run", json={"project_id": proj.id, "prompt": "hola"}).json()
     assert run["ok"] and run["changed_files"] == ["nuevo.py"] and run["run_id"]
 
+    # el panel "Actividad por modelo" recibe un agent.output tipo tool_call con el
+    # run_id (para pedir el diff y aprobar desde el dock) y los archivos tocados.
+    tool = [e for e in c.get("/logs").json()
+            if e["event"] == "agent.output" and e["fields"].get("kind") == "tool_call"]
+    assert len(tool) == 1
+    assert tool[0]["fields"]["run_id"] == run["run_id"]
+    assert tool[0]["fields"]["changed_files"] == ["nuevo.py"]
+
     st = c.get(f"/cli/{run['run_id']}").json()
     assert st["status"] == "done" and st["ok"]
 

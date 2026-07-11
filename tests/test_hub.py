@@ -1,6 +1,7 @@
 """F1: HubClient (proxy read-only al hub de CD). Hub simulado con MockTransport."""
 
 import asyncio
+import json
 
 import pytest
 
@@ -208,3 +209,53 @@ def test_rollback_unknown_app_404():
     with pytest.raises(HubError) as ei:
         _run(scenario())
     assert ei.value.status == 404
+
+
+# --- stream WS del progreso de deploy (slice 5). Hub simulado con un server WS real. ---
+def test_stream_deploy_events_yields_deploy_frames():
+    ws = pytest.importorskip("websockets")
+
+    async def scenario():
+        seen = {}
+
+        async def handler(conn):
+            await conn.send(json.dumps({"type": "connected"}))
+            seen["auth"] = json.loads(await conn.recv())
+            await conn.send(json.dumps({"type": "auth-ok", "role": "admin"}))
+            # 'status' es ruido: NO debe reenviarse (solo los deploy-*).
+            await conn.send(json.dumps({"type": "status", "x": 1}))
+            step = {"name": "git pull", "status": "running"}
+            await conn.send(json.dumps({"type": "deploy-step", "app": "silix", "step": step}))
+            await conn.send(json.dumps(
+                {"type": "deploy-output", "app": "silix", "stepName": "git pull", "data": "ok\n"}
+            ))
+            await conn.send(json.dumps({"type": "deploy-complete", "app": "silix", "ok": True}))
+
+        async with ws.serve(handler, "localhost", 0) as server:
+            port = server.sockets[0].getsockname()[1]
+            hub = HubClient(f"http://localhost:{port}", "pin")
+            hub._token = "jwt-test"  # evita el login httpx: probamos solo el WS
+            got = []
+            async for evt in hub.stream_deploy_events(None):
+                got.append(evt)
+                if evt["type"] == "deploy-complete":
+                    break
+            return seen["auth"], got
+
+    auth, got = _run(scenario())
+    assert auth == {"type": "auth", "token": "jwt-test"}
+    assert [e["type"] for e in got] == ["deploy-step", "deploy-output", "deploy-complete"]
+
+
+def test_stream_requires_websockets(monkeypatch):
+    import enjambre.hub as hubmod
+
+    monkeypatch.setattr(hubmod, "websockets", None)
+
+    async def scenario():
+        hub = HubClient("http://hub", "pin")
+        hub._token = "t"
+        await hub.stream_deploy_events(None).__anext__()
+
+    with pytest.raises(HubError):
+        _run(scenario())
