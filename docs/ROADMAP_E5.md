@@ -2,8 +2,10 @@
 
 > Fase que requiere **Rust + MSVC** (no disponible en el entorno donde se cerraron
 > E1-E4). Este doc deja los pasos turnkey para ejecutarla en la maquina con toolchain.
-> Estado base: `main` ya tiene el agente CLI (E1) y el endurecimiento del sidecar
-> (E4: host-guard, token default-on, rate limit, audit CI). Falta empacar eso.
+> Estado base: `main` ya tiene el agente CLI (E1), el endurecimiento del sidecar
+> (E4: host-guard, token default-on, rate limit, audit CI) y **E5.1 HECHO** (token
+> cableado al webview, commit 56fd08c, PR #10 merged). Version objetivo del paquete:
+> **v0.6.0** (pyproject y tauri ya en 0.6.0). Falta E5.2-E5.6: empacar y publicar.
 
 ## 0. Precondiciones (verificar antes de empezar)
 
@@ -31,7 +33,7 @@ E5.5 (verificacion end-to-end del paquete)  --->  E5.6 (Release + latest.json)
 
 ---
 
-## E5.1 — Cablear el token del sidecar al webview (cierra S1 en Tauri)  [HARD BLOCKER]
+## E5.1 — Cablear el token del sidecar al webview (cierra S1 en Tauri)  [HECHO: 56fd08c]
 
 **Por que:** el sidecar es DEFAULT-ON de token en produccion (imprime
 `ENJAMBRE_API_TOKEN=<tok>` en stdout al arrancar; ver `src/enjambre/api.py::_load_or_create_token`
@@ -153,8 +155,9 @@ Con `bundle.createUpdaterArtifacts: true` produce en
 - `ENJAMBRE_<version>_x64-setup.exe`
 - `ENJAMBRE_<version>_x64-setup.exe.sig`
 
-Subir `version` en `tauri/tauri.conf.json` (hoy `0.5.0`) antes del build si es release
-nuevo. SmartScreen: firma Authenticode es independiente y **opcional** (el auto-update
+`tauri/tauri.conf.json` y `pyproject.toml` ya estan en `0.6.0` (objetivo de este release);
+subir de nuevo solo si cambia antes del build. SmartScreen: firma Authenticode es
+independiente y **opcional** (el auto-update
 funciona sin ella); anotar como riesgo de UX (aviso al instalar), no bloqueante.
 
 ---

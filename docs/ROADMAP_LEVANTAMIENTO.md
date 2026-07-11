@@ -1,10 +1,12 @@
 # Roadmap de levantamiento — ENJAMBRE
 
 > De "app funcional con dashboard" a "producto distribuible y, opcionalmente, vendible".
-> Estado base: backend completo (167 tests), dashboard React con identidad morado/ambar,
+> Estado base: backend completo (214 tests), dashboard React con identidad morado/ambar,
 > app de escritorio Tauri que compila a .exe, todo en GitHub (AbrahamRdzSus/enjambre).
+> Ademas ya mergeados: seguridad sidecar default-on, agente CLI, F1 OPS HUD y panel
+> "Actividad por modelo". Frente abierto = empaque/release v0.6.0 (E5, ver ROADMAP_E5.md).
 
-## Fase A — Diseño final (EN CURSO)
+## Fase A — Diseño final (HECHA)
 - [x] 6 pantallas con look glass + viz hexagonal + stat cards/charts + modos + entidad proyecto + estado live.
 - [x] Pulido: fondo texturizado, gauge, sparklines, efectos Magic UI (BorderBeam, Particles).
 - [~] **Integrar el cockpit v0** (`diseno/frontend-v0-Cockpit.zip`): EN CURSO.
@@ -14,6 +16,8 @@
     BottomRow (tokens/actividad/rendimiento) cableados a hooks reales; HexSwarm como
     orquestacion live. Sin mock (empty-states honestos). build+lint+react-doctor verdes.
     Gate: `docs/gates/faseA-cockpit-overview.md`.
+  - [x] panel "Actividad por modelo" (dock inferior estilo Jules) en la pestaña Lanzar,
+    flag `VITE_ACTIVITY_DOCK` (carriles por agente + step badges + comparativa).
   - [ ] sidebar/topbar del cockpit (chrome) si se quiere acercar mas al mockup.
 - [x] **Replicar el lenguaje del cockpit en las demas pestañas**: chrome `Panel`/`PageHeader`
   reutilizable (`components/ui/Panel.tsx`, header mono-uppercase tracked + borde) aplicado a
@@ -56,7 +60,10 @@
 - [ ] Beta con usuarios reales.
 
 ## Transversal (ya OK)
-- CI: pytest (matriz 3.10-3.12) + ruff verdes. Frontend: build+lint+react-doctor 0 errores.
+- CI: pytest (matriz 3.10-3.12) + ruff + job `audit` (pip-audit + npm audit) verdes.
+  Frontend: build+lint+react-doctor 0 errores.
+- Seguridad sidecar DEFAULT-ON: token autogenerado, guard anti DNS-rebinding, rate limit.
+- Agente CLI (worktree + approve) y F1 OPS HUD (proxy al hub de CD) mergeados.
 - Gortex indexa el repo (grafo). Memoria de sesion en .claude.
 
 ## Orden sugerido

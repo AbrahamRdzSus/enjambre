@@ -11,14 +11,18 @@ Stack: core Python (`src/enjambre`) + sidecar HTTP FastAPI + frontend React/Vite
 app de escritorio Tauri 2; Streamlit (`app.py`) es prototipo. Apache-2.0.
 
 ## Estado
-Core REAL en `src/enjambre/` (~3450 LOC, 29 modulos, 170 tests verdes): Fases 1-5
+Core REAL en `src/enjambre/` (~4200 LOC, 26 modulos, 214 tests verdes): Fases 1-5
 del ROADMAP implementadas (Fase 6/SDK parcial) — orquestacion paralela async con
 gate de secretos, multiagente (roles architect/builder; modos parallel/sequential/
 debate/vote; review por gate congelado), workspace seguro (ChangeSet.apply bajo
 aprobacion + path-traversal + secret-scan), sandbox docker `--network none`,
-github/PR, Provider SDK extensible. Consumo: CLI `enjambre`, sidecar `enjambre.api`
-(FastAPI, 20 endpoints + `/logs/stream` SSE), frontend React y app Tauri 2
-(instalador NSIS `ENJAMBRE_0.5.0_x64-setup.exe`, sidecar PyInstaller auto-spawn).
+github/PR, Provider SDK extensible. Ademas: seguridad del sidecar default-on (token,
+guard anti DNS-rebinding, rate limit, audit CI), agente CLI (worktree + approve),
+F1 OPS HUD (proxy al hub de CD) y panel "Actividad por modelo" (dock estilo Jules).
+Consumo: CLI `enjambre`, sidecar `enjambre.api` (FastAPI, ~29 endpoints incl.
+`/cli/*` `/hub/*` `/changes/*` + `/logs/stream` SSE), frontend React y app Tauri 2
+(instalador NSIS publicado `ENJAMBRE_0.5.0_x64-setup.exe`; version en curso v0.6.0,
+se empaca en E5; sidecar PyInstaller auto-spawn).
 `app.py` (Streamlit) consume el core real pero es **prototipo de UI**, no el destino:
 el destino es **Tauri 2 + React** (shell desde `obsidia-skeleton-desktop`,
 arquitectura de referencia tipo Obsidia Eye) con `src/enjambre` como sidecar Python.
@@ -59,6 +63,10 @@ pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # Requiere el binario `claude` en el PATH del sidecar. En el frontend, activarlo con
 # VITE_CLI_AGENTS=1 (muestra la pestana "Agente CLI"). Sin el flag, nada cambia.
 # Guia + ejemplo end-to-end (curl y dashboard): docs/CLI_AGENT.md.
+# panel "Actividad por modelo" (opt-in): VITE_ACTIVITY_DOCK=1 muestra el dock
+# inferior estilo Jules en la pestana Lanzar (carriles por agente + comparativa).
+# OPS HUD (opt-in): VITE_HUB_DEPLOY=1 + ENJAMBRE_HUB_URL/ENJAMBRE_HUB_PIN cablea el
+# proxy del sidecar al hub de CD (deploy/rollback). Sin los flags, nada cambia.
 # frontend React (dashboard, consume el sidecar; ver frontend/):
 cd frontend; npm install; npm run dev   # http://localhost:5173 (sidecar en :8000)
 # app de escritorio (Tauri 2; requiere Rust+MSVC, ver docs/MIGRATION_TAURI.md):
@@ -70,7 +78,7 @@ cd tauri; cargo tauri dev     # ventana nativa | cargo tauri build = .exe/instal
 ## Como probar
 ```
 pip install -e ".[dev]"
-pytest -q        # 170 tests
+pytest -q        # 214 tests
 ruff check .     # lint (E/F/I/UP/B); ambos corren en CI (.github/workflows/ci.yml)
 # Antes de dar por hecho: revisar que ninguna salida escriba archivos sin aprobacion.
 ```
