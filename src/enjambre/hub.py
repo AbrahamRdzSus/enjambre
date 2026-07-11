@@ -48,6 +48,14 @@ class DeployIn(BaseModel):
     only: str = "full"
 
 
+def _err(r: httpx.Response) -> str:
+    """Extrae el mensaje de error del hub ({error:...}) o cae al texto crudo."""
+    try:
+        return r.json().get("error", r.text)
+    except ValueError:
+        return r.text
+
+
 class HubClient:
     """Cliente minimo al hub de CD. Cachea el JWT y re-loguea si el hub da 401."""
 
@@ -97,11 +105,22 @@ class HubClient:
         r = await self._request(client, "POST", f"/api/deploy/{app}", json={"only": only})
         if r.status_code == 200:
             return r.json()
-        try:
-            detail = r.json().get("error", r.text)
-        except ValueError:
-            detail = r.text
-        raise HubError(f"deploy {app!r}: {detail}", status=r.status_code)
+        raise HubError(f"deploy {app!r}: {_err(r)}", status=r.status_code)
+
+    async def history(self, client: httpx.AsyncClient) -> list:
+        """Ultimos deploys (mas reciente primero): ts, app, only, ok, commitBefore/After..."""
+        r = await self._request(client, "GET", "/api/deploy-history")
+        if r.status_code != 200:
+            raise HubError(f"GET /api/deploy-history del hub fallo ({r.status_code})", status=r.status_code)
+        return r.json()
+
+    async def rollback(self, client: httpx.AsyncClient, app: str, commit: str) -> dict:
+        """Revierte {app} a {commit} (git checkout). Requiere JWT admin. Tras esto hay
+        que redesplegar para publicar el binario. Levanta HubError con el status del hub."""
+        r = await self._request(client, "POST", f"/api/rollback/{app}/{commit}")
+        if r.status_code == 200:
+            return r.json()
+        raise HubError(f"rollback {app!r}@{commit}: {_err(r)}", status=r.status_code)
 
 
 _hub: HubClient | None = None
@@ -134,4 +153,28 @@ async def hub_deploy(app: str, body: DeployIn):
             return await hub.deploy(client, app, body.only)
         except HubError as exc:
             code = exc.status if exc.status in (403, 404, 409) else 502
+            raise HTTPException(status_code=code, detail=str(exc))
+
+
+@router.get("/history")
+async def hub_history():
+    """Ultimos deploys del hub (mas reciente primero)."""
+    hub = _get_hub()
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            return await hub.history(client)
+        except HubError as exc:
+            raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router.post("/rollback/{app}/{commit}")
+async def hub_rollback(app: str, commit: str):
+    """Revierte una app a un commit. Propaga 403/404 del hub; el resto -> 502.
+    Tras el rollback hay que redesplegar para publicar el binario."""
+    hub = _get_hub()
+    async with httpx.AsyncClient(timeout=30) as client:
+        try:
+            return await hub.rollback(client, app, commit)
+        except HubError as exc:
+            code = exc.status if exc.status in (403, 404) else 502
             raise HTTPException(status_code=code, detail=str(exc))

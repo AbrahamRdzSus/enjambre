@@ -9,7 +9,7 @@
  */
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { hub, type HubAppStatus } from '../api/hub';
+import { hub, type HubAppStatus, type HubDeployRecord } from '../api/hub';
 
 function statusColor(s?: string): string {
   if (s === 'online') return 'var(--ok)';
@@ -36,12 +36,38 @@ export default function DeployPage() {
     onError: (e: Error, app) => setMsg({ kind: 'err', text: `No se pudo desplegar ${app}: ${e.message}` }),
   });
 
+  const history = useQuery({
+    queryKey: ['hub-history'],
+    queryFn: () => hub.history(),
+    refetchInterval: 15000,
+  });
+
+  const rollback = useMutation({
+    mutationFn: ({ app, commit }: { app: string; commit: string }) => hub.rollback(app, commit),
+    onSuccess: (res, { app }) => {
+      setMsg({
+        kind: 'ok',
+        text: `${app} revertido a ${res.rolledBackTo}. Ahora DESPLIEGA para publicar el binario.`,
+      });
+    },
+    onError: (e: Error, { app }) => setMsg({ kind: 'err', text: `No se pudo revertir ${app}: ${e.message}` }),
+  });
+
   function onDeploy(app: string) {
     const ok = window.confirm(
       `Desplegar "${app}"?\n\nEsto hace git pull, reconstruye y reinicia la app en PRODUCCION.`,
     );
     if (ok) deploy.mutate(app);
   }
+
+  function onRollback(app: string, commit: string) {
+    const ok = window.confirm(
+      `Revertir "${app}" al commit ${commit}?\n\nHace git checkout de ese commit. Despues debes DESPLEGAR para publicarlo.`,
+    );
+    if (ok) rollback.mutate({ app, commit });
+  }
+
+  const records = history.data ?? [];
 
   const apps = data ? Object.entries(data) : [];
   const busy = (app: string, row: HubAppStatus) =>
@@ -132,6 +158,57 @@ export default function DeployPage() {
 
       {!isLoading && !isError && apps.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--fg-faint)' }}>El hub no reporto apps.</p>
+      )}
+
+      {records.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="eyebrow">Historial de deploys</p>
+          <div className="overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+            <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ color: 'var(--fg-faint)' }}>
+                  <th className="text-left px-4 py-2 font-medium">Fecha</th>
+                  <th className="text-left px-4 py-2 font-medium">App</th>
+                  <th className="text-left px-4 py-2 font-medium">Alcance</th>
+                  <th className="text-left px-4 py-2 font-medium">Resultado</th>
+                  <th className="text-left px-4 py-2 font-medium">Commit</th>
+                  <th className="text-right px-4 py-2 font-medium">Accion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((r: HubDeployRecord, i: number) => (
+                  <tr key={`${r.ts}-${i}`} style={{ borderTop: '1px solid var(--border)' }}>
+                    <td className="px-4 py-2 text-[12px]" style={{ color: 'var(--fg-mute)' }}>
+                      {new Date(r.ts).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 font-mono" style={{ color: 'var(--fg)' }}>{r.app}</td>
+                    <td className="px-4 py-2" style={{ color: 'var(--fg-mute)' }}>{r.only ?? '—'}</td>
+                    <td className="px-4 py-2" style={{ color: r.ok ? 'var(--ok)' : 'var(--alert)' }}>
+                      {r.ok ? 'ok' : (r.error ? `error: ${r.error}` : 'error')}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-[12px]" style={{ color: 'var(--fg-mute)' }}>
+                      {r.commitBefore ? `${r.commitBefore} → ${r.commitAfter ?? '?'}` : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {r.commitBefore && (
+                        <button
+                          type="button"
+                          onClick={() => onRollback(r.app, r.commitBefore!)}
+                          disabled={rollback.isPending}
+                          className="px-3 h-8 rounded-lg text-xs font-medium border transition-opacity disabled:opacity-40"
+                          style={{ borderColor: 'var(--border)', color: 'var(--fg)' }}
+                          title={`Revertir ${r.app} a ${r.commitBefore}`}
+                        >
+                          Revertir a {r.commitBefore}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );

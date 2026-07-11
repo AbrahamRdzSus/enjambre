@@ -143,3 +143,60 @@ def test_deploy_invalid_scope_rejected_before_call():
 
     with pytest.raises(HubError):
         _run(scenario())
+
+
+def test_history_returns_list():
+    records = [
+        {"ts": "2026-07-10T00:00:00Z", "app": "silix", "only": "full", "ok": True,
+         "commitBefore": "aaa", "commitAfter": "bbb"},
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/auth":
+            return httpx.Response(200, json={"token": "jwt-a", "role": "admin"})
+        if request.url.path == "/api/deploy-history":
+            assert request.headers.get("authorization") == "Bearer jwt-a"
+            return httpx.Response(200, json=records)
+        return httpx.Response(404)
+
+    async def scenario():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            hub = HubClient("http://hub", "adminpin")
+            return await hub.history(client)
+
+    assert _run(scenario()) == records
+
+
+def _rollback_client(resp):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/auth":
+            return httpx.Response(200, json={"token": "jwt-admin", "role": "admin"})
+        if request.url.path.startswith("/api/rollback/"):
+            assert request.method == "POST"
+            assert request.headers.get("authorization") == "Bearer jwt-admin"
+            return resp
+        return httpx.Response(404)
+
+    return httpx.MockTransport(handler)
+
+
+def test_rollback_ok():
+    async def scenario():
+        transport = _rollback_client(httpx.Response(200, json={"ok": True, "rolledBackTo": "abc123"}))
+        async with httpx.AsyncClient(transport=transport) as client:
+            hub = HubClient("http://hub", "adminpin")
+            return await hub.rollback(client, "silix", "abc123")
+
+    assert _run(scenario())["rolledBackTo"] == "abc123"
+
+
+def test_rollback_unknown_app_404():
+    async def scenario():
+        transport = _rollback_client(httpx.Response(404, json={"error": "App no encontrada"}))
+        async with httpx.AsyncClient(transport=transport) as client:
+            hub = HubClient("http://hub", "adminpin")
+            await hub.rollback(client, "nope", "abc")
+
+    with pytest.raises(HubError) as ei:
+        _run(scenario())
+    assert ei.value.status == 404
