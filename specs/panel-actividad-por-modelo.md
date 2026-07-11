@@ -62,12 +62,19 @@ Conclusion de arquitectura: el panel se alimenta de DOS fuentes complementarias:
    - lista de tarjetas plegables, una por `agent.output`, tipadas por `fields.kind`:
      - `message` -> texto (markdown-lite, sin dep nueva pesada).
      - `code` -> bloque con resaltado de sintaxis y boton copiar.
-     - `tool_call` -> chip de accion + `changed_files` + enlace a `DiffViewer`.
+     - `tool_call` (agente CLI) -> lista `changed_files` + boton "Ver diff"
+       (`GET /cli/{run_id}` -> `DiffViewer`) + "Aprobar"/"Rechazar"
+       (`POST /cli/{run_id}/approve`, con confirmacion). El evento tool_call lleva
+       `fields.run_id` para cablear ambos.
 9. Vista comparativa (v1): boton "Comparar" en el dock que abre una rejilla
    lado-a-lado (una columna por agente) con la salida COMPLETA de `out.runs` del ultimo
-   run; resalta visualmente cual difiere; cada columna con su costo y su boton
-   "Aprobar" que reusa el flujo de aprobacion existente (`changes/apply` / `cli approve`
-   segun tipo de agente). NO auto-aplica: respeta el gate humano.
+   run; resalta si difieren; cada columna con su costo y boton copiar.
+   NOTA DE ARQUITECTURA (honestidad): la comparativa se alimenta de runs tipo API
+   (`/run`), cuya salida es TEXTO LIBRE sin path `texto -> ChangeSet` en el core; por
+   eso la comparativa es comparar+copiar, NO "aprobar". La aprobacion real vive en las
+   tarjetas `tool_call` (agentes CLI), que SI editan archivos y tienen `/cli approve`.
+   Asi se cumple "aprobar reusando el gate existente" sin fingir un apply que no existe.
+   NO auto-aplica: aprobar exige click + confirmacion.
 10. Diseno con la identidad Enjambre (morado `--purple` #8B5CF6 / ambar, bg oscuro,
     tokens CSS ya definidos). Construir con ui-ux-pro-max + 21st Magic, NUNCA SVG a mano.
 11. Gated tras flag `VITE_ACTIVITY_DOCK` (off por defecto -> RunPage sin cambios), en

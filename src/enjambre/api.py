@@ -586,10 +586,12 @@ def create_app(*, registry: Registry | None = None,
                      message=res.error or f"{len(res.changed_files)} archivo(s)")
             if res.ok and res.changed_files:
                 # agent.output tipo tool_call para el panel (los agentes CLI SI editan
-                # archivos, a diferencia de los API); el diff se ve via DiffViewer.
+                # archivos, a diferencia de los API); run_id permite al dock pedir el
+                # diff (GET /cli/{run_id}) y aprobar (POST /cli/{run_id}/approve).
                 bus.emit("agent.output", agent="cli",
                          message=f"{len(res.changed_files)} archivo(s)",
-                         kind="tool_call", changed_files=res.changed_files)
+                         kind="tool_call", changed_files=res.changed_files,
+                         run_id=run_id)
             return _cli_payload(run_id, res)
 
         @app.get("/cli/{run_id}")

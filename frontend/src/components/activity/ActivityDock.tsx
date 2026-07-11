@@ -9,9 +9,11 @@
  * LogsPage.tsx y ProviderIcon. Respeta el gate humano: la comparativa NO auto-aplica.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ChevronDown, ChevronUp, Columns2, Copy, FileCode2, MessageSquare, Wrench, X } from 'lucide-react';
+import { Activity, Check, ChevronDown, ChevronUp, Columns2, Copy, Eye, FileCode2, MessageSquare, Wrench, X } from 'lucide-react';
 import { api } from '../../api/client';
+import { useApproveCliRun, useCliRunStatus } from '../../api/hooks';
 import type { LogEvent, RunReport } from '../../api/types';
+import DiffViewer from '../DiffViewer';
 import ProviderIcon from '../ProviderIcon';
 
 type OutputKind = 'message' | 'code' | 'tool_call';
@@ -75,6 +77,76 @@ function CopyButton({ text }: { text: string }) {
 }
 
 /** Tarjeta plegable de una salida (agent.output), tipada por fields.kind. */
+/** Cuerpo de una tarjeta tool_call (agente CLI): lista de archivos + ver diff +
+ *  aprobar/rechazar via el flujo CLI existente (POST /cli/{run_id}/approve).
+ *  Respeta el gate humano: aprobar exige click + confirmacion, nunca auto-aplica. */
+function ToolCallBody({ runId, changed }: { runId?: string; changed: string[] }) {
+  const [showDiff, setShowDiff] = useState(false);
+  const [applied, setApplied] = useState<null | boolean>(null);
+  const status = useCliRunStatus(showDiff ? (runId ?? null) : null);
+  const approve = useApproveCliRun();
+
+  function decide(ok: boolean) {
+    if (!runId) return;
+    if (ok && !window.confirm('Aplicar estos cambios al repositorio real?')) return;
+    approve.mutate({ runId, approved: ok }, { onSuccess: () => setApplied(ok) });
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-1 font-mono text-[11px] text-secondary-foreground">
+        {changed.length === 0 && <li className="text-muted-foreground">(sin archivos)</li>}
+        {changed.map((c) => (
+          <li key={c} className="flex items-center gap-1.5">
+            <FileCode2 size={11} style={{ color: 'var(--amber)' }} /> {c}
+          </li>
+        ))}
+      </ul>
+      {runId && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowDiff((v) => !v)}
+            className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-foreground transition-colors hover:border-primary"
+          >
+            <Eye size={12} style={{ color: 'var(--purple)' }} /> {showDiff ? 'Ocultar diff' : 'Ver diff'}
+          </button>
+          {applied === null ? (
+            <>
+              <button
+                type="button"
+                disabled={approve.isPending}
+                onClick={() => decide(true)}
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+                style={{ background: 'var(--ok)', color: '#05130a' }}
+              >
+                <Check size={12} /> Aprobar
+              </button>
+              <button
+                type="button"
+                disabled={approve.isPending}
+                onClick={() => decide(false)}
+                className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+              >
+                <X size={12} /> Rechazar
+              </button>
+            </>
+          ) : (
+            <span className="font-mono text-[11px]" style={{ color: applied ? 'var(--ok)' : 'var(--fg-mute)' }}>
+              {applied ? 'aplicado' : 'rechazado'}
+            </span>
+          )}
+        </div>
+      )}
+      {showDiff && (
+        status.data?.diff
+          ? <DiffViewer diffs={{ [`${changed.length} archivo(s)`]: status.data.diff }} />
+          : <p className="text-[11px] text-muted-foreground">cargando diff...</p>
+      )}
+    </div>
+  );
+}
+
 function OutputCard({ e }: { e: Entry }) {
   const [open, setOpen] = useState(true);
   const f = fields(e);
@@ -83,6 +155,7 @@ function OutputCard({ e }: { e: Entry }) {
   const preview = (f.preview as string) ?? e.message ?? '';
   const lang = (f.lang as string | null) ?? null;
   const changed = (f.changed_files as string[] | undefined) ?? [];
+  const runId = f.run_id as string | undefined;
 
   return (
     <div className="rounded-lg border border-border bg-secondary/25">
@@ -100,14 +173,7 @@ function OutputCard({ e }: { e: Entry }) {
       {open && (
         <div className="border-t border-border px-2.5 py-2">
           {kind === 'tool_call' ? (
-            <ul className="flex flex-col gap-1 font-mono text-[11px] text-secondary-foreground">
-              {changed.length === 0 && <li className="text-muted-foreground">(sin archivos)</li>}
-              {changed.map((c) => (
-                <li key={c} className="flex items-center gap-1.5">
-                  <FileCode2 size={11} style={{ color: 'var(--amber)' }} /> {c}
-                </li>
-              ))}
-            </ul>
+            <ToolCallBody runId={runId} changed={changed} />
           ) : kind === 'code' ? (
             <div className="flex flex-col gap-1">
               <div className="flex justify-end"><CopyButton text={preview} /></div>
