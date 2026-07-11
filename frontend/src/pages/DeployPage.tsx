@@ -9,7 +9,9 @@
  */
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { hub, type HubAppStatus, type HubDeployRecord } from '../api/hub';
+import { hub, type HubAppStatus, type HubDeployRecord, type DeployScope } from '../api/hub';
+
+const SCOPES: DeployScope[] = ['full', 'frontend', 'backend'];
 
 function statusColor(s?: string): string {
   if (s === 'online') return 'var(--ok)';
@@ -20,6 +22,7 @@ function statusColor(s?: string): string {
 export default function DeployPage() {
   const qc = useQueryClient();
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [scopes, setScopes] = useState<Record<string, DeployScope>>({});
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['hub-status'],
@@ -28,12 +31,12 @@ export default function DeployPage() {
   });
 
   const deploy = useMutation({
-    mutationFn: (app: string) => hub.deploy(app, 'full'),
-    onSuccess: (_res, app) => {
-      setMsg({ kind: 'ok', text: `Deploy de ${app} iniciado. Sigue el avance en la columna Estado.` });
+    mutationFn: ({ app, only }: { app: string; only: DeployScope }) => hub.deploy(app, only),
+    onSuccess: (_res, { app, only }) => {
+      setMsg({ kind: 'ok', text: `Deploy de ${app} (${only}) iniciado. Sigue el avance en la columna Estado.` });
       qc.invalidateQueries({ queryKey: ['hub-status'] });
     },
-    onError: (e: Error, app) => setMsg({ kind: 'err', text: `No se pudo desplegar ${app}: ${e.message}` }),
+    onError: (e: Error, { app }) => setMsg({ kind: 'err', text: `No se pudo desplegar ${app}: ${e.message}` }),
   });
 
   const history = useQuery({
@@ -54,10 +57,11 @@ export default function DeployPage() {
   });
 
   function onDeploy(app: string) {
+    const only = scopes[app] ?? 'full';
     const ok = window.confirm(
-      `Desplegar "${app}"?\n\nEsto hace git pull, reconstruye y reinicia la app en PRODUCCION.`,
+      `Desplegar "${app}" (${only})?\n\nEsto hace git pull, reconstruye y reinicia la app en PRODUCCION.`,
     );
-    if (ok) deploy.mutate(app);
+    if (ok) deploy.mutate({ app, only });
   }
 
   function onRollback(app: string, commit: string) {
@@ -71,7 +75,7 @@ export default function DeployPage() {
 
   const apps = data ? Object.entries(data) : [];
   const busy = (app: string, row: HubAppStatus) =>
-    row.deploying || (deploy.isPending && deploy.variables === app);
+    row.deploying || (deploy.isPending && deploy.variables?.app === app);
 
   return (
     <div className="flex flex-col gap-5">
@@ -138,16 +142,28 @@ export default function DeployPage() {
                   <td className="px-4 py-2" style={{ color: 'var(--fg-mute)' }}>
                     {app.deploying ? 'desplegando…' : (app.health ? 'ok' : '—')}
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onDeploy(name)}
-                      disabled={busy(name, app)}
-                      className="px-3 h-8 rounded-lg text-xs font-semibold transition-opacity disabled:opacity-40"
-                      style={{ background: 'var(--amber)', color: '#1a1006' }}
-                    >
-                      {busy(name, app) ? 'Desplegando…' : 'Desplegar'}
-                    </button>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center justify-end gap-2">
+                      <select
+                        value={scopes[name] ?? 'full'}
+                        onChange={(e) => setScopes((s) => ({ ...s, [name]: e.target.value as DeployScope }))}
+                        disabled={busy(name, app)}
+                        aria-label={`Alcance del deploy de ${name}`}
+                        className="h-8 rounded-lg border px-2 text-xs"
+                        style={{ borderColor: 'var(--border)', background: 'var(--bg-card)', color: 'var(--fg)' }}
+                      >
+                        {SCOPES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => onDeploy(name)}
+                        disabled={busy(name, app)}
+                        className="px-3 h-8 rounded-lg text-xs font-semibold transition-opacity disabled:opacity-40"
+                        style={{ background: 'var(--amber)', color: '#1a1006' }}
+                      >
+                        {busy(name, app) ? 'Desplegando…' : 'Desplegar'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
