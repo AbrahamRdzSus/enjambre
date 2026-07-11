@@ -8,9 +8,11 @@ import CircleLoad from '../components/ui/CircleLoad';
 import MicroLoader from '../components/ui/MicroLoader';
 import ProviderIcon from '../components/ProviderIcon';
 import AgentCard from '../components/AgentCard';
+import ActivityDock from '../components/activity/ActivityDock';
 import { Panel, PageHeader } from '../components/ui/Panel';
 
 const AMBER = '#ffb020';
+const ACTIVITY_DOCK = import.meta.env.VITE_ACTIVITY_DOCK === '1';
 const MODES = [
   { id: 'parallel', label: 'Paralelo' },
   { id: 'sequential', label: 'Secuencial' },
@@ -286,6 +288,8 @@ export default function RunPage() {
           )}
         </Panel>
       </div>
+
+      {ACTIVITY_DOCK && <ActivityDock report={report ?? null} running={run.isPending} />}
     </div>
   );
 }

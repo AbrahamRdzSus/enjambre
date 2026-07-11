@@ -7,7 +7,7 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
 import mock_api  # noqa: E402
-from enjambre.api import create_app  # noqa: E402
+from enjambre.api import _classify_output, create_app  # noqa: E402
 from enjambre.registry import Agent, Registry  # noqa: E402
 
 KEYS = {"openai": "ok", "anthropic": "ok", "google": "ok", "xai": "ok"}
@@ -123,6 +123,42 @@ def test_logs_filter_by_agent():
     c.post("/run", json={"prompt": "x"})
     only = c.get("/logs", params={"agent": "a-openai"}).json()
     assert only and all(e["agent"] == "a-openai" for e in only)
+
+
+# --- panel "Actividad por modelo": clasificacion + evento agent.output ------
+def test_classify_output_message_vs_code():
+    prosa = _classify_output("Deberias refactorizar el modulo X para claridad.")
+    assert prosa["kind"] == "message" and prosa["lang"] is None
+
+    codigo = _classify_output("```python\ndef f():\n    return 42\n```")
+    assert codigo["kind"] == "code" and codigo["lang"] == "python"
+
+    # prosa breve + bloque grande cercado -> domina el codigo -> 'code'
+    mixto = _classify_output("Fix:\n```js\n" + "x=1;\n" * 40 + "```")
+    assert mixto["kind"] == "code" and mixto["lang"] == "js"
+
+    # prosa larga con un bloque diminuto -> no domina -> 'message'
+    prosa_larga = _classify_output("bla " * 100 + "\n```py\nx=1\n```")
+    assert prosa_larga["kind"] == "message"
+
+
+def test_classify_output_preview_truncates():
+    cls = _classify_output("a" * 500)
+    assert cls["preview"] == "a" * 280 and len(cls["preview"]) == 280
+
+
+def test_run_emits_agent_output_per_agent():
+    c = _client()
+    c.post("/run", json={"prompt": "refactor"})
+    logs = c.get("/logs").json()
+    outputs = [e for e in logs if e["event"] == "agent.output"]
+    # un agent.output por agente exitoso (el mock devuelve texto -> kind message)
+    assert {e["agent"] for e in outputs} == {"a-openai", "a-anthropic"}
+    assert all(e["fields"]["kind"] in ("message", "code") for e in outputs)
+    assert all("preview" in e["fields"] for e in outputs)
+    # contrato viejo intacto (regresion): agent.done/run.done siguen presentes
+    events = {e["event"] for e in logs}
+    assert {"run.start", "agent.done", "run.done"} <= events
 
 
 # --- seguridad: token, allowlist de roots, docs apagadas -------------------
