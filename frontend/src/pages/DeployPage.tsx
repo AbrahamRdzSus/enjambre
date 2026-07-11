@@ -1,11 +1,14 @@
 /*
- * F1 (OPS HUD): vista Deploy. Read-only por ahora: lista las apps del hub de CD
- * (pm2, health, ultimo commit) via el proxy del sidecar /hub/status. Gated por
- * VITE_HUB_DEPLOY; requiere que el sidecar tenga ENJAMBRE_HUB_URL definido (si no,
- * /hub/status responde 404 y aqui se muestra "hub no configurado"). Disparar deploys
- * es un slice posterior.
+ * F1 (OPS HUD): vista Deploy. Lista las apps del hub de CD (pm2, health, ultimo
+ * commit) via el proxy del sidecar /hub/status, y permite DISPARAR un deploy
+ * (/hub/deploy/{app}). El progreso real llega por el poll de status (campo
+ * `deploying`); el stream WS en vivo es un slice posterior. Gated por
+ * VITE_HUB_DEPLOY; requiere que el sidecar tenga ENJAMBRE_HUB_URL + PIN admin.
+ * Disparar un deploy pide confirmacion (step-up UX): el credencial vive
+ * server-side, el frontend solo confirma la accion.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { hub, type HubAppStatus } from '../api/hub';
 
 function statusColor(s?: string): string {
@@ -15,13 +18,34 @@ function statusColor(s?: string): string {
 }
 
 export default function DeployPage() {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['hub-status'],
     queryFn: () => hub.status(),
     refetchInterval: 8000,
   });
 
+  const deploy = useMutation({
+    mutationFn: (app: string) => hub.deploy(app, 'full'),
+    onSuccess: (_res, app) => {
+      setMsg({ kind: 'ok', text: `Deploy de ${app} iniciado. Sigue el avance en la columna Estado.` });
+      qc.invalidateQueries({ queryKey: ['hub-status'] });
+    },
+    onError: (e: Error, app) => setMsg({ kind: 'err', text: `No se pudo desplegar ${app}: ${e.message}` }),
+  });
+
+  function onDeploy(app: string) {
+    const ok = window.confirm(
+      `Desplegar "${app}"?\n\nEsto hace git pull, reconstruye y reinicia la app en PRODUCCION.`,
+    );
+    if (ok) deploy.mutate(app);
+  }
+
   const apps = data ? Object.entries(data) : [];
+  const busy = (app: string, row: HubAppStatus) =>
+    row.deploying || (deploy.isPending && deploy.variables === app);
 
   return (
     <div className="flex flex-col gap-5">
@@ -29,9 +53,17 @@ export default function DeployPage() {
         <p className="eyebrow">Obsidia CD</p>
         <h1 className="text-xl font-semibold" style={{ color: 'var(--fg)' }}>Deploy</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--fg-mute)' }}>
-          Estado de las apps del hub (proxy read-only via el sidecar).
+          Estado de las apps del hub y disparo de deploys (proxy via el sidecar).
         </p>
       </div>
+
+      {msg && (
+        <div className="rounded-lg border px-4 py-2 text-sm flex items-center justify-between gap-4"
+             style={{ borderColor: 'var(--border)', color: msg.kind === 'ok' ? 'var(--ok)' : 'var(--alert)' }}>
+          <span>{msg.text}</span>
+          <button type="button" onClick={() => setMsg(null)} style={{ color: 'var(--fg-faint)' }}>cerrar</button>
+        </div>
+      )}
 
       {isLoading && (
         <p className="text-sm" style={{ color: 'var(--fg-faint)' }}>Cargando estado del hub…</p>
@@ -40,7 +72,7 @@ export default function DeployPage() {
         <div className="rounded-lg border px-4 py-3 text-sm"
              style={{ borderColor: 'var(--border)', color: 'var(--fg-mute)' }}>
           No se pudo leer el hub. Verifica que el sidecar tenga <code>ENJAMBRE_HUB_URL</code>
-          {' '}y <code>ENJAMBRE_HUB_PIN</code> configurados.
+          {' '}y <code>ENJAMBRE_HUB_PIN</code> (admin) configurados.
           <span className="block mt-1 text-[11px]" style={{ color: 'var(--fg-faint)' }}>
             {(error as Error)?.message}
           </span>
@@ -57,6 +89,7 @@ export default function DeployPage() {
                 <th className="text-left px-4 py-2 font-medium">Puerto</th>
                 <th className="text-left px-4 py-2 font-medium">Ultimo commit</th>
                 <th className="text-left px-4 py-2 font-medium">Estado</th>
+                <th className="text-right px-4 py-2 font-medium">Accion</th>
               </tr>
             </thead>
             <tbody>
@@ -78,6 +111,17 @@ export default function DeployPage() {
                   </td>
                   <td className="px-4 py-2" style={{ color: 'var(--fg-mute)' }}>
                     {app.deploying ? 'desplegando…' : (app.health ? 'ok' : '—')}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => onDeploy(name)}
+                      disabled={busy(name, app)}
+                      className="px-3 h-8 rounded-lg text-xs font-semibold transition-opacity disabled:opacity-40"
+                      style={{ background: 'var(--amber)', color: '#1a1006' }}
+                    >
+                      {busy(name, app) ? 'Desplegando…' : 'Desplegar'}
+                    </button>
                   </td>
                 </tr>
               ))}

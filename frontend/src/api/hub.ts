@@ -27,6 +27,14 @@ export interface HubAppStatus {
 /** Estado del hub: dict keyed por nombre de app. */
 export type HubStatus = Record<string, HubAppStatus>;
 
+/** Alcance del deploy que acepta el hub. */
+export type DeployScope = 'full' | 'frontend' | 'backend';
+
 export const hub = {
   status: () => api.get<HubStatus>('/hub/status'),
+  // Dispara el deploy; el sidecar reenvia al hub con el JWT admin. El progreso
+  // real llega por el poll de status (campo `deploying`). 403=PIN no admin,
+  // 409=deploy en curso (los propaga el sidecar).
+  deploy: (app: string, only: DeployScope = 'full') =>
+    api.post<{ started: boolean }>(`/hub/deploy/${encodeURIComponent(app)}`, { only }),
 };
