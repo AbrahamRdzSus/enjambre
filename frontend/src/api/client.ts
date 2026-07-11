@@ -6,17 +6,24 @@
  * el shell inyecta window.__ENJAMBRE_TOKEN__ (ver docs/SECURITY.md > token del sidecar).
  */
 const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-const TOKEN = import.meta.env.VITE_API_TOKEN
-  || (typeof window !== 'undefined'
-      ? (window as unknown as { __ENJAMBRE_TOKEN__?: string }).__ENJAMBRE_TOKEN__ ?? ''
-      : '');
+
+// Lectura PEREZOSA del token en cada request: en la app Tauri el shell inyecta
+// window.__ENJAMBRE_TOKEN__ tras arrancar el sidecar, posiblemente despues de que
+// carga este modulo; leerlo por-request evita la carrera de cachearlo vacio.
+function apiToken(): string {
+  return import.meta.env.VITE_API_TOKEN
+    || (typeof window !== 'undefined'
+        ? (window as unknown as { __ENJAMBRE_TOKEN__?: string }).__ENJAMBRE_TOKEN__ ?? ''
+        : '');
+}
 
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(opts?.headers as Record<string, string>),
   };
-  if (TOKEN) headers['X-API-Token'] = TOKEN;
+  const token = apiToken();
+  if (token) headers['X-API-Token'] = token;
 
   const res = await fetch(`${BASE}${path}`, { ...opts, headers });
   if (!res.ok) {
@@ -29,7 +36,7 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
 
 export const api = {
   base: BASE,
-  token: TOKEN,
+  get token() { return apiToken(); },  // perezoso: el SSE lo lee al abrir el stream
   get: <T>(p: string) => req<T>(p, { method: 'GET' }),
   post: <T>(p: string, body?: unknown) =>
     req<T>(p, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),

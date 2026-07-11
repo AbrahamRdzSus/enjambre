@@ -25,12 +25,27 @@ pub fn run() {
                 .env("SIDECAR_PORT", "8000");
             let (mut rx, child) = cmd.spawn()?;
             app.state::<SidecarChild>().0.lock().unwrap().replace(child);
-            // Drena los eventos del proceso para no bloquear el buffer.
+            // Drena el stdout del sidecar; captura el token (DEFAULT-ON) que imprime
+            // como `ENJAMBRE_API_TOKEN=<tok>` y lo inyecta al webview para que el
+            // dashboard autentique (si no, todo salvo /health responde 401).
+            let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 use tauri_plugin_shell::process::CommandEvent;
                 while let Some(event) = rx.recv().await {
-                    if let CommandEvent::Terminated(_) = event {
-                        break;
+                    match event {
+                        CommandEvent::Stdout(bytes) => {
+                            let text = String::from_utf8_lossy(&bytes);
+                            for line in text.lines() {
+                                if let Some(tok) = line.trim().strip_prefix("ENJAMBRE_API_TOKEN=") {
+                                    if let Some(win) = handle.get_webview_window("main") {
+                                        let _ = win.eval(&format!(
+                                            "window.__ENJAMBRE_TOKEN__={:?};", tok));
+                                    }
+                                }
+                            }
+                        }
+                        CommandEvent::Terminated(_) => break,
+                        _ => {}
                     }
                 }
             });

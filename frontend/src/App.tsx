@@ -11,8 +11,10 @@ const LogsPage = lazy(() => import('./pages/LogsPage'));
 const StatsPage = lazy(() => import('./pages/StatsPage'));
 const AgentsPage = lazy(() => import('./pages/AgentsPage'));
 const CliPage = lazy(() => import('./pages/CliPage'));
+const DeployPage = lazy(() => import('./pages/DeployPage'));
 
 const CLI_AGENTS = import.meta.env.VITE_CLI_AGENTS === '1';
+const HUB_DEPLOY = import.meta.env.VITE_HUB_DEPLOY === '1';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -35,6 +37,7 @@ export default function App() {
               <Route path="stats" element={<StatsPage />} />
               <Route path="agents" element={<AgentsPage />} />
               {CLI_AGENTS && <Route path="cli" element={<CliPage />} />}
+              {HUB_DEPLOY && <Route path="deploy" element={<DeployPage />} />}
             </Route>
           </Routes>
         </Suspense>
