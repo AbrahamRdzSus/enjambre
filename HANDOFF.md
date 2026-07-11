@@ -5,15 +5,15 @@
 > que viva fuera del repo. Manten este archivo PODADO: indice, no historia completa.
 
 ## Estado actual
-- Rama / version: feat/desktop-swarmflow-agentcard / core v0.5.0 (main entra por
-  PR). Ultimo commit: mockups diseno/ trackeados como cantera (6735f96). Antes:
-  spec agente CLI v1 (fa10acb) + tanda cockpit desktop (SwarmFlow/AgentCard/
-  DiffViewer/Overview 3 columnas/pass legibilidad).
+- Rama / version: main / core v0.6.0 en curso (main entra por PR). Ultimo commit:
+  merge PR #11 panel "Actividad por modelo" (cd73ca9); antes F1 OPS HUD (proxy hub
+  de CD) + seguridad sidecar default-on + agente CLI, todo mergeado. El instalador
+  PUBLICADO sigue en v0.5.0 hasta recongelar el sidecar (E5).
 - Cockpit INTEGRADO y vigente: /overview con components/overview/* + AppShell +
   Panel.tsx replicando el lenguaje en todas las pestañas, cableado a hooks
   reales. diseno/ (scaffold v0 Next.js) es SOLO cantera de referencia, ya
   consumida; su duplicado e-commerce-nexus-dashboard/ quedo en .gitignore.
-- Core REAL en `src/enjambre/` (~3450 LOC, 29 modulos, 170 tests verdes). Fases
+- Core REAL en `src/enjambre/` (~4200 LOC, 26 modulos, 214 tests verdes). Fases
   1-5 del ROADMAP tecnico implementadas; Fase 6 (SDK) parcial:
   - FASE 1 - orquestacion real: adapters httpx (OpenAI/xAI compat, Anthropic,
     Google) con validate_key/chat/estimate_cost; `registry.py` (UTF-8, tolera
@@ -34,42 +34,43 @@
   - `app.py` (Streamlit): consume el core real, sin simulacion. PROTOTIPO de UI.
   - CLI `enjambre` (`cli.py`): agentes/providers/validate/run/sessions; soporta
     agentes declarativos (`enjambre.yaml`, parser propio sin pyyaml).
-  - Sidecar HTTP `enjambre.api` (FastAPI, 20 endpoints incl. `/logs/stream` SSE;
-    auth opt-in via ENJAMBRE_API_TOKEN + allowlist ENJAMBRE_ALLOWED_ROOTS).
-  - Frontend React (`frontend/`) sobre el sidecar; app de escritorio Tauri 2
-    (`tauri/`) con sidecar PyInstaller auto-spawn -> instalador NSIS
-    `ENJAMBRE_0.5.0_x64-setup.exe` (Fase B levantamiento COMPLETA).
+  - Sidecar HTTP `enjambre.api` (FastAPI, ~29 endpoints incl. `/cli/*` `/hub/*`
+    `/changes/*` + `/logs/stream` SSE). Seguridad DEFAULT-ON: token autogenerado,
+    guard anti DNS-rebinding, rate limit; allowlist opt-in ENJAMBRE_ALLOWED_ROOTS.
+  - Frontend React (`frontend/`) sobre el sidecar; incluye panel "Actividad por
+    modelo" (dock estilo Jules, flag `VITE_ACTIVITY_DOCK`) y OPS HUD (`VITE_HUB_DEPLOY`).
+  - App de escritorio Tauri 2 (`tauri/`) con sidecar PyInstaller auto-spawn ->
+    instalador NSIS publicado `ENJAMBRE_0.5.0_x64-setup.exe`; el paquete v0.6.0 se
+    genera en E5 (recongelar el sidecar para que corra el backend nuevo).
 - Datos de usuario: `enjambre.paths.data_dir()` -> `%APPDATA%/enjambre` (override
   ENJAMBRE_DATA_DIR). registry/sessions/projects/stats persisten ahi.
 
 ## Siguiente paso
-1. Fase A levantamiento (diseño final): integrar el cockpit v0. HECHO el slice
-   Overview (tokens shadcn via `@theme inline` + utilidades glass/glow en index.css;
-   `components/overview/` MetricsRow/Conversations/FilePanel/BottomRow cableados a
-   hooks reales; HexSwarm como orquestacion live; sin mock). Gate:
-   `docs/gates/faseA-cockpit-overview.md`. HECHO tambien la replica del lenguaje cockpit
-   en las 5 pestañas restantes via chrome reutilizable `components/ui/Panel.tsx`.
-   HECHAS Fases C+D: landing publica en `landing/` (React/Vite + Magic UI; Hero/Features/
-   Screenshots/HowItWorks/Download/Footer) y GitHub Release `v0.5.0` (latest) con el
-   instalador + `CHANGELOG.md`. El repo es PUBLICO (descarga anonima verificada 200).
-   La descarga se resuelve en runtime (`useLatestInstaller`, sin hardcodear version).
-   Seguridad: secret scanning + push protection habilitados; historial limpio.
-   Landing DESPLEGADA en Vercel (proyecto "landing") y LIVE en dominio propio:
-   https://enjambre.obsidia.mx (A enjambre -> 76.76.21.21 DNS-only en Cloudflare;
-   cert SSL emitido con `vercel certs issue`). CI cubre ahora frontend+landing (job web).
-   PENDIENTE menor: opcional renombrar el proyecto Vercel "landing" -> "enjambre";
-   OG social card 1200x630; refrescar screenshots al look cockpit nuevo.
-2. Seguridad sidecar (ANTES del agente CLI): token default-on autogenerado +
-   handshake Tauri; validar Host/Origin (anti DNS-rebinding); confirmar bind
-   127.0.0.1; pip-audit + pin de deps en CI.
-3. Agente CLI: /build de `specs/cli-agent-v1.md` (Claude Code headless en
-   worktree aislado).
-4. Release real: `tauri-plugin-updater` con firma (patron de Eye) + script de
-   release unico (PyInstaller+NSIS+Release).
-5. Precios: consumir el JSON de precios de litellm en vez de estimaciones
-   hardcodeadas en los adapters.
-Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`
-(producto distribuible, Fases A-E).
+
+### HECHO (mergeado)
+- Fase A cockpit integrado (Overview + replica del lenguaje en las 5 pestañas via
+  `components/ui/Panel.tsx`). Gate `docs/gates/faseA-cockpit-overview.md`.
+- Fases C+D: landing publica en `landing/` LIVE en https://enjambre.obsidia.mx
+  (Vercel, cert SSL) + GitHub Release `v0.5.0` (latest) con el instalador. Repo PUBLICO.
+- Seguridad sidecar DEFAULT-ON: token autogenerado + handshake Tauri (E5.1), guard
+  anti DNS-rebinding (Host loopback), rate limit token-bucket, audit CVE en CI.
+- Agente CLI (`specs/cli-agent-v1.md`): Claude Code headless en worktree aislado,
+  diff bajo aprobacion humana. Opt-in `ENJAMBRE_CLI_AGENTS`. Doc `docs/CLI_AGENT.md`.
+- F1 OPS HUD: proxy del sidecar al hub de CD (status/deploy/history/rollback + stream
+  WS->SSE), JWT del hub server-side. Opt-in `VITE_HUB_DEPLOY`.
+- Panel "Actividad por modelo" (dock estilo Jules): carriles por agente + step badges
+  + tarjetas tipadas + comparativa lado-a-lado. Opt-in `VITE_ACTIVITY_DOCK`. Spec
+  `specs/panel-actividad-por-modelo.md`.
+
+### PENDIENTE
+1. E5 empaque/release v0.6.0 (docs/ROADMAP_E5.md): recongelar el sidecar (PyInstaller),
+   par de claves de firma, `cargo tauri build` firmado, checklist e2e, Release +
+   `latest.json`. Requiere Rust+MSVC (presentes en la maquina).
+2. Precios: consumir el JSON de precios de litellm en vez de estimaciones hardcodeadas.
+3. Pulido menor: OG social card 1200x630; refrescar screenshots al look cockpit;
+   opcional renombrar el proyecto Vercel "landing" -> "enjambre".
+Ver `docs/ROADMAP.md` (tecnico, Fases 0-6), `docs/ROADMAP_E5.md` (empaque) y
+`docs/ROADMAP_LEVANTAMIENTO.md` (producto distribuible, Fases A-E).
 
 ## Decisiones congeladas
 <!-- Decisiones que NO se vuelven a discutir sin una razon nueva. Linkea el commit/gate. -->
@@ -90,8 +91,8 @@ Ver `docs/ROADMAP.md` (tecnico, Fases 0-6) y `docs/ROADMAP_LEVANTAMIENTO.md`
 - Precios en los adapters son ESTIMACIONES (no facturacion real); revisar antes
   de mostrar costo a usuarios de pago.
 - (Opcional) sin firma Authenticode: el instalador dispara SmartScreen.
-- Sidecar: auth es OPT-IN (ENJAMBRE_API_TOKEN); endurecer a default-on +
-  validacion Host/Origin antes de crecer la superficie (agente CLI).
+- RESUELTO: la auth del sidecar es DEFAULT-ON (token autogenerado + guard anti
+  DNS-rebinding + rate limit; commits e2b438a/ed4ec37/2e912a8). Ya no es opt-in.
 
 ## Gates de aceptacion (docs/gates/)
 Gates congelados presentes: core-real-orchestration, fase2-workspace-seguro,
@@ -108,4 +109,4 @@ el diff contra la intencion, no solo "pasan los tests".
 4. REVISA: pase separado que lee el diff contra la intencion + corre los gates.
 5. ACTUALIZA este HANDOFF y poda lo viejo.
 
-_Ultima actualizacion: 2026-07-01_
+_Ultima actualizacion: 2026-07-11_

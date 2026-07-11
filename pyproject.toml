@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enjambre"
-version = "0.5.0"
+version = "0.6.0"
 description = "Orquestador local-first de agentes IA de codificacion (BYOK)."
 readme = "README.md"
 requires-python = ">=3.10"
