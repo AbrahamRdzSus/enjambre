@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users, KeyRound, Terminal } from 'lucide-react';
+import { LayoutGrid, Send, FolderTree, ScrollText, BarChart3, Users, KeyRound, Terminal, Rocket } from 'lucide-react';
 import { api } from '../api/client';
 import { useAgents, useProviders, usePatchAgent, useStats } from '../api/hooks';
 import ProjectSelector from '../components/ProjectSelector';
@@ -19,6 +19,9 @@ const NAV = [
   { to: '/agents', label: 'Agentes', icon: Users },
   ...(import.meta.env.VITE_CLI_AGENTS === '1'
     ? [{ to: '/cli', label: 'Agente CLI', icon: Terminal }]
+    : []),
+  ...(import.meta.env.VITE_HUB_DEPLOY === '1'
+    ? [{ to: '/deploy', label: 'Deploy', icon: Rocket }]
     : []),
 ];
 

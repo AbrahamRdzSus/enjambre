@@ -610,3 +610,11 @@ def create_app(*, registry: Registry | None = None,
 
 #: app por defecto para `uvicorn enjambre.api:app` (registro en disco, env keys).
 app = create_app()
+
+# F1 (OPS HUD): proxy opcional al hub de CD. Se monta SOLO si ENJAMBRE_HUB_URL
+# esta definido; el JWT del hub vive server-side (el frontend nunca lo ve). El
+# middleware de auth de arriba (app-level) cubre tambien estas rutas.
+if os.environ.get("ENJAMBRE_HUB_URL"):
+    from .hub import router as hub_router
+
+    app.include_router(hub_router)
