@@ -2,10 +2,12 @@
 
 import asyncio
 
-import httpx
 import pytest
 
-from enjambre.hub import HubClient, HubError
+pytest.importorskip("fastapi")  # hub.py importa fastapi; se salta en CI sin el extra [api]
+httpx = pytest.importorskip("httpx")
+
+from enjambre.hub import HubClient, HubError  # noqa: E402
 
 
 def _run(coro):
@@ -112,7 +114,9 @@ def test_deploy_started():
 
 def test_deploy_conflict_surfaces_409():
     async def scenario():
-        transport = _deploy_client(httpx.Response(409, json={"error": "Deploy en progreso: azuras"}))
+        transport = _deploy_client(
+            httpx.Response(409, json={"error": "Deploy en progreso: azuras"})
+        )
         async with httpx.AsyncClient(transport=transport) as client:
             hub = HubClient("http://hub", "adminpin")
             await hub.deploy(client, "silix")
@@ -124,7 +128,9 @@ def test_deploy_conflict_surfaces_409():
 
 def test_deploy_forbidden_when_not_admin():
     async def scenario():
-        transport = _deploy_client(httpx.Response(403, json={"error": "Solo admin puede realizar esta accion."}))
+        transport = _deploy_client(
+            httpx.Response(403, json={"error": "Solo admin puede realizar esta accion."})
+        )
         async with httpx.AsyncClient(transport=transport) as client:
             hub = HubClient("http://hub", "viewerpin")
             await hub.deploy(client, "silix")
@@ -182,7 +188,9 @@ def _rollback_client(resp):
 
 def test_rollback_ok():
     async def scenario():
-        transport = _rollback_client(httpx.Response(200, json={"ok": True, "rolledBackTo": "abc123"}))
+        transport = _rollback_client(
+            httpx.Response(200, json={"ok": True, "rolledBackTo": "abc123"})
+        )
         async with httpx.AsyncClient(transport=transport) as client:
             hub = HubClient("http://hub", "adminpin")
             return await hub.rollback(client, "silix", "abc123")

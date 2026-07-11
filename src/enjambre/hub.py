@@ -101,7 +101,8 @@ class HubClient:
         """Dispara POST /api/deploy/{app}. Devuelve {started:true} o levanta HubError
         con el status del hub (403 no-admin, 404 app, 409 deploy en curso)."""
         if only not in _DEPLOY_SCOPES:
-            raise HubError(f"alcance invalido: {only!r}; validos: {', '.join(sorted(_DEPLOY_SCOPES))}")
+            valid = ", ".join(sorted(_DEPLOY_SCOPES))
+            raise HubError(f"alcance invalido: {only!r}; validos: {valid}")
         r = await self._request(client, "POST", f"/api/deploy/{app}", json={"only": only})
         if r.status_code == 200:
             return r.json()
@@ -111,7 +112,9 @@ class HubClient:
         """Ultimos deploys (mas reciente primero): ts, app, only, ok, commitBefore/After..."""
         r = await self._request(client, "GET", "/api/deploy-history")
         if r.status_code != 200:
-            raise HubError(f"GET /api/deploy-history del hub fallo ({r.status_code})", status=r.status_code)
+            raise HubError(
+                f"GET /api/deploy-history del hub fallo ({r.status_code})", status=r.status_code
+            )
         return r.json()
 
     async def rollback(self, client: httpx.AsyncClient, app: str, commit: str) -> dict:
@@ -129,7 +132,9 @@ _hub: HubClient | None = None
 def _get_hub() -> HubClient:
     global _hub
     if _hub is None:
-        _hub = HubClient(os.environ.get("ENJAMBRE_HUB_URL", ""), os.environ.get("ENJAMBRE_HUB_PIN", ""))
+        _hub = HubClient(
+            os.environ.get("ENJAMBRE_HUB_URL", ""), os.environ.get("ENJAMBRE_HUB_PIN", "")
+        )
     return _hub
 
 
@@ -141,7 +146,7 @@ async def hub_status():
         try:
             return await hub.status(client)
         except HubError as exc:
-            raise HTTPException(status_code=502, detail=str(exc))
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.post("/deploy/{app}")
@@ -153,7 +158,7 @@ async def hub_deploy(app: str, body: DeployIn):
             return await hub.deploy(client, app, body.only)
         except HubError as exc:
             code = exc.status if exc.status in (403, 404, 409) else 502
-            raise HTTPException(status_code=code, detail=str(exc))
+            raise HTTPException(status_code=code, detail=str(exc)) from exc
 
 
 @router.get("/history")
@@ -164,7 +169,7 @@ async def hub_history():
         try:
             return await hub.history(client)
         except HubError as exc:
-            raise HTTPException(status_code=502, detail=str(exc))
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.post("/rollback/{app}/{commit}")
@@ -177,4 +182,4 @@ async def hub_rollback(app: str, commit: str):
             return await hub.rollback(client, app, commit)
         except HubError as exc:
             code = exc.status if exc.status in (403, 404) else 502
-            raise HTTPException(status_code=code, detail=str(exc))
+            raise HTTPException(status_code=code, detail=str(exc)) from exc
