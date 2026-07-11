@@ -22,7 +22,10 @@ pub fn run() {
             let cmd = app
                 .shell()
                 .sidecar("enjambre-sidecar")?
-                .env("SIDECAR_PORT", "8000");
+                .env("SIDECAR_PORT", "8000")
+                // E5.1-C: habilita los endpoints /cli/* en el paquete (requiere el
+                // binario `claude` en el PATH del usuario final; ver docs/CLI_AGENT.md).
+                .env("ENJAMBRE_CLI_AGENTS", "1");
             let (mut rx, child) = cmd.spawn()?;
             app.state::<SidecarChild>().0.lock().unwrap().replace(child);
             // Drena el stdout del sidecar; captura el token (DEFAULT-ON) que imprime
