@@ -18,7 +18,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 ipc: http://ipc.localhost; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 ipc: http://ipc.localhost; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "devCsp": "default-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 ipc: http://ipc.localhost ws://localhost:5173; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     },
     "withGlobalTauri": false
   },
