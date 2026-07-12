@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { useAgents } from '../api/hooks';
 import type { Agent } from '../api/types';
-import { useRunStore } from '../stores/run-store';
+import { useLogStore } from '../stores/log-store';
 
 // Viz estrella del enjambre: nucleo brillante + agentes orbitando en hexagono.
 // Estilo cyber/glassmorphism morado-ambar (ver DESIGN_SYSTEM.md). Datos reales
@@ -27,7 +27,7 @@ const ALERT = '#ef4444';
 export default function HexSwarm({ size = 420 }: { size?: number }) {
   const { data } = useAgents();
   const reduce = useReducedMotion();
-  const runStatus = useRunStore((s) => s.status);
+  const runStatus = useLogStore((s) => s.status);
   const agents = (data ?? []).slice(0, 8);
   const c = size / 2;
   const R = size * 0.34;

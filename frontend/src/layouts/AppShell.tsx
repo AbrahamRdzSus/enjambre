@@ -8,7 +8,7 @@ import ProviderIcon from '../components/ProviderIcon';
 import UpdateBanner from '../components/UpdateBanner';
 import SiteBackground from '../components/ui/SiteBackground';
 import StatusIcon, { type Status } from '../components/ui/StatusIcon';
-import { useRunEvents, useRunStore } from '../stores/run-store';
+import { useLogStream, useLogStore } from '../stores/log-store';
 
 const NAV = [
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
@@ -76,7 +76,7 @@ function SidebarKeys() {
 function SidebarAgents() {
   const { data } = useAgents();
   const patch = usePatchAgent();
-  const status = useRunStore((s) => s.status);
+  const status = useLogStore((s) => s.status);
   const agents = data ?? [];
   if (agents.length === 0) return null;
   return (
@@ -176,7 +176,7 @@ function Header({ healthy }: { healthy: boolean }) {
 
 export default function AppShell() {
   const healthy = useHealth();
-  useRunEvents(); // estado live de agentes para la hex-viz
+  useLogStream(); // UNICA conexion SSE de la app: la comparten viz, logs y el dock
 
   return (
     <div className="flex min-h-screen app-texture">

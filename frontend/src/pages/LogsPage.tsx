@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { api } from '../api/client';
-import type { LogEvent } from '../api/types';
+import { useLogStore } from '../stores/log-store';
 import { Panel, PageHeader } from '../components/ui/Panel';
 
 const LEVEL_COLOR: Record<string, string> = {
@@ -17,29 +16,14 @@ const LEVEL_DOT: Record<string, string> = {
 const FILTERS = ['all', 'info', 'warn', 'error'] as const;
 type Filter = (typeof FILTERS)[number];
 
-type Entry = LogEvent & { _id: string };
-
 export default function LogsPage() {
-  const [events, setEvents] = useState<Entry[]>([]);
-  const [live, setLive] = useState(false);
+  // Lee del store compartido: el stream lo abre AppShell (useLogStream) una sola
+  // vez. Antes esta pagina abria SU PROPIA conexion y no dedupeaba, asi que cada
+  // reconexion le re-inyectaba los 50 eventos del replay como si fueran nuevos.
+  const events = useLogStore((s) => s.events);
+  const live = useLogStore((s) => s.live);
+  const clear = useLogStore((s) => s.clear);
   const [filter, setFilter] = useState<Filter>('all');
-
-  useEffect(() => {
-    const q = new URLSearchParams({ replay: '50' });
-    if (api.token) q.set('token', api.token);
-    const es = new EventSource(`${api.base}/logs/stream?${q.toString()}`);
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(false);
-    es.onmessage = (m) => {
-      try {
-        const ev = JSON.parse(m.data) as LogEvent;
-        setEvents((prev) => [...prev.slice(-300), { ...ev, _id: crypto.randomUUID() }]);
-      } catch {
-        /* ignora frames no-JSON */
-      }
-    };
-    return () => es.close();
-  }, []);
 
   const counts = useMemo(() => {
     const c = { info: 0, warn: 0, error: 0 };
@@ -63,7 +47,7 @@ export default function LogsPage() {
       </span>
       <button
         type="button"
-        onClick={() => setEvents([])}
+        onClick={clear}
         aria-label="Limpiar"
         className="grid size-7 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground"
       >
@@ -86,6 +70,7 @@ export default function LogsPage() {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
+              aria-pressed={on}
               className="flex items-center gap-1.5 rounded-lg px-3 h-8 font-mono text-xs capitalize transition-colors"
               style={{
                 border: `1px solid ${on ? 'color-mix(in srgb, var(--purple) 40%, transparent)' : 'var(--border)'}`,

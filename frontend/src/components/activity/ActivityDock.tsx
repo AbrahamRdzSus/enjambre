@@ -9,18 +9,19 @@
  * Gated por VITE_ACTIVITY_DOCK. Respeta el gate humano: aprobar un diff exige
  * click + confirmacion, nunca auto-aplica.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   Activity, Check, ChevronDown, ChevronUp, Copy, Eye, FileCode2, MessageSquare, Wrench, X, XCircle,
 } from 'lucide-react';
-import { api } from '../../api/client';
 import { useApproveCliRun, useCliRunStatus } from '../../api/hooks';
-import { asAgentOutput, type LogEvent, type RunReport } from '../../api/types';
+import { asAgentOutput, type RunReport } from '../../api/types';
+import { useLogStore, type Entry } from '../../stores/log-store';
+import { STATUS_COLOR, STATUS_LABEL } from '../../lib/status';
 import DiffViewer from '../DiffViewer';
 import ProviderIcon from '../ProviderIcon';
 
-type Entry = LogEvent & { _id: string };
+/** Un carril nunca esta 'idle': existe porque el agente ya emitio algo. */
 type LaneStatus = 'running' | 'ok' | 'error';
 
 const CLI_AGENTS = import.meta.env.VITE_CLI_AGENTS === '1';
@@ -36,18 +37,6 @@ interface Lane {
   events: Entry[];
   outputs: Entry[];
 }
-
-const STATUS_COLOR: Record<LaneStatus, string> = {
-  running: 'var(--amber)',
-  ok: 'var(--ok)',
-  error: 'var(--alert)',
-};
-
-const STATUS_LABEL: Record<LaneStatus, string> = {
-  running: 'corriendo',
-  ok: 'listo',
-  error: 'error',
-};
 
 /**
  * Agrupa los eventos SSE por agente. El estado sale del `agent.done`, NO de
@@ -337,38 +326,13 @@ function AgentLane({ lane, index }: { lane: Lane; index: number }) {
 }
 
 export default function ActivityDock({ report, running }: { report: RunReport | null; running: boolean }) {
-  const [events, setEvents] = useState<Entry[]>([]);
-  const [live, setLive] = useState(false);
+  // Lee del store compartido; el stream lo abre AppShell (useLogStream) UNA vez.
+  // Antes este componente abria su propio EventSource: eran 3 conexiones al mismo
+  // endpoint.
+  const events = useLogStore((s) => s.events);
+  const live = useLogStore((s) => s.live);
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
-  const seen = useRef(new Set<string>());
-  const seq = useRef(0);
-
-  useEffect(() => {
-    const q = new URLSearchParams({ replay: '50' });
-    if (api.token) q.set('token', api.token);
-    const es = new EventSource(`${api.base}/logs/stream?${q.toString()}`);
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(false);
-    es.onmessage = (m) => {
-      try {
-        const ev = JSON.parse(m.data) as LogEvent;
-        // Dedupe SOLO contra el replay/reconexion. Antes la clave era
-        // `ts|agent|event`, que descartaba dos agent.output legitimos del mismo
-        // agente emitidos en la misma rafaga (ts es un float de segundos): se
-        // perdian salidas. El _id lleva ahora un contador monotono.
-        const key = `${ev.ts}|${ev.agent ?? ''}|${ev.event}|${ev.message}`;
-        if (seen.current.has(key)) return;
-        seen.current.add(key);
-        seq.current += 1;
-        const id = `${key}#${seq.current}`;
-        setEvents((prev) => [...prev.slice(-400), { ...ev, _id: id }]);
-      } catch {
-        /* ignora frames no-JSON (comentarios keep-alive) */
-      }
-    };
-    return () => es.close();
-  }, []);
 
   // Abre el dock automaticamente cuando arranca un run.
   useEffect(() => {

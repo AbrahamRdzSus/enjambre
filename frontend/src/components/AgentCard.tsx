@@ -1,26 +1,15 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { Coins, Timer } from 'lucide-react';
 import type { Agent, AgentResult } from '../api/types';
-import type { AgentStatus } from '../stores/run-store';
+import type { AgentStatus } from '../stores/log-store';
+import { STATUS_COLOR, STATUS_LABEL } from '../lib/status';
+import { fmtCost, fmtTokens } from '../lib/format';
 import ProviderIcon from './ProviderIcon';
 import StatusIcon from './ui/StatusIcon';
 
 // Tarjeta de agente EN VIVO: estado (idle/running/ok/error) + modelo/rol y, cuando
 // hay resultado del run, tokens/costo/latencia. Presentacional: recibe el estado
-// del run-store y el AgentResult del RunReport desde el padre. Tokens ENJAMBRE.
-
-const STATUS_META: Record<AgentStatus, { color: string; label: string }> = {
-  idle: { color: 'var(--fg-faint)', label: 'En espera' },
-  running: { color: 'var(--amber)', label: 'Pensando' },
-  ok: { color: 'var(--ok)', label: 'Listo' },
-  error: { color: 'var(--alert)', label: 'Error' },
-};
-
-function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}
+// del log-store y el AgentResult del RunReport desde el padre. Tokens ENJAMBRE.
 
 export interface AgentCardProps {
   agent: Agent;
@@ -30,7 +19,7 @@ export interface AgentCardProps {
 
 export default function AgentCard({ agent, status = 'idle', result }: AgentCardProps) {
   const reduce = useReducedMotion();
-  const meta = STATUS_META[status];
+  const color = STATUS_COLOR[status];
   const running = status === 'running';
   const tokens = result ? result.usage.input_tokens + result.usage.output_tokens : null;
 
@@ -38,7 +27,7 @@ export default function AgentCard({ agent, status = 'idle', result }: AgentCardP
     <div
       className="glass-strong flex flex-col gap-3 p-4"
       style={{
-        borderColor: `color-mix(in srgb, ${meta.color} ${agent.enabled || status !== 'idle' ? 38 : 18}%, transparent)`,
+        borderColor: `color-mix(in srgb, ${color} ${agent.enabled || status !== 'idle' ? 38 : 18}%, transparent)`,
         opacity: agent.enabled || status !== 'idle' ? 1 : 0.6,
       }}
     >
@@ -58,12 +47,12 @@ export default function AgentCard({ agent, status = 'idle', result }: AgentCardP
         </div>
         <motion.span
           className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-          style={{ color: meta.color, background: `color-mix(in srgb, ${meta.color} 15%, transparent)` }}
+          style={{ color, background: `color-mix(in srgb, ${color} 15%, transparent)` }}
           animate={reduce || !running ? undefined : { opacity: [0.6, 1, 0.6] }}
           transition={reduce ? undefined : { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
         >
           <StatusIcon status={status} size={12} />
-          {meta.label}
+          {STATUS_LABEL[status]}
         </motion.span>
       </div>
 
@@ -79,7 +68,7 @@ export default function AgentCard({ agent, status = 'idle', result }: AgentCardP
             {(result.latency_ms / 1000).toFixed(1)}s
           </span>
           <span className="ml-auto font-mono text-[11px] tnum font-semibold" style={{ color: 'var(--amber-soft)' }}>
-            ${result.cost_usd.toFixed(4)}
+            {fmtCost(result.cost_usd, 'fine')}
           </span>
         </div>
       )}
