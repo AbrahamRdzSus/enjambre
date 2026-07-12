@@ -164,6 +164,9 @@ export function useCliRunStatus(runId: string | null) {
     queryKey: ['cli', runId],
     queryFn: () => api.get<CliRunResult>(`/cli/${encodeURIComponent(runId!)}`),
     enabled: !!runId,
+    // Sin esto, pedir el diff mientras el run CLI sigue vivo se quedaba en
+    // "cargando diff..." para siempre: era una sola consulta, sin reintento.
+    refetchInterval: (q) => (q.state.data?.status === 'done' ? false : 2000),
   });
 }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Send, Network, Settings, Sparkles, Target, Paperclip, Code2, Boxes, FileText,
-  AlertTriangle,
+  AlertTriangle, Check, Copy,
 } from 'lucide-react';
 import { useAgents, useProviders, useRun } from '../api/hooks';
 import { errorMessage } from '../lib/errors';
@@ -21,6 +21,28 @@ const MODES = [
   { id: 'sequential', label: 'Secuencial' },
   { id: 'debate', label: 'Debate' },
 ];
+
+/** Copiar la salida de un agente. Heredado del CompareGrid que vivia en el dock:
+ *  la columna derecha es ahora LA superficie de comparacion, sin duplicado. */
+function CopyOutput({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label={done ? 'Copiado' : 'Copiar salida'}
+      onClick={() => {
+        navigator.clipboard?.writeText(text).then(() => {
+          setDone(true);
+          setTimeout(() => setDone(false), 1200);
+        });
+      }}
+      className="flex items-center gap-1 self-end rounded-md border border-border px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {done ? <Check size={11} style={{ color: 'var(--ok)' }} /> : <Copy size={11} />}
+      {done ? 'copiado' : 'copiar'}
+    </button>
+  );
+}
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -83,6 +105,12 @@ export default function RunPage() {
   const successPct = report && report.runs.length
     ? (report.runs.filter((r) => !r.result.error).length / report.runs.length) * 100
     : 0;
+
+  // Marca de comparacion: con 2+ salidas ok, avisa si los modelos coincidieron.
+  const okTexts = (report?.runs ?? [])
+    .filter((r) => !r.result.error)
+    .map((r) => (r.result.text || '').trim());
+  const allSame = okTexts.length > 1 && okTexts.every((t) => t === okTexts[0]);
 
   // Botones de composición aún sin backend: visibles como placeholder deshabilitado.
   const composerActions = [
@@ -263,9 +291,17 @@ export default function RunPage() {
           </Panel>
         </div>
 
-        {/* Columna derecha: salidas en paralelo */}
+        {/* Columna derecha: LA comparativa de salidas (el dock ya no la duplica) */}
         <Panel
           title={<SectionTitle>3. Chats / Salidas en paralelo</SectionTitle>}
+          action={okTexts.length > 1 ? (
+            <span
+              className="rounded-md px-2 py-0.5 font-mono text-[10px]"
+              style={{ color: allSame ? 'var(--ok)' : 'var(--amber)' }}
+            >
+              {allSame ? 'identicas' : 'difieren'}
+            </span>
+          ) : undefined}
           bodyClassName="flex flex-col gap-4 max-h-[720px] overflow-y-auto scrollbar-thin"
         >
           <div className="flex flex-col items-center gap-2">
@@ -301,9 +337,12 @@ export default function RunPage() {
                   <div key={r.agent} className="flex flex-col gap-2">
                     <AgentCard agent={ag} status={r.result.error ? 'error' : 'ok'} result={r.result} />
                     {!r.result.error && (
-                      <pre className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/25 p-3 font-mono text-xs text-secondary-foreground">
-                        {r.result.text || '(respuesta vacia)'}
-                      </pre>
+                      <>
+                        <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-secondary/25 p-3 font-mono text-xs text-secondary-foreground scrollbar-thin">
+                          {r.result.text || '(respuesta vacia)'}
+                        </pre>
+                        <CopyOutput text={r.result.text || ''} />
+                      </>
                     )}
                   </div>
                 );
