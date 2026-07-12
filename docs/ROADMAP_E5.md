@@ -1,4 +1,13 @@
-# E5 — Empaque y release (plan accionable)
+# E5 — Empaque y release (COMPLETADO 2026-07-11)
+
+> **ESTADO: CERRADO.** Release **v0.6.0 PUBLICADO** (latest) con el instalador firmado
+> + `.sig` + `latest.json`; el endpoint del updater resuelve 200. Todos los pasos E5.1-E5.6
+> hechos. Este doc queda como runbook para futuros releases (repetir E5.2 y E5.4-E5.6 con
+> la version nueva; las claves de firma ya existen y NO se regeneran).
+>
+> Gotcha aprendido: `bundle.externalBin` va SIN el target-triple ni la extension
+> (`"binaries/enjambre-sidecar"`); Tauri le añade `-<triple>.exe` solo. Ponerlo completo
+> hace que busque `...msvc.exe-x86_64-pc-windows-msvc.exe` y el build falla.
 
 > Fase que requiere **Rust + MSVC** (no disponible en el entorno donde se cerraron
 > E1-E4). Este doc deja los pasos turnkey para ejecutarla en la maquina con toolchain.

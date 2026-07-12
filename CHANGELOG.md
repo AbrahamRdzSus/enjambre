@@ -5,8 +5,9 @@ ENJAMBRE sigue versionado semantico aproximado mientras esta en beta.
 
 ## [0.6.0] - 2026-07-11
 
-Endurecimiento, agente CLI y superficie de operaciones. Version en curso (se empaca
-y publica en E5); el instalador publicado sigue siendo v0.5.0 hasta recongelar el sidecar.
+Endurecimiento, agente CLI y superficie de operaciones. **PUBLICADA**: instalador
+`ENJAMBRE_0.6.0_x64-setup.exe` firmado (auto-update estrenado; el sidecar congelado ya
+trae host-guard + token + rate limit, a diferencia del paquete v0.5.0).
 
 ### Agregado
 - Seguridad del sidecar DEFAULT-ON: token autogenerado/persistido (X-API-Token),
