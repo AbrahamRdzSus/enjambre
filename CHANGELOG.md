@@ -3,6 +3,52 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 ENJAMBRE sigue versionado semantico aproximado mientras esta en beta.
 
+## [0.6.1] - EN CURSO
+
+Pase de robustez, seguridad y pulido visual. Salio de una auditoria completa del
+programa (backend + frontend + empaque), no solo del panel.
+
+### Corregido
+- **El cockpit reportaba 0 tokens fuera del modo `parallel`.** `Candidate` no arrastraba
+  el `usage` del `ProviderResult`, `_multiagent_out` lo falseaba a cero y
+  `stats._add_candidate` no lo sumaba: todo run `sequential`/`debate`/`vote` aportaba
+  costo pero CERO tokens. Habia un test que **consagraba el bug** (`assert total_tokens
+  == 0  # Candidate no guarda usage`); ahora afirma lo contrario.
+- **Fallos silenciosos del frontend**: `/run` fallaba sin decir nada (la accion principal
+  de la app); sin ErrorBoundary un throw en render dejaba la ventana en blanco; Overview
+  y Stats pintaban ceros como datos reales con el sidecar caido; guardar una API key
+  invalida o borrar un agente fallaban en silencio; el usuario veia el JSON crudo de
+  FastAPI. Se añaden mensajes en español, banner de "sin conexion" y ruta catch-all.
+- **El token del sidecar no llegaba de forma fiable a la app empacada.** El shell lo
+  empujaba con un `eval` unico y best-effort, pero React renderiza al instante y el
+  `EventSource` de `/logs/stream` lee el token UNA sola vez: si el sidecar tardaba (lo
+  normal), el stream quedaba abierto sin token para siempre. Y un F5 borraba la variable
+  global sin que nadie la reinyectara. Ahora el token vive en estado gestionado y el
+  frontend lo PIDE (`invoke('api_token')`), esperandolo antes del primer render.
+- **Panel "Actividad por modelo"**: los agentes en error decian "esperando salida..."
+  para siempre; el dock pintaba sobre la columna derecha; 5 agentes provocaban 1504px de
+  scroll horizontal; la comparativa estaba duplicada; y la clave de dedupe descartaba
+  salidas legitimas del mismo agente emitidas en la misma rafaga (perdida de datos).
+
+### Seguridad
+- **CSP en el webview** (`app.security.csp`): el paquete v0.6.0 salio con `csp: null` y la
+  app **renderiza salida de modelos**. `devCsp` es igual de estricta, asi que
+  `cargo tauri dev` prueba la politica real. Listener de `securitypolicyviolation` para
+  que nada se rompa en silencio.
+- `withGlobalTauri: false`; `process:default` -> `process:allow-restart`; `upx=False` en
+  el sidecar congelado (evita falsos positivos de AV sobre un instalador ya firmado).
+
+### Cambiado
+- Una sola conexion SSE a `/logs/stream` (habia **tres**), en `stores/log-store.ts`.
+- Fuera codigo muerto (4 componentes) y la dependencia `recharts`; fuera `rich` (declarada
+  y jamas importada). `fmtTokens`/`fmtCost`/`statusColor` a `lib/`.
+- Precios centralizados y **fechados** (`providers/pricing.py`, `PRICING_AS_OF`);
+  `/providers` los marca como estimacion. Siguen siendo estimaciones, no facturacion.
+- CI: job `desktop` nuevo (`cargo check` + `clippy -D warnings`). El shell Tauri no se
+  compilaba en CI; por eso se colo el bug de `externalBin` en E5.
+- `enjambre-sidecar.spec` deja de estar gitignoreado: es la receta de empaque, no un
+  artefacto autogenerado.
+
 ## [0.6.0] - 2026-07-11
 
 Endurecimiento, agente CLI y superficie de operaciones. **PUBLICADA**: instalador

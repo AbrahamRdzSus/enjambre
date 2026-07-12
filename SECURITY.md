@@ -65,11 +65,31 @@ El sidecar escucha en `127.0.0.1`. Controles:
   - **Dev (`:5173`):** el `predev` `frontend/scripts/load-token.mjs` lee el token-file
     y escribe `frontend/.env.local` con `VITE_API_TOKEN`. Arranca el sidecar ANTES de
     `npm run dev`.
-  - **App Tauri empaquetada:** el cliente lee `window.__ENJAMBRE_TOKEN__`. PENDIENTE de
-    cablear en el shell Rust (`tauri/src/lib.rs`): parsear la linea
-    `ENJAMBRE_API_TOKEN=` del stdout del sidecar (ya se drena en el `rx.recv` del setup)
-    e inyectarla al webview via init script / comando Tauri. Verificar con
-    `cargo tauri build` (requiere Rust+MSVC). Este paso va con el empaque (E5).
+  - **App Tauri empaquetada (HECHO):** el shell (`tauri/src/lib.rs`) drena el stdout del
+    sidecar, parsea la linea `ENJAMBRE_API_TOKEN=` y **guarda el token en estado
+    gestionado**. El frontend lo PIDE con `invoke('api_token')` (ver
+    `frontend/src/api/token.ts`), reintentando con backoff hasta que el sidecar lo
+    publica, y `main.tsx` lo espera ANTES del primer render.
+
+    Por que pull y no push: el `eval` al webview (que se conserva solo como fast-path)
+    era una unica inyeccion best-effort. Como React renderiza de inmediato y el
+    `EventSource` de `/logs/stream` lee el token UNA sola vez al montar, si el eval
+    llegaba tarde el stream quedaba abierto sin token para siempre (401). Y una recarga
+    del webview (F5/HMR) borraba la variable global sin que nadie la reinyectara. El IPC
+    ademas no depende de la CSP, a diferencia del `eval`.
+
+- **CSP del webview (default-on):** `tauri.conf.json > app.security.csp` restringe el
+  webview a `default-src 'self'`, con `connect-src` limitado al sidecar local y al IPC
+  de Tauri. Importa porque la app **renderiza salida de modelos**. `devCsp` es igual de
+  estricta (mas lo minimo que Vite necesita en dev), asi que `cargo tauri dev` prueba la
+  politica REAL. `frontend/src/lib/csp.ts` registra un listener de
+  `securitypolicyviolation`: una CSP que bloquea en silencio es peor que uno ruidosa.
+
+- **Actualizaciones (auto-update firmado):** el updater de Tauri solo acepta paquetes
+  firmados con la clave privada de minisign; la publica va en `tauri.conf.json >
+  plugins.updater.pubkey`. La **privada y su contrasena NUNCA entran al repo**: viven en
+  `~/.tauri/enjambre.key` y en el vault del ecosistema (`04-compartido/keystores`). Si se
+  pierden, las instalaciones existentes dejan de aceptar updates para siempre.
 
 - **Rate limit (default-on, token-bucket):** acota a un proceso local abusivo que
   martille endpoints caros (`/cli/run`, `/run`). Default generoso `240/8` (240 en

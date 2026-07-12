@@ -15,12 +15,26 @@ El agente CLI NUNCA escribe al `project_root` real. Solo toca su worktree tempor
 escritura al proyecto sigue siendo `changes.ChangeSet.apply(approved=True)`, que valida
 path-traversal, archivos bloqueados y secretos antes de escribir. Aprobar = aplicar ese diff.
 
-## Activacion (opt-in)
+## Activacion
 
-Todo esta detras de un flag; sin el, Enjambre se comporta igual que antes.
+**En el sidecar suelto (dev / uso desde CLI): opt-in.** Detras de un flag; sin el,
+Enjambre se comporta igual que antes.
 
 - Sidecar: `ENJAMBRE_CLI_AGENTS=1` habilita los endpoints `/cli/*`.
 - Frontend: `VITE_CLI_AGENTS=1` muestra la pestana "Agente CLI".
+
+**En la app EMPAQUETADA (instalador): ACTIVO por defecto.** El shell Tauri arranca el
+sidecar con `ENJAMBRE_CLI_AGENTS=1` (`tauri/src/lib.rs`) y el bundle se compila con
+`VITE_CLI_AGENTS=1`, porque si no la pestana "Agente CLI" no serviria de nada en el
+paquete. Es decir: **el instalador distribuye los endpoints `/cli/*` habilitados**.
+
+Que significa eso para tu superficie de ataque: `/cli/*` lanza Claude Code headless en
+un git worktree aislado y produce un diff. **No aplica nada por su cuenta**: escribir
+exige una aprobacion humana explicita (`POST /cli/{run_id}/approve`), que pasa por
+`ChangeSet.apply` (bloquea path-traversal, archivos sensibles y secretos). Ademas el
+sidecar solo atiende peticiones con `Host` loopback y exige el token. Si aun asi no
+quieres esa superficie en tu maquina, no instales el paquete: usa el sidecar suelto sin
+el flag.
 - Requisito del sistema: el binario `claude` debe existir en el PATH del proceso del sidecar.
   Sin el, `POST /cli/run` responde `{ok:false, error:"claude CLI no encontrado en PATH"}`.
 

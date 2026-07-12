@@ -11,7 +11,7 @@ Stack: core Python (`src/enjambre`) + sidecar HTTP FastAPI + frontend React/Vite
 app de escritorio Tauri 2; Streamlit (`app.py`) es prototipo. Apache-2.0.
 
 ## Estado
-Core REAL en `src/enjambre/` (~4200 LOC, 26 modulos, 214 tests verdes): Fases 1-5
+Core REAL en `src/enjambre/` (~4200 LOC, 27 modulos, 218 tests verdes): Fases 1-5
 del ROADMAP implementadas (Fase 6/SDK parcial) — orquestacion paralela async con
 gate de secretos, multiagente (roles architect/builder; modos parallel/sequential/
 debate/vote; review por gate congelado), workspace seguro (ChangeSet.apply bajo
@@ -19,10 +19,11 @@ aprobacion + path-traversal + secret-scan), sandbox docker `--network none`,
 github/PR, Provider SDK extensible. Ademas: seguridad del sidecar default-on (token,
 guard anti DNS-rebinding, rate limit, audit CI), agente CLI (worktree + approve),
 F1 OPS HUD (proxy al hub de CD) y panel "Actividad por modelo" (dock estilo Jules).
-Consumo: CLI `enjambre`, sidecar `enjambre.api` (FastAPI, ~29 endpoints incl.
+Consumo: CLI `enjambre`, sidecar `enjambre.api` (FastAPI, ~28 endpoints incl.
 `/cli/*` `/hub/*` `/changes/*` + `/logs/stream` SSE), frontend React y app Tauri 2
-(instalador NSIS publicado `ENJAMBRE_0.5.0_x64-setup.exe`; version en curso v0.6.0,
-se empaca en E5; sidecar PyInstaller auto-spawn).
+(instalador NSIS **v0.6.0 PUBLICADO y firmado**, con auto-update; sidecar PyInstaller
+auto-spawn; el webview corre con CSP y pide el token por `invoke('api_token')`).
+En curso: **v0.6.1** (pase visual + robustez + CSP). 218 tests.
 `app.py` (Streamlit) consume el core real pero es **prototipo de UI**, no el destino:
 el destino es **Tauri 2 + React** (shell desde `obsidia-skeleton-desktop`,
 arquitectura de referencia tipo Obsidia Eye) con `src/enjambre` como sidecar Python.
@@ -58,10 +59,12 @@ pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # <data_dir>/api-token e imprime en stdout. Dev: `npm run dev` corre un predev que lo
 # carga a VITE_API_TOKEN (arranca el sidecar primero). (3) rate limit token-bucket
 # default 240/8 (ENJAMBRE_RATE_LIMIT="cap/refill", "0" desactiva). Detalle: SECURITY.md.
-# agente CLI (opt-in): ENJAMBRE_CLI_AGENTS=1 habilita los endpoints /cli/* (lanza
-# Claude Code headless en un git worktree aislado y aplica su diff bajo aprobacion).
-# Requiere el binario `claude` en el PATH del sidecar. En el frontend, activarlo con
-# VITE_CLI_AGENTS=1 (muestra la pestana "Agente CLI"). Sin el flag, nada cambia.
+# agente CLI: ENJAMBRE_CLI_AGENTS=1 habilita los endpoints /cli/* (lanza Claude Code
+# headless en un git worktree aislado y aplica su diff bajo aprobacion). Requiere el
+# binario `claude` en el PATH del sidecar. Frontend: VITE_CLI_AGENTS=1 (pestana
+# "Agente CLI"). OJO: opt-in en el SIDECAR SUELTO, pero ACTIVO en la app EMPAQUETADA
+# (tauri/src/lib.rs lo pone; si no, la pestana no serviria de nada en el paquete). El
+# gate humano sigue intacto: aprobar exige POST /cli/{id}/approve.
 # Guia + ejemplo end-to-end (curl y dashboard): docs/CLI_AGENT.md.
 # panel "Actividad por modelo" (opt-in): VITE_ACTIVITY_DOCK=1 muestra el dock
 # inferior estilo Jules en la pestana Lanzar (carriles por agente + comparativa).
@@ -78,7 +81,7 @@ cd tauri; cargo tauri dev     # ventana nativa | cargo tauri build = .exe/instal
 ## Como probar
 ```
 pip install -e ".[dev]"
-pytest -q        # 214 tests
+pytest -q        # 218 tests
 ruff check .     # lint (E/F/I/UP/B); ambos corren en CI (.github/workflows/ci.yml)
 # Antes de dar por hecho: revisar que ninguna salida escriba archivos sin aprobacion.
 ```

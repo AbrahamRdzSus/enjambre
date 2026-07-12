@@ -5,10 +5,10 @@
 > que viva fuera del repo. Manten este archivo PODADO: indice, no historia completa.
 
 ## Estado actual
-- Rama / version: main / core v0.6.0 en curso (main entra por PR). Ultimo commit:
-  merge PR #11 panel "Actividad por modelo" (cd73ca9); antes F1 OPS HUD (proxy hub
-  de CD) + seguridad sidecar default-on + agente CLI, todo mergeado. El instalador
-  PUBLICADO sigue en v0.5.0 hasta recongelar el sidecar (E5).
+- Rama / version: **v0.6.0 PUBLICADA** (instalador NSIS firmado + auto-update vivo;
+  E5 CERRADO). En curso **v0.6.1** en la rama `feat/v0.6.1-robustez`: pase de
+  robustez + seguridad + pulido visual, salido de una **auditoria completa del
+  programa** (backend + frontend + empaque), no solo del panel.
 - Cockpit INTEGRADO y vigente: /overview con components/overview/* + AppShell +
   Panel.tsx replicando el lenguaje en todas las pestañas, cableado a hooks
   reales. diseno/ (scaffold v0 Next.js) es SOLO cantera de referencia, ya
@@ -70,17 +70,48 @@
   (`releases/latest/download/latest.json`) resuelve 200. e2e verificado en vivo: la app
   empacada arranca sin 401, BYOK funciona, panel y pestaña Agente CLI visibles.
 
-### PENDIENTE
-1. **v0.6.1 — pase visual + limpieza de redundancias** (auditado, ver plan): panel
-   "Actividad por modelo" (invasion sobre la columna derecha, "esperando salida..." eterno
-   en agentes en error, overflow con 5+ agentes, comparativa duplicada); TRIPLE conexion
-   SSE a `/logs/stream` (LogsPage + ActivityDock + run-store); codigo muerto (StatCard,
-   UsageCharts + dep `recharts`, border-beam, particles); utils duplicados (fmtTokens x4
-   divergente, fmtCost x4, statusColor x5); Overview vs Stats muestran los mismos numeros;
-   design system a medias (DeployPage no lo usa).
-2. Precios: consumir el JSON de precios de litellm en vez de estimaciones hardcodeadas.
-3. Pulido menor: OG social card 1200x630; refrescar screenshots al look cockpit;
-   opcional renombrar el proyecto Vercel "landing" -> "enjambre".
+### v0.6.1 EN CURSO (rama `feat/v0.6.1-robustez`)
+
+HECHO y commiteado (6 slices; tsc/eslint/build + 218 pytest + cargo check/clippy verdes):
+- **D0 robustez** (`45f2d7e`): la app **mentia sobre su estado**. `/run` fallaba en
+  silencio (accion principal!); sin ErrorBoundary un throw = ventana en blanco; Overview
+  y Stats pintaban **ceros como datos reales** con el sidecar caido; mutaciones de
+  AgentsPage mudas; el usuario veia el JSON crudo de FastAPI. `lib/errors.ts`,
+  `ui/ErrorBoundary`, `ui/OfflineBanner`, ruta catch-all.
+- **D1 panel** (`5e2a79b`): rediseño (mockup aprobado) + 2 bugs propios: la clave de
+  dedupe **perdia salidas** del mismo agente en la misma rafaga, y ToolCallBody pegaba a
+  `/cli/*` sin gatear. Estado honesto por `lane.status`, sin invasion, sin overflow,
+  motion interrumpible, contrato `agent.output` tipado (union API|CLI).
+- **D2 SSE** (`151cd74`): habia **TRES** EventSource al mismo endpoint -> uno
+  (`stores/log-store.ts`). Fuera 4 componentes muertos + `recharts`.
+- **D3 backend** (`7090227`): **el cockpit reportaba 0 tokens fuera de `parallel`**
+  (Candidate no arrastraba `usage`). Un test **consagraba el bug**. 4 tests nuevos.
+  Precios centralizados y FECHADOS (no inventados: no puedo verificarlos).
+- **D4 seguridad** (`f1c1616`): **CSP** (el paquete v0.6.0 salio con `csp: null` y la app
+  renderiza salida de modelos). `enjambre-sidecar.spec` estaba **gitignoreado**: la receta
+  de empaque no se versionaba.
+- **D4b token** (`a82e1e1`): la ruta del token **estaba rota** (carrera + F5 la borraba).
+  De push (`eval`, que la CSP puede bloquear) a **pull** (`invoke('api_token')`, esperado
+  antes del primer render). CI: job `desktop` (cargo check + clippy), que **no existia** —
+  por eso se colo el bug de `externalBin` en E5.
+
+PENDIENTE de v0.6.1:
+1. **D5**: design system (Panel/PageHeader a medias; DeployPage lo ignora), motion #1
+   (Toggle anima `left` con `transition-all`) y #3 (reduced-motion aniquila todo), foco
+   visible (hoy solo `box-shadow`, lo recorta cualquier `overflow-hidden`), a11y.
+2. **D6**: resto de docs + subir version a 0.6.1 en los **4** sitios (pyproject,
+   tauri.conf.json, Cargo.toml, **frontend/package.json, que sigue en 0.1.0**).
+3. **E**: build firmado (**lo hace el usuario; el agente NO toca la clave privada**) y
+   Release. El auto-update desde v0.6.0 debe ofrecerla -> valida el updater end-to-end.
+
+### PENDIENTE (despues de v0.6.1)
+- Precios: consumir el JSON de litellm en vez de estimaciones fechadas a mano.
+- Decidir el destino de la **superficie SDK sin cablear**: `github.py`/`gitops.py`/
+  `pull_request.py` (Fase 4) y `sandbox.py` (Fase 5) tienen tests pero NO estan
+  conectados a `api.py` ni `cli.py`; `gates.py` es inalcanzable desde la API (nunca se
+  pasa `gate`). No es codigo muerto: es alcance sin cablear. No anunciarlos como features.
+- `app.py` (Streamlit) funciona pero esta rezagado: congelarlo como demo o retirarlo.
+- Pulido menor: OG social card 1200x630; refrescar screenshots al look cockpit.
 Ver `docs/ROADMAP.md` (tecnico, Fases 0-6), `docs/ROADMAP_E5.md` (empaque) y
 `docs/ROADMAP_LEVANTAMIENTO.md` (producto distribuible, Fases A-E).
 
