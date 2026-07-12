@@ -62,10 +62,22 @@
   + tarjetas tipadas + comparativa lado-a-lado. Opt-in `VITE_ACTIVITY_DOCK`. Spec
   `specs/panel-actividad-por-modelo.md`.
 
+- **E5 EMPAQUE/RELEASE COMPLETO (2026-07-11)**: sidecar recongelado con el backend nuevo,
+  fix `externalBin` (Tauri añade el target-triple), par de claves de firma (privada+pass
+  con el usuario: `~/.tauri/enjambre.key` + vault `04-compartido/keystores`, NUNCA en git),
+  build firmado y **Release v0.6.0 PUBLICADO** (latest) con `ENJAMBRE_0.6.0_x64-setup.exe`
+  + `.sig` + `latest.json`. El endpoint del updater
+  (`releases/latest/download/latest.json`) resuelve 200. e2e verificado en vivo: la app
+  empacada arranca sin 401, BYOK funciona, panel y pestaña Agente CLI visibles.
+
 ### PENDIENTE
-1. E5 empaque/release v0.6.0 (docs/ROADMAP_E5.md): recongelar el sidecar (PyInstaller),
-   par de claves de firma, `cargo tauri build` firmado, checklist e2e, Release +
-   `latest.json`. Requiere Rust+MSVC (presentes en la maquina).
+1. **v0.6.1 — pase visual + limpieza de redundancias** (auditado, ver plan): panel
+   "Actividad por modelo" (invasion sobre la columna derecha, "esperando salida..." eterno
+   en agentes en error, overflow con 5+ agentes, comparativa duplicada); TRIPLE conexion
+   SSE a `/logs/stream` (LogsPage + ActivityDock + run-store); codigo muerto (StatCard,
+   UsageCharts + dep `recharts`, border-beam, particles); utils duplicados (fmtTokens x4
+   divergente, fmtCost x4, statusColor x5); Overview vs Stats muestran los mismos numeros;
+   design system a medias (DeployPage no lo usa).
 2. Precios: consumir el JSON de precios de litellm en vez de estimaciones hardcodeadas.
 3. Pulido menor: OG social card 1200x630; refrescar screenshots al look cockpit;
    opcional renombrar el proyecto Vercel "landing" -> "enjambre".
