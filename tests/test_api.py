@@ -284,6 +284,35 @@ def test_run_invalid_mode():
     assert c.post("/run", json={"prompt": "x", "mode": "nope"}).status_code == 400
 
 
+@pytest.mark.parametrize("mode", ["sequential", "debate", "vote"])
+def test_multiagent_modes_report_real_usage(mode):
+    """REGRESION: los modos multiagente reportaban usage/latency/prompt en CERO.
+
+    `_multiagent_out` los falseaba a 0 y el prompt a "". Como /stats agrega desde
+    las sesiones guardadas, el cockpit mostraba 0 tokens (y por tanto costos
+    incompletos) para TODO run que no fuera modo `parallel`.
+    """
+    c = TestClient(create_app(registry=_reg2(), keys=KEYS, client=mock_api.make_client()))
+    body = c.post("/run", json={"prompt": "refactor esto", "mode": mode}).json()
+
+    assert body["prompt"] == "refactor esto", "el prompt no puede volver vacio"
+    ok = [r for r in body["runs"] if not r["result"]["error"]]
+    assert ok, f"el modo {mode} no produjo ninguna salida ok"
+    for r in ok:
+        usage = r["result"]["usage"]
+        assert usage["input_tokens"] > 0, f"{mode}: input_tokens en cero"
+        assert usage["output_tokens"] > 0, f"{mode}: output_tokens en cero"
+
+
+def test_multiagent_tokens_reach_stats(tmp_path, monkeypatch):
+    """El bug se manifestaba en /stats: tokens totales en 0 tras un run no-parallel."""
+    monkeypatch.setenv("ENJAMBRE_DATA_DIR", str(tmp_path))
+    c = TestClient(create_app(registry=_reg2(), keys=KEYS, client=mock_api.make_client()))
+    c.post("/run", json={"prompt": "x", "mode": "debate", "save": True})
+    stats = c.get("/stats").json()
+    assert stats["total_tokens"] > 0, "el cockpit seguiria reportando 0 tokens"
+
+
 def test_projects_crud(tmp_path, monkeypatch):
     monkeypatch.setenv("ENJAMBRE_DATA_DIR", str(tmp_path))
     c = TestClient(create_app(registry=_reg()))

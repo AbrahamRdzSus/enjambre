@@ -103,11 +103,17 @@ def _add(prov: Tally, agent: Tally, result: dict, day: dict[str, float],
 
 def _add_candidate(prov: Tally, agent: Tally, cand: dict, day: dict[str, float],
                    date: str) -> None:
+    # `usage` se sumaba: el Candidate no lo llevaba, asi que todo run multiagente
+    # (sequential/debate/vote) aportaba CERO tokens a /stats aunque si aportara
+    # costo. El cockpit mostraba costos sin los tokens que los produjeron.
+    usage = cand.get("usage", {}) or {}
     cost = cand.get("cost_usd", 0.0) or 0.0
     ok = cand.get("error") is None
     for t in (prov, agent):
         t.runs += 1
         t.ok += 1 if ok else 0
         t.errors += 0 if ok else 1
+        t.input_tokens += usage.get("input_tokens", 0)
+        t.output_tokens += usage.get("output_tokens", 0)
         t.cost_usd += cost
     day[date] += cost

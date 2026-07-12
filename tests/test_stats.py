@@ -50,14 +50,21 @@ def test_timeline_accumulates_by_day(tmp_path):
     assert sum(st.by_day.values()) == st.total_cost_usd
 
 
-def test_multiagent_counts_cost_not_tokens(tmp_path):
+def test_multiagent_counts_cost_and_tokens(tmp_path):
+    """Antes esta prueba afirmaba `total_tokens == 0` ("Candidate no guarda usage").
+
+    Era el bug consagrado como contrato: /stats agregaba el COSTO de los runs
+    multiagente pero cero tokens, asi que el cockpit mostraba un costo sin los
+    tokens que lo produjeron. Candidate ya arrastra usage/latency del
+    ProviderResult.
+    """
     ma = MultiAgent(_registry(), keys=KEYS, client=mock_api.make_client())
     report = asyncio.run(ma.run("parallel", "disena", review=False))
     sessions.save(report, store=tmp_path)
     st = stats.from_store(store=tmp_path)
     assert st.sessions == 1
     assert st.total_cost_usd > 0
-    assert st.total_tokens == 0  # Candidate no guarda usage
+    assert st.total_tokens > 0
 
 
 def test_empty_store(tmp_path):

@@ -6,7 +6,8 @@ import time
 
 import httpx
 
-from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult
+from . import pricing as pricing_tables
+from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult, http_error
 
 ANTHROPIC_VERSION = "2023-06-01"
 
@@ -15,11 +16,7 @@ class AnthropicProvider(BaseProvider):
     name = "anthropic"
     base_url = "https://api.anthropic.com/v1"
     default_model = "claude-sonnet-4-6"
-    pricing = {
-        "claude-opus-4-8": (15.0, 75.0),
-        "claude-sonnet-4-6": (3.0, 15.0),
-        "claude-haiku-4-5-20251001": (1.0, 5.0),
-    }
+    pricing = pricing_tables.ANTHROPIC
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -71,7 +68,7 @@ class AnthropicProvider(BaseProvider):
 
         if resp.status_code != 200:
             return ProviderResult(self.name, model, latency_ms=latency,
-                                  error=_http_error(resp))
+                                  error=http_error(resp))
 
         data = resp.json()
         text = "".join(block.get("text", "")
@@ -84,10 +81,3 @@ class AnthropicProvider(BaseProvider):
             cost_usd=self.estimate_cost(usage, model), latency_ms=latency,
         )
 
-
-def _http_error(resp: httpx.Response) -> str:
-    try:
-        err = resp.json().get("error", {})
-        return f"HTTP {resp.status_code}: {err.get('message', '')}".strip()
-    except Exception:
-        return f"HTTP {resp.status_code}"
