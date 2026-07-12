@@ -15,12 +15,8 @@ import MetricsRow, { type Metric } from '../components/overview/MetricsRow';
 import Conversations from '../components/overview/Conversations';
 import FilePanel from '../components/overview/FilePanel';
 import BottomRow from '../components/overview/BottomRow';
-
-function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(Math.round(n));
-}
+import OfflineBanner from '../components/ui/OfflineBanner';
+import { fmtCost, fmtTokens } from '../lib/format';
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -75,12 +71,12 @@ export default function OverviewPage() {
     {
       label: 'Tokens usados',
       value: fmtTokens(stats.data?.total_tokens ?? 0),
-      extra: `$${(stats.data?.total_cost_usd ?? 0).toFixed(2)} acumulado`,
+      extra: `${fmtCost(stats.data?.total_cost_usd ?? 0)} acumulado`,
       icon: Coins,
     },
     {
       label: 'Costo hoy',
-      value: `$${costToday.toFixed(2)}`,
+      value: fmtCost(costToday),
       tone: 'muted',
       icon: Wallet,
     },
@@ -100,6 +96,10 @@ export default function OverviewPage() {
           Tu equipo de IAs trabajando en paralelo
         </h1>
       </header>
+
+      {/* Sin esto, un sidecar caido pinta 0 agentes / $0.00 / "—" de exito, que se
+          lee identico a "todavia no has usado la app". */}
+      {stats.isError && <OfflineBanner error={stats.error} />}
 
       {/* Cockpit de 3 columnas que aprovecha el ancho de la ventana:
           izquierda = proyecto en trabajo, centro = metricas + flujo +

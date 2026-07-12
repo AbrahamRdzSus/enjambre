@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import {
   Send, Network, Settings, Sparkles, Target, Paperclip, Code2, Boxes, FileText,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAgents, useProviders, useRun } from '../api/hooks';
+import { errorMessage } from '../lib/errors';
+import { fmtCost } from '../lib/format';
 import type { Agent } from '../api/types';
 import CircleLoad from '../components/ui/CircleLoad';
 import MicroLoader from '../components/ui/MicroLoader';
@@ -214,8 +217,9 @@ export default function RunPage() {
               )}
             </div>
             {chosenKeyless.length > 0 && (
-              <p className="text-[11px]" style={{ color: 'var(--warn)' }}>
-                ⚠ {chosenKeyless.length} agente(s) sin API key ({chosenKeyless.join(', ')}) fallarán al lanzar.
+              <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--warn)' }}>
+                <AlertTriangle size={12} />
+                {chosenKeyless.length} agente(s) sin API key ({chosenKeyless.join(', ')}) fallarán al lanzar.
               </p>
             )}
 
@@ -238,6 +242,24 @@ export default function RunPage() {
                 <Settings size={14} /> {chosen.length} seleccionado(s)
               </span>
             </div>
+
+            {/* Sin esto, un /run fallido (sidecar caido, 500) devolvia el boton a
+                "Lanzar enjambre" SIN decir nada: la accion principal fallaba en silencio. */}
+            {run.isError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg px-3 py-2"
+                style={{
+                  border: '1px solid color-mix(in srgb, var(--alert) 35%, transparent)',
+                  background: 'color-mix(in srgb, var(--alert) 8%, transparent)',
+                }}
+              >
+                <AlertTriangle size={14} style={{ color: 'var(--alert)', marginTop: 2, flex: 'none' }} />
+                <p className="text-[12px]" style={{ color: 'var(--alert)' }}>
+                  No se pudo lanzar el enjambre. {errorMessage(run.error)}
+                </p>
+              </div>
+            )}
           </Panel>
         </div>
 
@@ -255,7 +277,7 @@ export default function RunPage() {
               {run.isPending
                 ? `Consultando ${chosen.length} agente(s) en ${mode}...`
                 : report
-                  ? `${report.runs.filter((r) => !r.result.error).length}/${report.runs.length} ok · $${report.total_cost_usd.toFixed(6)}`
+                  ? `${report.runs.filter((r) => !r.result.error).length}/${report.runs.length} ok · ${fmtCost(report.total_cost_usd, 'fine')}`
                   : 'Selecciona agentes y lanza el enjambre'}
             </p>
           </div>
@@ -263,7 +285,9 @@ export default function RunPage() {
           {report && (
             <div className="flex flex-col gap-3 border-t border-border pt-3">
               {report.warnings.map((w) => (
-                <p key={w} className="text-xs" style={{ color: 'var(--warn)' }}>⚠ {w}</p>
+                <p key={w} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--warn)' }}>
+                  <AlertTriangle size={12} /> {w}
+                </p>
               ))}
               {report.session_id && (
                 <p className="text-[11px] text-muted-foreground">sesión {report.session_id}</p>
