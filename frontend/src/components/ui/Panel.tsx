@@ -24,9 +24,12 @@ export function Panel({
     <div className={cn('flex flex-col glass', className)}>
       {title != null && (
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <p className="text-[13px] font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
+          {/* Header UNICO del cockpit: mono, uppercase, tracking .08em. Antes habia 3
+              variantes (este, el de BottomRow, y el mono de Conversations/FilePanel);
+              las paginas que pasaban <h3>/<SectionTitle> ya no necesitan re-estilar. */}
+          <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             {title}
-          </p>
+          </div>
           {action}
         </div>
       )}

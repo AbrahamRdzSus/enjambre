@@ -63,11 +63,7 @@ export default function CliPage() {
       )}
 
       <Panel
-        title={
-          <h3 className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-            <Terminal size={13} /> Agente CLI (claude)
-          </h3>
-        }
+        title={<span className="flex items-center gap-2"><Terminal size={13} /> Agente CLI (claude)</span>}
         bodyClassName="flex flex-col gap-4"
       >
         <textarea
@@ -105,11 +101,7 @@ export default function CliPage() {
 
       {result && result.ok && (
         <Panel
-          title={
-            <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-              Diff propuesto ({result.changed_files.length} archivo(s))
-            </h3>
-          }
+          title={`Diff propuesto (${result.changed_files.length} archivo(s))`}
           bodyClassName="flex flex-col gap-4"
         >
           {result.changed_files.length === 0 ? (
@@ -141,11 +133,7 @@ export default function CliPage() {
 
       {report && (
         <Panel
-          title={
-            <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-              Resultado
-            </h3>
-          }
+          title="Resultado"
           bodyClassName="flex flex-col gap-2 text-[13px]"
         >
           {report.written.length > 0 && (

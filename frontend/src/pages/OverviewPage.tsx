@@ -16,6 +16,7 @@ import Conversations from '../components/overview/Conversations';
 import FilePanel from '../components/overview/FilePanel';
 import BottomRow from '../components/overview/BottomRow';
 import OfflineBanner from '../components/ui/OfflineBanner';
+import { PageHeader } from '../components/ui/Panel';
 import { fmtCost, fmtTokens } from '../lib/format';
 
 function todayKey(): string {
@@ -90,12 +91,7 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <header className="px-1">
-        <p className="eyebrow">Panel</p>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--fg)' }}>
-          Tu equipo de IAs trabajando en paralelo
-        </h1>
-      </header>
+      <PageHeader eyebrow="Panel" title="Tu equipo de IAs trabajando en paralelo" />
 
       {/* Sin esto, un sidecar caido pinta 0 agentes / $0.00 / "—" de exito, que se
           lee identico a "todavia no has usado la app". */}
@@ -125,7 +121,9 @@ export default function OverviewPage() {
             style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)' }}
           >
             <div className="relative flex items-center justify-center overflow-hidden glass p-4">
-              <div className="absolute left-4 top-3 text-[13px] font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
+              {/* Titulo superpuesto sobre la viz (no un Panel estandar): mismo estilo
+                  de header del cockpit para consistencia. */}
+              <div className="absolute left-4 top-3 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Orquestacion del enjambre
               </div>
               <HexSwarm size={420} />

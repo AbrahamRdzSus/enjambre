@@ -44,14 +44,6 @@ function CopyOutput({ text }: { text: string }) {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-      {children}
-    </h3>
-  );
-}
-
 export default function RunPage() {
   const agents = useAgents();
   const providers = useProviders();
@@ -135,7 +127,7 @@ export default function RunPage() {
           </div>
 
           {/* 1. Prompt */}
-          <Panel title={<SectionTitle>1. Escribe tu prompt / tarea</SectionTitle>} bodyClassName="flex flex-col gap-4">
+          <Panel title="1. Escribe tu prompt / tarea" bodyClassName="flex flex-col gap-4">
             <div className="rounded-lg border border-border bg-secondary/30 p-4">
               <div className="mb-3 flex items-start justify-between gap-2">
                 <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -185,7 +177,7 @@ export default function RunPage() {
           </Panel>
 
           {/* 2. Selección de agentes */}
-          <Panel title={<SectionTitle>2. Selecciona agentes de IA</SectionTitle>} bodyClassName="flex flex-col gap-3">
+          <Panel title="2. Selecciona agentes de IA" bodyClassName="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
               {all.map((a) => {
                 const on = chosen.includes(a.name);
@@ -274,7 +266,7 @@ export default function RunPage() {
 
         {/* Columna derecha: LA comparativa de salidas (el dock ya no la duplica) */}
         <Panel
-          title={<SectionTitle>3. Chats / Salidas en paralelo</SectionTitle>}
+          title="3. Chats / Salidas en paralelo"
           action={okTexts.length > 1 ? (
             <span
               className="rounded-md px-2 py-0.5 font-mono text-[10px]"

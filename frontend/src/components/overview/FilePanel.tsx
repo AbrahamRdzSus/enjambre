@@ -7,6 +7,8 @@ import {
   FolderTree,
   ChevronDown,
 } from 'lucide-react';
+import { Panel } from '../ui/Panel';
+import EmptyState from '../ui/EmptyState';
 
 // Arbol de archivos del proyecto activo. Datos reales via useWorkspaceFiles()
 // (listado plano de rutas relativas); aqui se reconstruye el arbol. Sin mock.
@@ -74,61 +76,47 @@ export default function FilePanel({
   const rootName = root ? root.split(/[\\/]/).filter(Boolean).pop() : null;
 
   return (
-    <div className="flex flex-col glass">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Proyecto en trabajo
-        </p>
-        {rootName && (
-          <span className="flex items-center gap-1 font-mono text-[11px] text-foreground">
-            <ChevronDown className="size-3 text-muted-foreground" />
-            {rootName}
-          </span>
-        )}
-      </div>
-
-      <div className="max-h-72 flex-1 overflow-y-auto scrollbar-thin px-2 py-2 font-mono text-[12px]">
-        {!root ? (
-          <Empty text="Selecciona un proyecto en el header para ver sus archivos." />
-        ) : loading ? (
-          <div className="space-y-1 p-1">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="skeleton" style={{ height: 18 }} />
-            ))}
-          </div>
-        ) : error ? (
-          <Empty text="No se pudo leer la carpeta del proyecto." />
-        ) : rows.length === 0 ? (
-          <Empty text="Carpeta vacia o todo ignorado por .enjambreignore." />
-        ) : (
-          rows.map((n, i) => {
-            const Icon = iconFor(n);
-            return (
-              <div
-                key={`${n.name}-${i}`}
-                className="flex items-center gap-1.5 rounded-md py-1 pr-2 text-foreground/80 transition-colors hover:bg-secondary/50"
-                style={{ paddingLeft: `${n.depth * 14 + 6}px` }}
-              >
-                <Icon
-                  className={`size-3.5 shrink-0 ${
-                    n.type === 'folder' ? 'text-accent' : 'text-primary/80'
-                  }`}
-                />
-                <span className="truncate">{n.name}</span>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-      <FolderTree className="size-6 text-muted-foreground" />
-      <p className="text-[12px] text-muted-foreground">{text}</p>
-    </div>
+    <Panel
+      title="Proyecto en trabajo"
+      action={rootName ? (
+        <span className="flex items-center gap-1 font-mono text-[11px] text-foreground">
+          <ChevronDown className="size-3 text-muted-foreground" />
+          {rootName}
+        </span>
+      ) : undefined}
+      bodyClassName="max-h-72 flex-1 overflow-y-auto scrollbar-thin font-mono text-[12px]"
+    >
+      {!root ? (
+        <EmptyState icon={FolderTree} text="Selecciona un proyecto en el header para ver sus archivos." />
+      ) : loading ? (
+        <div className="space-y-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton" style={{ height: 18 }} />
+          ))}
+        </div>
+      ) : error ? (
+        <EmptyState icon={FolderTree} text="No se pudo leer la carpeta del proyecto." />
+      ) : rows.length === 0 ? (
+        <EmptyState icon={FolderTree} text="Carpeta vacia o todo ignorado por .enjambreignore." />
+      ) : (
+        rows.map((n, i) => {
+          const Icon = iconFor(n);
+          return (
+            <div
+              key={`${n.name}-${i}`}
+              className="flex items-center gap-1.5 rounded-md py-1 pr-2 text-foreground/80 transition-colors hover:bg-secondary/50"
+              style={{ paddingLeft: `${n.depth * 14 + 6}px` }}
+            >
+              <Icon
+                className={`size-3.5 shrink-0 ${
+                  n.type === 'folder' ? 'text-accent' : 'text-primary/80'
+                }`}
+              />
+              <span className="truncate">{n.name}</span>
+            </div>
+          );
+        })
+      )}
+    </Panel>
   );
 }

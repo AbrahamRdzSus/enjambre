@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useLogStore } from '../stores/log-store';
 import { Panel, PageHeader } from '../components/ui/Panel';
+import Dot from '../components/ui/Dot';
 
 const LEVEL_COLOR: Record<string, string> = {
   info: 'var(--fg-mute)',
@@ -42,7 +43,7 @@ export default function LogsPage() {
         }`}
         style={{ border: `1px solid ${live ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--border)'}`, background: live ? 'color-mix(in srgb, var(--ok) 10%, transparent)' : 'transparent' }}
       >
-        <span className="size-1.5 rounded-full" style={{ background: live ? 'var(--ok)' : 'var(--fg-faint)', boxShadow: live ? '0 0 5px var(--ok)' : 'none' }} />
+        <Dot color={live ? 'var(--ok)' : 'var(--fg-faint)'} glow={live} />
         {live ? 'En tiempo real' : 'Sin stream'}
       </span>
       <button
@@ -78,7 +79,7 @@ export default function LogsPage() {
                 color: on ? 'var(--fg)' : 'var(--fg-mute)',
               }}
             >
-              {f !== 'all' && <span className="size-1.5 rounded-full" style={{ background: LEVEL_DOT[f] }} />}
+              {f !== 'all' && <Dot color={LEVEL_DOT[f]} />}
               {f} <span style={{ color: 'var(--fg-faint)' }}>{n}</span>
             </button>
           );
@@ -97,7 +98,7 @@ export default function LogsPage() {
         )}
         {shown.map((e) => (
           <div key={e._id} className="flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-[color-mix(in_srgb,var(--purple)_7%,transparent)]">
-            <span className="size-1.5 shrink-0 rounded-full" style={{ background: LEVEL_DOT[e.level] ?? 'var(--fg-faint)' }} />
+            <Dot color={LEVEL_DOT[e.level] ?? 'var(--fg-faint)'} />
             <span className="shrink-0 text-muted-foreground">{new Date(e.ts * 1000).toLocaleTimeString()}</span>
             <span className="min-w-[110px] shrink-0 text-primary">{e.event}</span>
             {e.agent && (
