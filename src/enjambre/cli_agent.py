@@ -82,6 +82,9 @@ class CliTaskResult:
     ok: bool
     diff: str = ""                                  # diff unificado agregado
     changed_files: list[str] = field(default_factory=list)
+    #: contenido capturado AL CORRER (ruta rel -> texto). El approve aplica ESTO, no
+    #: re-lee el worktree vivo: cierra el TOCTOU entre revision humana y aplicacion (W2.2).
+    file_contents: dict[str, str] = field(default_factory=dict)
     log: str = ""                                   # stdout/stderr o JSON del CLI
     worktree_path: str = ""
     branch: str = ""
@@ -215,5 +218,17 @@ async def run_cli_task(prompt: str, project_root: str | Path, *,
                              error=f"no se pudo capturar el diff: {exc.stderr or exc}")
 
     changed_files = [ln.strip() for ln in names.splitlines() if ln.strip()]
-    return CliTaskResult(ok=True, diff=diff, changed_files=changed_files, log=log,
+    # Capturar el contenido AHORA (lo que produce el diff que revisa el humano). El
+    # approve aplicara esto, no una re-lectura del worktree que pudo cambiar despues.
+    wt = Path(worktree_path)
+    file_contents: dict[str, str] = {}
+    for rel in changed_files:
+        fp = wt / rel
+        if fp.is_file():  # v1: borrados fuera de alcance (igual que el approve)
+            try:
+                file_contents[rel] = fp.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                pass  # binario/ilegible: no se captura -> no se aplica
+    return CliTaskResult(ok=True, diff=diff, changed_files=changed_files,
+                         file_contents=file_contents, log=log,
                          worktree_path=worktree_path, branch=branch)

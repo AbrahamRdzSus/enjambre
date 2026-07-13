@@ -643,12 +643,13 @@ def create_app(*, registry: Registry | None = None,
                                           "rejected": [], "temp_branch": None}
             try:
                 if body.approved and res.ok:
-                    wt = Path(res.worktree_path)
-                    changes: list[Change] = []
-                    for rel in res.changed_files:
-                        fp = wt / rel
-                        if fp.is_file():  # v1: borrados quedan fuera de alcance
-                            changes.append(Change(rel, fp.read_text(encoding="utf-8")))
+                    # W2.2: aplicar el contenido CAPTURADO al correr (lo que el humano
+                    # reviso en el diff), NO re-leer el worktree vivo: entre la revision
+                    # y este approve el worktree pudo cambiar (proceso rezagado,
+                    # manipulacion) y se aplicaria algo distinto de lo aprobado.
+                    changes: list[Change] = [
+                        Change(rel, content)
+                        for rel, content in res.file_contents.items()]
                     report = ChangeSet(changes).apply(root, approved=True)
                     if not report.ok:
                         bus.emit("cli.rejected", level="warn",

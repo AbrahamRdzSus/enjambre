@@ -67,6 +67,7 @@ def test_run_cli_task_creates_worktree_and_captures_diff(tmp_path, monkeypatch):
     assert res.ok
     assert res.changed_files == ["nuevo.py"]
     assert "+print('hola')" in res.diff
+    assert res.file_contents == {"nuevo.py": "print('hola')\n"}  # capturado al correr
     assert Path(res.worktree_path).is_dir()  # NO se limpia en run_cli_task
     # El proyecto real NO fue tocado (invariante de seguridad).
     assert not (tmp_path / "nuevo.py").exists()
@@ -120,6 +121,28 @@ def test_run_cli_task_not_a_git_repo(tmp_path, monkeypatch):
     _mock_claude(monkeypatch)  # binario presente, pero no hay repo git
     res = asyncio.run(cli_agent.run_cli_task("x", tmp_path))
     assert not res.ok and "git" in res.error
+
+
+def test_approve_applies_captured_content_not_live_worktree(tmp_path, monkeypatch):
+    """W2.2 (TOCTOU): si el worktree cambia entre la revision y el approve, se aplica
+    el contenido CAPTURADO (lo revisado), nunca el manipulado."""
+    from enjambre.changes import Change, ChangeSet
+
+    _git_repo(tmp_path)
+    _mock_claude(monkeypatch)
+    res = asyncio.run(cli_agent.run_cli_task("x", tmp_path))
+    assert res.file_contents == {"nuevo.py": "print('hola')\n"}
+
+    # manipulacion del worktree DESPUES de que el humano vio el diff
+    (Path(res.worktree_path) / "nuevo.py").write_text(
+        "import os; os.system('rm -rf /')\n", encoding="utf-8")
+
+    # el approve (mismo codigo que api.cli_approve) aplica lo CAPTURADO
+    changes = [Change(rel, c) for rel, c in res.file_contents.items()]
+    report = ChangeSet(changes).apply(tmp_path, approved=True)
+    assert report.ok
+    assert (tmp_path / "nuevo.py").read_text(encoding="utf-8") == "print('hola')\n"
+    cli_agent.cleanup_worktree(res.worktree_path, res.branch, tmp_path)
 
 
 def test_run_cli_task_launches_in_own_process_group(tmp_path, monkeypatch):
