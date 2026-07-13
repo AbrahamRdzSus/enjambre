@@ -60,8 +60,10 @@ pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # carga a VITE_API_TOKEN (arranca el sidecar primero). (3) rate limit token-bucket
 # default 240/8 (ENJAMBRE_RATE_LIMIT="cap/refill", "0" desactiva). Detalle: SECURITY.md.
 # agente CLI: ENJAMBRE_CLI_AGENTS=1 habilita los endpoints /cli/* (lanza Claude Code
-# headless en un git worktree aislado y aplica su diff bajo aprobacion). Requiere el
-# binario `claude` en el PATH del sidecar. Frontend: VITE_CLI_AGENTS=1 (pestana
+# headless en un git worktree y aplica su diff bajo aprobacion). El worktree aisla
+# ESCRITURAS, no lecturas/red; el subproceso corre sin claves BYOK en el entorno
+# (cli_agent._clean_env); contencion real de FS/red = v0.6.2. Requiere el binario
+# `claude` en el PATH del sidecar. Frontend: VITE_CLI_AGENTS=1 (pestana
 # "Agente CLI"). OJO: opt-in en el SIDECAR SUELTO, pero ACTIVO en la app EMPAQUETADA
 # (tauri/src/lib.rs lo pone; si no, la pestana no serviria de nada en el paquete). El
 # gate humano sigue intacto: aprobar exige POST /cli/{id}/approve.

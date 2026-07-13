@@ -25,12 +25,17 @@ class Change:
     new_content: str
 
     def diff(self, root: str | Path) -> str:
-        root = Path(root)
-        fp = root / self.path
+        label = self.path.replace("\\", "/")
+        # Anti path-traversal ANTES de leer: /changes/preview exponia el contenido
+        # de cualquier archivo fuera de la raiz por el diff (exfiltracion). safe_resolve
+        # devuelve None si la ruta escapa; entonces no se lee nada del disco.
+        fp = policy.safe_resolve(root, self.path)
+        if fp is None:
+            return (f"--- a/{label}\n+++ b/{label}\n"
+                    "@@ ruta fuera de la raiz del proyecto: diff no disponible @@\n")
         old = fp.read_text(encoding="utf-8").splitlines(keepends=True) \
             if fp.is_file() else []
         new = self.new_content.splitlines(keepends=True)
-        label = self.path.replace("\\", "/")
         return "".join(difflib.unified_diff(
             old, new, fromfile=f"a/{label}", tofile=f"b/{label}"))
 

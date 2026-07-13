@@ -10,6 +10,7 @@ from __future__ import annotations
 import fnmatch
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # Modos prohibidos por PROVIDER_POLICY.md (no se construyen flujos para esto).
 DISALLOWED_MODES = {
@@ -60,6 +61,24 @@ def is_blocked_file(path: str) -> bool:
     """True si la ruta coincide con un patron de archivo bloqueado."""
     name = path.replace("\\", "/").rsplit("/", 1)[-1]
     return any(fnmatch.fnmatch(name, pat) for pat in BLOCKED_FILES)
+
+
+def safe_resolve(root: str | Path, rel: str) -> Path | None:
+    """Resuelve `root/rel` y garantiza que cae DENTRO de `root` (anti traversal/symlink).
+
+    Devuelve la ruta resuelta si es segura, o None si escapa de la raiz. Cubre tanto
+    `../../x` como rutas absolutas (`Path('/root') / '/etc/passwd'` == `/etc/passwd`,
+    que al resolver ya no es relativa a root). Fuente unica de esta regla: la usan
+    `workspace.build_context` (lectura de contexto) y `changes.Change.diff` (preview),
+    que antes componian `root / rel` sin validar y leian archivos fuera del proyecto.
+    """
+    root_p = Path(root).resolve()
+    target = (root_p / rel).resolve()
+    try:
+        target.relative_to(root_p)
+    except ValueError:
+        return None
+    return target
 
 
 def scan_secrets(text: str) -> ScanResult:

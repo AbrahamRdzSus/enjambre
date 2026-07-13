@@ -321,7 +321,10 @@ def create_app(*, registry: Registry | None = None,
             sent = (request.headers.get("x-api-token")
                     or request.headers.get("authorization", "").removeprefix("Bearer ").strip()
                     or request.query_params.get("token", ""))  # EventSource no manda headers
-            if sent != token:
+            # Comparacion en tiempo constante: `!=` corta en el primer byte distinto y
+            # filtra el token por temporizacion. compare_digest sobre bytes (tolera
+            # tokens con no-ASCII sin lanzar).
+            if not secrets.compare_digest(sent.encode("utf-8"), token.encode("utf-8")):
                 return JSONResponse({"detail": "token invalido o ausente"},
                                     status_code=401)
             return await call_next(request)
@@ -518,6 +521,10 @@ def create_app(*, registry: Registry | None = None,
 
     @app.post("/projects", status_code=201)
     def add_project(body: ProjectIn) -> dict[str, Any]:
+        # Exigir la allowlist YA al registrar, no solo al usar el proyecto: en el
+        # paquete ENJAMBRE_ALLOWED_ROOTS se fija a la carpeta del usuario, asi que
+        # registrar C:\Windows o una ruta de sistema se rechaza aqui mismo.
+        _ensure_root(body.root)
         try:
             return asdict(projects.add_project(body.name, body.root))
         except ValueError as exc:

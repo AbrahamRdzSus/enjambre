@@ -2,6 +2,8 @@
 
 import asyncio
 
+import pytest
+
 import mock_api
 from enjambre import sessions, stats
 from enjambre.multiagent import MultiAgent
@@ -65,6 +67,32 @@ def test_multiagent_counts_cost_and_tokens(tmp_path):
     assert st.sessions == 1
     assert st.total_cost_usd > 0
     assert st.total_tokens > 0
+
+
+def _registry_with_architect():
+    return Registry([
+        Agent(name="builder", provider="openai", model="gpt-4o-mini"),
+        Agent(name="arch", provider="anthropic", model="claude-sonnet-4-6",
+              role="architect"),
+    ])
+
+
+def test_multiagent_counts_architect_cost(tmp_path):
+    """P2-1: el pase del arquitecto (verdicts) tiene costo propio (una corrida por
+    candidato). Antes no se agregaba y /stats subestimaba el costo de vote/debate."""
+    ma = MultiAgent(_registry_with_architect(), keys=KEYS,
+                    client=mock_api.make_client())
+    report = asyncio.run(ma.run("vote", "decide esto", review=True))
+    assert report.verdicts, "vote debe producir veredictos del arquitecto"
+    assert all(v.provider == "anthropic" for v in report.verdicts)
+    assert all(v.cost_usd > 0 for v in report.verdicts)
+
+    sessions.save(report, store=tmp_path)
+    st = stats.from_store(store=tmp_path)
+    # el provider del arquitecto aparece con su costo en /stats
+    assert "anthropic" in st.by_provider
+    assert st.by_provider["anthropic"].cost_usd > 0
+    assert st.total_cost_usd == pytest.approx(report.total_cost_usd)
 
 
 def test_empty_store(tmp_path):

@@ -43,13 +43,25 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![api_token])
         .setup(|app| {
             // Arranca el sidecar congelado y guarda el hijo para matarlo al cerrar.
-            let cmd = app
+            let mut cmd = app
                 .shell()
                 .sidecar("enjambre-sidecar")?
                 .env("SIDECAR_PORT", "8000")
                 // E5.1-C: habilita los endpoints /cli/* en el paquete (requiere el
                 // binario `claude` en el PATH del usuario final; ver docs/CLI_AGENT.md).
                 .env("ENJAMBRE_CLI_AGENTS", "1");
+            // P1-8: en el PAQUETE, la allowlist de roots se exige por defecto. Se fija
+            // a la carpeta del usuario, asi /workspace, /changes y el registro de
+            // proyectos no pueden salir de ahi (registrar C:\Windows se rechaza). Si el
+            // usuario ya definio ENJAMBRE_ALLOWED_ROOTS en su entorno, se respeta.
+            if std::env::var_os("ENJAMBRE_ALLOWED_ROOTS").is_none() {
+                if let Ok(home) = app.path().home_dir() {
+                    cmd = cmd.env(
+                        "ENJAMBRE_ALLOWED_ROOTS",
+                        home.to_string_lossy().to_string(),
+                    );
+                }
+            }
             let (mut rx, child) = cmd.spawn()?;
             app.state::<SidecarChild>().0.lock().unwrap().replace(child);
 

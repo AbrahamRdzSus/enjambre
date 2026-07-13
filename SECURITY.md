@@ -57,8 +57,12 @@ El sidecar escucha en `127.0.0.1`. Controles:
   de `registry`/`keys`) todo salvo `/health` exige `Authorization: Bearer <tok>` o
   `X-API-Token`. El token se resuelve asi: `ENJAMBRE_API_TOKEN` del entorno, o el
   persistido en `<data_dir>/api-token` (permisos 0600), o uno nuevo autogenerado y
-  guardado. Defiende contra otro proceso local (malware) que pegue directo a 127.0.0.1.
-  Opt-out consciente pasando `api_token=""`.
+  guardado. Comparacion en tiempo constante (`secrets.compare_digest`).
+  **Que protege:** una pagina web abierta en el navegador (que no puede leer el
+  token-file), OTRO usuario de la maquina (0600), y ataques de DNS-rebinding (junto al
+  guard de Host). **Que NO protege:** malware corriendo como el MISMO usuario, que puede
+  leer `<data_dir>/api-token` igual que lo lee el cliente legitimo; contra eso el token
+  no es una barrera y no pretende serlo. Opt-out consciente pasando `api_token=""`.
 
   Distribucion del token al cliente legitimo:
   - Sidecar imprime `ENJAMBRE_API_TOKEN=<tok>` en stdout en cada arranque.
@@ -99,6 +103,28 @@ El sidecar escucha en `127.0.0.1`. Controles:
 
 - **Allowlist de roots** (`ENJAMBRE_ALLOWED_ROOTS`) y **docs apagadas por defecto**
   (`ENJAMBRE_API_DEV=1` para habilitarlas). Ver docstring de `src/enjambre/api.py`.
+
+## Agente CLI (contencion honesta)
+
+El agente CLI (`ENJAMBRE_CLI_AGENTS=1`, ACTIVO en el paquete) lanza `claude -p` en un
+git worktree. Alcance real de la contencion, sin adornos:
+
+- **El worktree solo aisla ESCRITURAS.** El proceso `claude` corre con el usuario, la red
+  y el sistema de archivos completos: PUEDE LEER cualquier cosa que el usuario pueda leer
+  (incluido `.env` fuera del worktree) aunque su diff no se apruebe. No es un sandbox de
+  lectura ni de red. El confinamiento real de FS/red es trabajo futuro (v0.6.2+).
+- **Env sin claves BYOK (mitigacion, v0.6.1):** al subproceso `claude` se le pasa un
+  entorno minimo (solo vars de sistema/PATH), sin `*_API_KEY` ni el token del sidecar, para
+  que no pueda leerlas del entorno y exfiltrarlas. Su propia auth de Anthropic la toma de su
+  config (`~/.claude`), no de una API key en el entorno: si dependes de `ANTHROPIC_API_KEY`
+  en vez del login de `claude`, el agente CLI no la vera (autentica `claude` con su login).
+- **Allowlist de roots exigida en el paquete:** el instalador fija `ENJAMBRE_ALLOWED_ROOTS`
+  a la carpeta del usuario, asi que registrar un proyecto fuera de ahi (p. ej. `C:\Windows`)
+  se rechaza al registrarlo. Ampliar la allowlist es por env var (pantalla de Ajustes: futuro).
+- **Un solo modelo:** el agente CLI esta cableado a `claude`; el "multi-modelo" aplica a los
+  agentes tipo API, no al CLI.
+- La aplicacion del diff sigue pasando por `ChangeSet.apply(approved=True)` (gate humano +
+  anti path-traversal + archivos bloqueados + secretos). Detalle: `docs/CLI_AGENT.md`.
 
 ## Reportar vulnerabilidades
 

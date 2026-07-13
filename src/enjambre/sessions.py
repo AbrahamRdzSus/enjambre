@@ -19,7 +19,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import paths
+from . import paths, policy
 from .multiagent import Candidate, MultiAgentReport, Verdict
 from .orchestrator import AgentRun, OrchestrationReport
 from .providers import ProviderResult, Usage
@@ -73,8 +73,14 @@ def save(report: OrchestrationReport | MultiAgentReport, *,
     }
     p = _store_dir(store)
     p.mkdir(parents=True, exist_ok=True)
-    (p / f"{sid}.json").write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    # Redaccion de secretos ANTES de tocar el disco: el prompt se envia redactado a
+    # los proveedores pero se persistia en claro; una API key pegada en el prompt (o
+    # devuelta por un modelo) quedaba en <data_dir>/sessions. Se redacta el JSON
+    # completo, no solo el prompt, para cubrir tambien salidas de agentes. Los
+    # reemplazos [REDACTED:tipo] son JSON-safe (sin comillas): no rompen el documento.
+    text = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    text = policy.redact_secrets(text)
+    (p / f"{sid}.json").write_text(text, encoding="utf-8")
     return sid
 
 
@@ -119,11 +125,22 @@ def rebuild_orchestration(data: dict) -> OrchestrationReport:
 
 def rebuild_multiagent(data: dict) -> MultiAgentReport:
     """Reconstruye un MultiAgentReport desde su forma serializada."""
+    def _usage_field(d: dict) -> dict:
+        # `usage` viene como dict serializado; reconstruir el Usage tipado (si no,
+        # el campo queda con un dict crudo y un asdict() posterior revienta).
+        d = dict(d)
+        u = d.pop("usage", None)
+        if isinstance(u, dict):
+            d["usage"] = Usage(u.get("input_tokens", 0), u.get("output_tokens", 0))
+        elif u is not None:
+            d["usage"] = u
+        return d
+
     rounds = [
-        [Candidate(**c) for c in rnd]
+        [Candidate(**_usage_field(c)) for c in rnd]
         for rnd in data.get("rounds", [])
     ]
-    verdicts = [Verdict(**v) for v in data.get("verdicts", [])]
+    verdicts = [Verdict(**_usage_field(v)) for v in data.get("verdicts", [])]
     return MultiAgentReport(mode=data.get("mode", "parallel"), rounds=rounds,
                            verdicts=verdicts,
                            warnings=list(data.get("warnings", [])))

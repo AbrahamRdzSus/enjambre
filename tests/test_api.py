@@ -313,6 +313,23 @@ def test_multiagent_tokens_reach_stats(tmp_path, monkeypatch):
     assert stats["total_tokens"] > 0, "el cockpit seguiria reportando 0 tokens"
 
 
+def test_project_registration_respects_allowlist(tmp_path, monkeypatch):
+    """P1-8: registrar un proyecto exige estar dentro de la allowlist de roots. En
+    el paquete la allowlist se fija a la carpeta del usuario, asi que registrar una
+    ruta de sistema se rechaza AL REGISTRAR, no solo al usarla."""
+    monkeypatch.setenv("ENJAMBRE_DATA_DIR", str(tmp_path / "data"))
+    allowed = tmp_path / "ok"
+    (allowed / "sub").mkdir(parents=True)
+    outside = tmp_path / "fuera"
+    outside.mkdir()
+    c = TestClient(create_app(registry=_reg(), allowed_roots=[str(allowed)]))
+    assert c.post("/projects",
+                  json={"name": "Dentro", "root": str(allowed / "sub")}
+                  ).status_code == 201
+    assert c.post("/projects",
+                  json={"name": "Fuera", "root": str(outside)}).status_code == 403
+
+
 def test_projects_crud(tmp_path, monkeypatch):
     monkeypatch.setenv("ENJAMBRE_DATA_DIR", str(tmp_path))
     c = TestClient(create_app(registry=_reg()))

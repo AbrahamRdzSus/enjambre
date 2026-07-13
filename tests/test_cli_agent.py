@@ -25,12 +25,16 @@ def _git_repo(root: Path) -> None:
 class _FakeProc:
     """Simula `claude -p ...`: escribe un archivo nuevo dentro del cwd (worktree)."""
 
-    def __init__(self, cwd: str):
+    def __init__(self, cwd: str, returncode: int = 0, write: bool = True):
         self.cwd = cwd
+        self.returncode = returncode
+        self._write = write
 
     async def communicate(self):
-        (Path(self.cwd) / "nuevo.py").write_text("print('hola')\n", encoding="utf-8")
-        return (b'{"result":"ok"}', b"")
+        if self._write:
+            (Path(self.cwd) / "nuevo.py").write_text("print('hola')\n", encoding="utf-8")
+        err = b"" if self.returncode == 0 else b"claude fallo\n"
+        return (b'{"result":"ok"}', err)
 
     def kill(self):
         pass
@@ -39,13 +43,16 @@ class _FakeProc:
         return 0
 
 
-def _mock_claude(monkeypatch):
+def _mock_claude(monkeypatch, returncode: int = 0, write: bool = True):
     monkeypatch.setattr(cli_agent.shutil, "which", lambda name: "/usr/bin/claude")
+    captured: dict = {}
 
-    async def fake_exec(*args, cwd=None, **kw):
-        return _FakeProc(cwd)
+    async def fake_exec(*args, cwd=None, env=None, **kw):
+        captured["env"] = env
+        return _FakeProc(cwd, returncode=returncode, write=write)
 
     monkeypatch.setattr(cli_agent.asyncio, "create_subprocess_exec", fake_exec)
+    return captured
 
 
 def test_run_cli_task_creates_worktree_and_captures_diff(tmp_path, monkeypatch):
@@ -64,6 +71,39 @@ def test_run_cli_task_creates_worktree_and_captures_diff(tmp_path, monkeypatch):
     # cleanup deja el proyecto sin worktrees colgando
     cli_agent.cleanup_worktree(res.worktree_path, res.branch, tmp_path)
     assert not Path(res.worktree_path).exists()
+
+
+def test_run_cli_task_nonzero_exit_is_failure(tmp_path, monkeypatch):
+    """P1-5: se devolvia ok=True sin mirar el returncode; un `claude` caido (sin
+    auth, error interno) se veia como una corrida vacia exitosa."""
+    _git_repo(tmp_path)
+    _mock_claude(monkeypatch, returncode=2, write=False)
+    res = asyncio.run(cli_agent.run_cli_task("x", tmp_path))
+    assert not res.ok
+    assert "codigo 2" in res.error
+    assert not Path(res.worktree_path).exists()  # se limpia, no queda huerfano
+
+
+def test_run_cli_task_passes_clean_env(tmp_path, monkeypatch):
+    """P1-1: el subproceso `claude` heredaba TODO el env, incluidas las claves BYOK,
+    que podia leer y exfiltrar. Ahora se le pasa un env sin claves de proveedor."""
+    _git_repo(tmp_path)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-secret")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-secret")
+    monkeypatch.setenv("XAI_API_KEY", "xai-secret")
+    captured = _mock_claude(monkeypatch)
+    asyncio.run(cli_agent.run_cli_task("x", tmp_path))
+    env = captured["env"]
+    assert env is not None
+    assert not any(k.upper().endswith("_API_KEY") for k in env)
+    assert not any("TOKEN" in k.upper() for k in env)
+
+
+def test_clean_env_keeps_system_vars(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-secret")
+    env = cli_agent._clean_env()
+    assert "OPENAI_API_KEY" not in env
+    assert "PATH" in env  # lo minimo para que claude arranque
 
 
 def test_run_cli_task_missing_binary(tmp_path, monkeypatch):

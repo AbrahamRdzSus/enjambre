@@ -78,6 +78,21 @@ def test_save_and_rebuild_multiagent(tmp_path):
     assert len(rebuilt.final) == len(report.final)
 
 
+def test_save_redacts_secret_in_prompt(tmp_path):
+    """P1-7: el prompt se enviaba redactado a los proveedores pero se PERSISTIA en
+    claro; una API key pegada en el prompt quedaba en disco."""
+    from enjambre.orchestrator import OrchestrationReport
+    rep = OrchestrationReport(
+        prompt="usa la clave sk-ant-ABCDEFGHIJKLMNOPQRSTUVWX y corre")
+    sid = sessions.save(rep, store=tmp_path)
+    raw = (tmp_path / f"{sid}.json").read_text(encoding="utf-8")
+    assert "sk-ant-ABCDEFGHIJKLMNOPQRSTUVWX" not in raw  # el secreto no toca el disco
+    assert "[REDACTED:" in raw
+    # el JSON sigue siendo valido tras redactar (los reemplazos no rompen comillas)
+    s = sessions.load(sid, store=tmp_path)
+    assert "[REDACTED:" in s.prompt
+
+
 def test_save_rejects_unknown_type(tmp_path):
     with pytest.raises(TypeError):
         sessions.save({"not": "a report"}, store=tmp_path)

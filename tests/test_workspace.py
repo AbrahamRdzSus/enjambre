@@ -45,6 +45,25 @@ def test_build_context_redacts_secrets(tmp_path: Path):
     assert "[REDACTED:openai_key]" in ctx
 
 
+def test_build_context_blocks_path_traversal(tmp_path: Path):
+    """P1-2: build_context componia root/rel sin resolver; `../x` o una ruta
+    absoluta leian archivos FUERA de la raiz y los exponian como contexto."""
+    root = tmp_path / "proj"
+    root.mkdir()
+    (root / "ok.py").write_text("dentro", encoding="utf-8")
+    secret = tmp_path / "afuera.txt"
+    secret.write_text("CONTENIDO_SECRETO", encoding="utf-8")
+
+    # ruta relativa que escapa de la raiz
+    ctx = workspace.build_context(root, ["../afuera.txt", "ok.py"])
+    assert "CONTENIDO_SECRETO" not in ctx  # bloqueado, no se leyo
+    assert "dentro" in ctx                 # el archivo legitimo si
+
+    # ruta absoluta fuera de la raiz
+    ctx2 = workspace.build_context(root, [str(secret)])
+    assert "CONTENIDO_SECRETO" not in ctx2
+
+
 def test_default_ignores_git(tmp_path: Path):
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text("x", encoding="utf-8")

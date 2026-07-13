@@ -9,11 +9,19 @@ y su diff se aplica al proyecto real solo bajo aprobacion explicita.
 Spec: `specs/cli-agent-v1.md`. Implementacion: `src/enjambre/cli_agent.py` + endpoints `/cli/*`
 en `src/enjambre/api.py` + `frontend/src/pages/CliPage.tsx`.
 
-## Invariante de seguridad
+## Invariante de seguridad (y sus limites)
 
 El agente CLI NUNCA escribe al `project_root` real. Solo toca su worktree temporal. La unica
 escritura al proyecto sigue siendo `changes.ChangeSet.apply(approved=True)`, que valida
 path-traversal, archivos bloqueados y secretos antes de escribir. Aprobar = aplicar ese diff.
+
+**Limite honesto:** el worktree aisla ESCRITURAS, no LECTURAS ni la red. El proceso `claude`
+corre con el usuario/red/FS completos y puede leer cualquier cosa que el usuario pueda leer
+(incluido `.env` fuera del worktree) aunque el diff no se apruebe. Mitigacion en v0.6.1: al
+subproceso se le pasa un entorno SIN claves BYOK (`cli_agent._clean_env`), asi no puede leer
+`OPENAI_API_KEY`/etc. del entorno y exfiltrarlas; su auth de Anthropic sale de su config
+(`~/.claude`), no de una API key heredada. El confinamiento real de FS/red es v0.6.2+. Ademas
+el agente CLI esta cableado a `claude`: el "multi-modelo" aplica a los agentes tipo API.
 
 ## Activacion
 

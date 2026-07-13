@@ -14,6 +14,7 @@ a su worktree. La unica escritura al proyecto sigue siendo
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 import shutil
 import subprocess
@@ -23,6 +24,27 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Env que el subproceso `claude` PUEDE heredar: solo variables de sistema/PATH,
+# nunca claves BYOK de proveedores. El agente CLI corre con el usuario/red completos
+# (el worktree solo aisla ESCRITURAS), asi que si heredara el entorno del sidecar
+# podria leer OPENAI_API_KEY/GOOGLE_API_KEY/etc. y exfiltrarlas aunque su diff no se
+# apruebe. Su propia auth de Anthropic la toma de su config (~/.claude via
+# USERPROFILE/APPDATA), no de una API key en el entorno. Ver docs/CLI_AGENT.md.
+_ENV_ALLOW = frozenset({
+    "PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "SYSTEMDRIVE",
+    "TEMP", "TMP", "TMPDIR",
+    "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "HOME", "USERNAME",
+    "APPDATA", "LOCALAPPDATA", "PROGRAMDATA",
+    "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMW6432",
+    "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE",
+    "LANG", "LC_ALL", "LC_CTYPE", "TZ", "NODE_OPTIONS",
+})
+
+
+def _clean_env() -> dict[str, str]:
+    """Entorno minimo para `claude`: solo vars de sistema, sin claves de proveedor."""
+    return {k: v for k, v in os.environ.items() if k.upper() in _ENV_ALLOW}
 
 
 @dataclass
@@ -122,7 +144,7 @@ async def run_cli_task(prompt: str, project_root: str | Path, *,
     try:
         proc = await asyncio.create_subprocess_exec(
             "claude", "-p", prompt, "--output-format", "json",
-            cwd=worktree_path,
+            cwd=worktree_path, env=_clean_env(),
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         try:
             out_b, err_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
@@ -138,6 +160,18 @@ async def run_cli_task(prompt: str, project_root: str | Path, *,
                              error=f"fallo al ejecutar el CLI: {exc}")
 
     log = (out_b.decode("utf-8", "replace") + err_b.decode("utf-8", "replace")).strip()
+
+    # El CLI fallo: no reportar exito silencioso. Antes se devolvia ok=True sin mirar
+    # el returncode, asi que un `claude` caido (sin auth, error interno) se veia como
+    # una corrida vacia exitosa en la UI. El worktree se limpia porque no hay diff util.
+    rc = proc.returncode
+    if rc != 0:
+        cleanup_worktree(worktree_path, branch, root)
+        return CliTaskResult(ok=False, branch=branch, worktree_path=worktree_path,
+                             log=log,
+                             error=f"claude salio con codigo {rc}"
+                                   + (f": {err_b.decode('utf-8', 'replace').strip()}"
+                                      if err_b.strip() else ""))
 
     # Fuente de verdad = git, no el output del CLI. `add -A` capta nuevos/borrados.
     try:
