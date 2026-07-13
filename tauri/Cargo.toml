@@ -1,6 +1,6 @@
 [package]
 name = "enjambre-desktop"
-version = "0.6.0"
+version = "0.6.1"
 description = "ENJAMBRE - orquestador local-first de agentes IA (shell Tauri)"
 edition = "2021"
 

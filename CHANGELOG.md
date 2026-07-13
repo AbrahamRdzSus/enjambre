@@ -3,7 +3,7 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 ENJAMBRE sigue versionado semantico aproximado mientras esta en beta.
 
-## [0.6.1] - EN CURSO
+## [0.6.1] - 2026-07-13
 
 Pase de robustez, seguridad y pulido visual. Salio de una auditoria completa del
 programa (backend + frontend + empaque), no solo del panel.
@@ -37,6 +37,48 @@ programa (backend + frontend + empaque), no solo del panel.
   que nada se rompa en silencio.
 - `withGlobalTauri: false`; `process:default` -> `process:allow-restart`; `upx=False` en
   el sidecar congelado (evita falsos positivos de AV sobre un instalador ya firmado).
+- **Traversal de LECTURA (P1-2 / P1-3).** `workspace.build_context` componia `root/rel`
+  sin resolver, y `/changes/preview` leia el archivo ANTES de validar: `../x` o una ruta
+  absoluta exponian archivos fuera del proyecto (por el contexto o por el diff). Nuevo
+  helper unico `policy.safe_resolve` (resuelve y exige `relative_to(root)`); ambos validan
+  antes de leer. Tests que REPRODUCEN el ataque.
+- **El agente CLI ya no hereda las claves BYOK (P1-1).** El subproceso `claude` recibia
+  TODO el entorno del sidecar, incluidas `OPENAI_API_KEY`/etc., que podia leer y exfiltrar
+  aunque su diff no se aprobara. Ahora se le pasa un `env` minimo (solo vars de sistema);
+  su auth de Anthropic sale de su config (`~/.claude`). El worktree solo aisla ESCRITURAS:
+  la contencion real de FS/red queda para v0.6.2 (documentado sin adornos).
+- **`/cli/run` ya no reporta exito silencioso (P1-5).** Devolvia `ok=true` sin mirar el
+  `returncode`; un `claude` caido se veia como una corrida vacia exitosa. Ahora `ok=false`
+  con el codigo de salida.
+- **El prompt ya no se persiste en claro (P1-7).** `sessions.save` redacta el JSON completo
+  antes de escribir; una API key pegada en el prompt (o en una salida) ya no queda en disco.
+- **Allowlist de roots exigida en el paquete (P1-8).** Registrar un proyecto valida contra
+  `ENJAMBRE_ALLOWED_ROOTS`; el instalador la fija a la carpeta del usuario, asi que registrar
+  `C:\Windows` u otra ruta de sistema se rechaza al registrarlo.
+- **Costo del arquitecto contabilizado (P2-1).** El pase de revision (verdicts) tiene costo
+  propio que `/stats` no sumaba; `vote`/`debate` subestimaban el costo. Cierra el bug de
+  tokens que 0.6.1 ya arreglaba para los candidatos.
+- Verificacion del token con `secrets.compare_digest` (P2-6, tiempo constante).
+- **Docs honestos:** `SECURITY.md` (el token NO protege de malware del mismo usuario;
+  seccion de contencion del agente CLI), `docs/CLI_AGENT.md` y `CLAUDE.md` (el worktree
+  aisla solo escrituras; el CLI esta cableado a `claude`, el multi-modelo es de los agentes
+  tipo API).
+
+### Interfaz y accesibilidad
+- **Motion:** el knob del Toggle animaba `left` (layout) con `transition-all`; ahora usa
+  `transform: translateX` con transicion solo de `transform` (extraido a `ui/Toggle`,
+  reutilizado en RunPage y AppShell). `prefers-reduced-motion` ya no aniquila TODO: detiene
+  las animaciones en bucle y conserva las transiciones cortas de opacidad/color.
+- **Foco visible:** `outline` real (2px) en vez de solo `box-shadow`, que cualquier
+  `boxShadow` inline destruia y cualquier ancestro `overflow-hidden` recortaba.
+- **A11y:** `ProjectSelector` cierra con Escape / clic-fuera y CONFIRMA antes de borrar un
+  proyecto; `ProjectsPage` (la pantalla que escribe archivos) gana `aria-label` en sus
+  inputs + `role=alert` en los errores.
+- **Reglas de UI (espanol, sin Unicode decorativo):** fuera el `✓` de SplashScreen (icono
+  lucide); `StatusIcon` ya no filtra ingles al `aria-label`; literales `#ffb020` -> `var(--amber)`.
+- **Design system:** un solo header de panel (mono/uppercase/tracking; habia 3 variantes),
+  nuevos `ui/EmptyState` y `ui/Dot` compartidos, `Panel`/`PageHeader` adoptados en
+  BottomRow/Conversations/FilePanel/Overview y DeployPage rescatada.
 
 ### Cambiado
 - Una sola conexion SSE a `/logs/stream` (habia **tres**), en `stores/log-store.ts`.
