@@ -10,17 +10,15 @@ import time
 
 import httpx
 
-from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult
+from . import pricing as pricing_tables
+from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult, http_error
 
 
 class OpenAICompatProvider(BaseProvider):
     name = "openai"
     base_url = "https://api.openai.com/v1"
     default_model = "gpt-4o-mini"
-    pricing = {
-        "gpt-4o": (2.5, 10.0),
-        "gpt-4o-mini": (0.15, 0.6),
-    }
+    pricing = pricing_tables.OPENAI
 
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}",
@@ -66,7 +64,7 @@ class OpenAICompatProvider(BaseProvider):
 
         if resp.status_code != 200:
             return ProviderResult(self.name, model, latency_ms=latency,
-                                  error=_http_error(resp))
+                                  error=http_error(resp))
 
         data = resp.json()
         text = (data.get("choices") or [{}])[0].get("message", {}).get("content", "")
@@ -82,18 +80,5 @@ class XAIProvider(OpenAICompatProvider):
     name = "xai"
     base_url = "https://api.x.ai/v1"
     default_model = "grok-2-latest"
-    pricing = {
-        "grok-2-latest": (2.0, 10.0),
-        "grok-beta": (5.0, 15.0),
-    }
+    pricing = pricing_tables.XAI
 
-
-def _http_error(resp: httpx.Response) -> str:
-    try:
-        body = resp.json()
-        msg = body.get("error", {})
-        if isinstance(msg, dict):
-            msg = msg.get("message", "")
-        return f"HTTP {resp.status_code}: {msg}".strip()
-    except Exception:
-        return f"HTTP {resp.status_code}"

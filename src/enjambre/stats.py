@@ -5,9 +5,9 @@ diseno/ENJAMBRE_Dashboard_Design.md): tokens y costo por proveedor y por agente,
 mas un timeline por dia. Sin dependencias nuevas: lee el store de sesiones.
 
 Notas de fidelidad:
-- Tokens solo existen en sesiones de orquestacion (ProviderResult.usage). Las
-  sesiones multiagente aportan costo pero no desglose de tokens (Candidate no
-  guarda Usage); se cuentan en `cost_usd` pero no en tokens.
+- Tokens y costo se agregan tanto de orquestacion (ProviderResult.usage) como de
+  multiagente: los Candidate arrastran Usage y el pase del arquitecto (verdicts)
+  aporta su propio costo/tokens. /stats ya no subestima vote/debate.
 """
 
 from __future__ import annotations
@@ -71,6 +71,15 @@ def aggregate(items: list[Session]) -> UsageStats:
                 for c in rnd:
                     _add_candidate(prov[c.get("provider", "?")],
                                    agent[c.get("agent", "?")], c, day, date)
+            # El pase del arquitecto tiene costo propio (una corrida por candidato).
+            # Antes no se agregaba, asi que /stats subestimaba el costo de vote/debate.
+            # Se atribuye al provider del arquitecto y, en by_agent, al reviewer.
+            for v in s.data.get("verdicts", []):
+                if not v.get("provider"):
+                    continue  # veredictos viejos (pre-P2-1) sin desglose de costo
+                _add_candidate(prov[v.get("provider", "?")],
+                               agent[v.get("reviewer") or v.get("provider", "?")],
+                               v, day, date)
 
     stats.by_provider = dict(prov)
     stats.by_agent = dict(agent)
@@ -103,11 +112,17 @@ def _add(prov: Tally, agent: Tally, result: dict, day: dict[str, float],
 
 def _add_candidate(prov: Tally, agent: Tally, cand: dict, day: dict[str, float],
                    date: str) -> None:
+    # `usage` se sumaba: el Candidate no lo llevaba, asi que todo run multiagente
+    # (sequential/debate/vote) aportaba CERO tokens a /stats aunque si aportara
+    # costo. El cockpit mostraba costos sin los tokens que los produjeron.
+    usage = cand.get("usage", {}) or {}
     cost = cand.get("cost_usd", 0.0) or 0.0
     ok = cand.get("error") is None
     for t in (prov, agent):
         t.runs += 1
         t.ok += 1 if ok else 0
         t.errors += 0 if ok else 1
+        t.input_tokens += usage.get("input_tokens", 0)
+        t.output_tokens += usage.get("output_tokens", 0)
         t.cost_usd += cost
     day[date] += cost

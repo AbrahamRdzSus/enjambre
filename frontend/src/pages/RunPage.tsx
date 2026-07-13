@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import {
   Send, Network, Settings, Sparkles, Target, Paperclip, Code2, Boxes, FileText,
+  AlertTriangle, Check, Copy,
 } from 'lucide-react';
 import { useAgents, useProviders, useRun } from '../api/hooks';
+import { errorMessage } from '../lib/errors';
+import { fmtCost } from '../lib/format';
 import type { Agent } from '../api/types';
 import CircleLoad from '../components/ui/CircleLoad';
 import MicroLoader from '../components/ui/MicroLoader';
@@ -10,8 +13,8 @@ import ProviderIcon from '../components/ProviderIcon';
 import AgentCard from '../components/AgentCard';
 import ActivityDock from '../components/activity/ActivityDock';
 import { Panel, PageHeader } from '../components/ui/Panel';
+import Toggle from '../components/ui/Toggle';
 
-const AMBER = '#ffb020';
 const ACTIVITY_DOCK = import.meta.env.VITE_ACTIVITY_DOCK === '1';
 const MODES = [
   { id: 'parallel', label: 'Paralelo' },
@@ -19,29 +22,24 @@ const MODES = [
   { id: 'debate', label: 'Debate' },
 ];
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-      {children}
-    </h3>
-  );
-}
-
-// Toggle estilo cockpit (verde = activo). Reutiliza el patrón del mockup nexus.
-function Toggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+/** Copiar la salida de un agente. Heredado del CompareGrid que vivia en el dock:
+ *  la columna derecha es ahora LA superficie de comparacion, sin duplicado. */
+function CopyOutput({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
   return (
     <button
       type="button"
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={on}
-      className="relative h-5 w-9 shrink-0 rounded-full transition-colors"
-      style={{ background: on ? 'var(--ok)' : 'var(--bg-raised)', boxShadow: on ? '0 0 8px color-mix(in srgb, var(--ok) 50%, transparent)' : 'none' }}
+      aria-label={done ? 'Copiado' : 'Copiar salida'}
+      onClick={() => {
+        navigator.clipboard?.writeText(text).then(() => {
+          setDone(true);
+          setTimeout(() => setDone(false), 1200);
+        });
+      }}
+      className="flex items-center gap-1 self-end rounded-md border border-border px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:text-foreground"
     >
-      <span
-        className="absolute top-0.5 size-4 rounded-full bg-white transition-all"
-        style={{ left: on ? 18 : 2 }}
-      />
+      {done ? <Check size={11} style={{ color: 'var(--ok)' }} /> : <Copy size={11} />}
+      {done ? 'copiado' : 'copiar'}
     </button>
   );
 }
@@ -80,6 +78,12 @@ export default function RunPage() {
   const successPct = report && report.runs.length
     ? (report.runs.filter((r) => !r.result.error).length / report.runs.length) * 100
     : 0;
+
+  // Marca de comparacion: con 2+ salidas ok, avisa si los modelos coincidieron.
+  const okTexts = (report?.runs ?? [])
+    .filter((r) => !r.result.error)
+    .map((r) => (r.result.text || '').trim());
+  const allSame = okTexts.length > 1 && okTexts.every((t) => t === okTexts[0]);
 
   // Botones de composición aún sin backend: visibles como placeholder deshabilitado.
   const composerActions = [
@@ -123,7 +127,7 @@ export default function RunPage() {
           </div>
 
           {/* 1. Prompt */}
-          <Panel title={<SectionTitle>1. Escribe tu prompt / tarea</SectionTitle>} bodyClassName="flex flex-col gap-4">
+          <Panel title="1. Escribe tu prompt / tarea" bodyClassName="flex flex-col gap-4">
             <div className="rounded-lg border border-border bg-secondary/30 p-4">
               <div className="mb-3 flex items-start justify-between gap-2">
                 <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -173,7 +177,7 @@ export default function RunPage() {
           </Panel>
 
           {/* 2. Selección de agentes */}
-          <Panel title={<SectionTitle>2. Selecciona agentes de IA</SectionTitle>} bodyClassName="flex flex-col gap-3">
+          <Panel title="2. Selecciona agentes de IA" bodyClassName="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
               {all.map((a) => {
                 const on = chosen.includes(a.name);
@@ -214,8 +218,9 @@ export default function RunPage() {
               )}
             </div>
             {chosenKeyless.length > 0 && (
-              <p className="text-[11px]" style={{ color: 'var(--warn)' }}>
-                ⚠ {chosenKeyless.length} agente(s) sin API key ({chosenKeyless.join(', ')}) fallarán al lanzar.
+              <p className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--warn)' }}>
+                <AlertTriangle size={12} />
+                {chosenKeyless.length} agente(s) sin API key ({chosenKeyless.join(', ')}) fallarán al lanzar.
               </p>
             )}
 
@@ -225,7 +230,7 @@ export default function RunPage() {
                 onClick={launch}
                 disabled={run.isPending || !prompt.trim() || chosen.length === 0}
                 className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
-                style={{ background: AMBER, color: '#1a1006' }}
+                style={{ background: 'var(--amber)', color: '#1a1006' }}
               >
                 {run.isPending ? <MicroLoader variant="dots" size={8} /> : <Send size={17} strokeWidth={2} />}
                 {run.isPending ? 'Consultando...' : 'Lanzar enjambre'}
@@ -238,12 +243,38 @@ export default function RunPage() {
                 <Settings size={14} /> {chosen.length} seleccionado(s)
               </span>
             </div>
+
+            {/* Sin esto, un /run fallido (sidecar caido, 500) devolvia el boton a
+                "Lanzar enjambre" SIN decir nada: la accion principal fallaba en silencio. */}
+            {run.isError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg px-3 py-2"
+                style={{
+                  border: '1px solid color-mix(in srgb, var(--alert) 35%, transparent)',
+                  background: 'color-mix(in srgb, var(--alert) 8%, transparent)',
+                }}
+              >
+                <AlertTriangle size={14} style={{ color: 'var(--alert)', marginTop: 2, flex: 'none' }} />
+                <p className="text-[12px]" style={{ color: 'var(--alert)' }}>
+                  No se pudo lanzar el enjambre. {errorMessage(run.error)}
+                </p>
+              </div>
+            )}
           </Panel>
         </div>
 
-        {/* Columna derecha: salidas en paralelo */}
+        {/* Columna derecha: LA comparativa de salidas (el dock ya no la duplica) */}
         <Panel
-          title={<SectionTitle>3. Chats / Salidas en paralelo</SectionTitle>}
+          title="3. Chats / Salidas en paralelo"
+          action={okTexts.length > 1 ? (
+            <span
+              className="rounded-md px-2 py-0.5 font-mono text-[10px]"
+              style={{ color: allSame ? 'var(--ok)' : 'var(--amber)' }}
+            >
+              {allSame ? 'identicas' : 'difieren'}
+            </span>
+          ) : undefined}
           bodyClassName="flex flex-col gap-4 max-h-[720px] overflow-y-auto scrollbar-thin"
         >
           <div className="flex flex-col items-center gap-2">
@@ -255,7 +286,7 @@ export default function RunPage() {
               {run.isPending
                 ? `Consultando ${chosen.length} agente(s) en ${mode}...`
                 : report
-                  ? `${report.runs.filter((r) => !r.result.error).length}/${report.runs.length} ok · $${report.total_cost_usd.toFixed(6)}`
+                  ? `${report.runs.filter((r) => !r.result.error).length}/${report.runs.length} ok · ${fmtCost(report.total_cost_usd, 'fine')}`
                   : 'Selecciona agentes y lanza el enjambre'}
             </p>
           </div>
@@ -263,7 +294,9 @@ export default function RunPage() {
           {report && (
             <div className="flex flex-col gap-3 border-t border-border pt-3">
               {report.warnings.map((w) => (
-                <p key={w} className="text-xs" style={{ color: 'var(--warn)' }}>⚠ {w}</p>
+                <p key={w} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--warn)' }}>
+                  <AlertTriangle size={12} /> {w}
+                </p>
               ))}
               {report.session_id && (
                 <p className="text-[11px] text-muted-foreground">sesión {report.session_id}</p>
@@ -277,9 +310,12 @@ export default function RunPage() {
                   <div key={r.agent} className="flex flex-col gap-2">
                     <AgentCard agent={ag} status={r.result.error ? 'error' : 'ok'} result={r.result} />
                     {!r.result.error && (
-                      <pre className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/25 p-3 font-mono text-xs text-secondary-foreground">
-                        {r.result.text || '(respuesta vacia)'}
-                      </pre>
+                      <>
+                        <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-secondary/25 p-3 font-mono text-xs text-secondary-foreground scrollbar-thin">
+                          {r.result.text || '(respuesta vacia)'}
+                        </pre>
+                        <CopyOutput text={r.result.text || ''} />
+                      </>
                     )}
                   </div>
                 );

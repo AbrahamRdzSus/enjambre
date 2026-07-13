@@ -12,8 +12,20 @@ import {
 import { Panel, PageHeader } from '../components/ui/Panel';
 import ProviderIcon from '../components/ProviderIcon';
 import MicroLoader from '../components/ui/MicroLoader';
+import { errorMessage } from '../lib/errors';
 
 const ROLES = ['builder', 'architect'];
+
+/** Error de una mutacion. Sin esto, guardar una key invalida o borrar un agente
+ *  fallaba en SILENCIO: el checkbox simplemente no cambiaba. */
+function MutationError({ error, className }: { error: unknown; className?: string }) {
+  if (!error) return null;
+  return (
+    <p role="alert" className={`text-xs ${className ?? ''}`} style={{ color: 'var(--alert)' }}>
+      {errorMessage(error)}
+    </p>
+  );
+}
 
 export default function AgentsPage() {
   const agents = useAgents();
@@ -106,9 +118,11 @@ export default function AgentsPage() {
             </div>
           );
         })}
-        {validate.isError && (
-          <p className="col-span-2 text-xs" style={{ color: 'var(--alert)' }}>
-            {(validate.error as Error).message}
+        <MutationError error={validate.isError ? validate.error : null} className="col-span-2" />
+        <MutationError error={setKey.isError ? setKey.error : null} className="col-span-2" />
+        {setKey.isSuccess && (
+          <p role="status" className="col-span-2 text-xs" style={{ color: 'var(--ok)' }}>
+            Clave guardada en memoria (no se persiste en disco).
           </p>
         )}
       </Panel>
@@ -132,7 +146,10 @@ export default function AgentsPage() {
             </span>
             <button
               type="button"
-              onClick={() => del.mutate(a.name)}
+              onClick={() => {
+                // Borrar un agente es destructivo e irreversible: pasa por aprobacion humana.
+                if (window.confirm(`Eliminar el agente "${a.name}"?`)) del.mutate(a.name);
+              }}
               className="rounded p-1.5 hover:bg-secondary"
               style={{ color: 'var(--alert)' }}
               aria-label={`Eliminar ${a.name}`}
@@ -144,6 +161,8 @@ export default function AgentsPage() {
         {agents.data?.length === 0 && (
           <p className="text-xs text-muted-foreground">Sin agentes. Agrega uno abajo.</p>
         )}
+        <MutationError error={patch.isError ? patch.error : null} />
+        <MutationError error={del.isError ? del.error : null} />
 
         {/* Alta de agente */}
         <div
@@ -191,9 +210,7 @@ export default function AgentsPage() {
             <Plus size={14} /> Agregar
           </button>
         </div>
-        {add.isError && (
-          <p className="text-xs" style={{ color: 'var(--alert)' }}>{(add.error as Error).message}</p>
-        )}
+        <MutationError error={add.isError ? add.error : null} />
       </Panel>
     </div>
   );

@@ -2,12 +2,8 @@ import { Activity, Coins, Hash, Users, CheckCircle2, CalendarDays } from 'lucide
 import { useStats } from '../api/hooks';
 import { Panel, PageHeader } from '../components/ui/Panel';
 import ProviderIcon from '../components/ProviderIcon';
-
-function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(Math.round(n));
-}
+import OfflineBanner from '../components/ui/OfflineBanner';
+import { fmtCost, fmtTokens } from '../lib/format';
 
 function MetricCard({ icon: Icon, label, value, extra, extraColor }: {
   icon: typeof Coins; label: string; value: string; extra?: string; extraColor?: string;
@@ -46,11 +42,13 @@ export default function StatsPage() {
     <div className="flex flex-col gap-4">
       <PageHeader eyebrow="Estadisticas" title="Consumo por proveedor" />
 
+      {stats.isError && <OfflineBanner error={stats.error} />}
+
       {/* Fila de métricas (lenguaje cockpit) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <MetricCard icon={Activity} label="Sesiones" value={String(data?.sessions ?? 0)} />
         <MetricCard icon={Hash} label="Tokens" value={fmtTokens(data?.total_tokens ?? 0)} />
-        <MetricCard icon={Coins} label="Costo total" value={`$${(data?.total_cost_usd ?? 0).toFixed(4)}`} extra="acumulado" extraColor="var(--amber)" />
+        <MetricCard icon={Coins} label="Costo total" value={fmtCost(data?.total_cost_usd ?? 0)} extra="acumulado" extraColor="var(--amber)" />
         <MetricCard icon={CheckCircle2} label="Éxito" value={`${successPct}%`} extra={`${ok}/${runs} runs`} extraColor="var(--ok)" />
         <MetricCard icon={Users} label="Agentes" value={String(byAgent.length)} extra="con actividad" />
       </div>
@@ -71,7 +69,7 @@ export default function StatsPage() {
                     {name}
                   </span>
                   <span className="font-mono text-xs text-muted-foreground">
-                    {t.runs} runs · {fmtTokens(t.input_tokens + t.output_tokens)} tokens · ${t.cost_usd.toFixed(6)}
+                    {t.runs} runs · {fmtTokens(t.input_tokens + t.output_tokens)} tokens · {fmtCost(t.cost_usd, 'fine')}
                   </span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-secondary">
@@ -89,7 +87,7 @@ export default function StatsPage() {
           ) : (
             <div className="flex h-40 items-end gap-1.5">
               {byDay.map(([day, cost]) => (
-                <div key={day} className="flex flex-1 flex-col items-center gap-1" title={`${day}: $${cost.toFixed(6)}`}>
+                <div key={day} className="flex flex-1 flex-col items-center gap-1" title={`${day}: ${fmtCost(cost, 'fine')}`}>
                   <div className="w-full rounded-t" style={{ height: `${Math.max(2, (cost / maxDay) * 100)}%`, background: 'linear-gradient(180deg, var(--purple-soft), var(--purple))', minHeight: 2 }} />
                   <span className="font-mono text-[9px] text-muted-foreground">{day.slice(5)}</span>
                 </div>
@@ -106,7 +104,7 @@ export default function StatsPage() {
             <div key={name} className="flex items-center justify-between rounded-lg border border-border bg-secondary/25 px-3 py-2">
               <span className="text-sm font-semibold text-foreground">{name}</span>
               <span className="font-mono text-xs text-muted-foreground">
-                {t.runs} runs · {t.ok} ok · {t.errors} err · {fmtTokens(t.input_tokens + t.output_tokens)} tok · ${t.cost_usd.toFixed(6)}
+                {t.runs} runs · {t.ok} ok · {t.errors} err · {fmtTokens(t.input_tokens + t.output_tokens)} tok · {fmtCost(t.cost_usd, 'fine')}
               </span>
             </div>
           ))}

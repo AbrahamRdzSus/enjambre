@@ -8,7 +8,7 @@ import ProviderIcon from '../components/ProviderIcon';
 import UpdateBanner from '../components/UpdateBanner';
 import SiteBackground from '../components/ui/SiteBackground';
 import StatusIcon, { type Status } from '../components/ui/StatusIcon';
-import { useRunEvents, useRunStore } from '../stores/run-store';
+import { useLogStream, useLogStore } from '../stores/log-store';
 
 const NAV = [
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
@@ -76,7 +76,7 @@ function SidebarKeys() {
 function SidebarAgents() {
   const { data } = useAgents();
   const patch = usePatchAgent();
-  const status = useRunStore((s) => s.status);
+  const status = useLogStore((s) => s.status);
   const agents = data ?? [];
   if (agents.length === 0) return null;
   return (
@@ -100,7 +100,13 @@ function SidebarAgents() {
                 className="relative ml-auto h-4 w-7 shrink-0 rounded-full transition-colors"
                 style={{ background: a.enabled ? 'var(--ok)' : 'var(--bg-card)' }}
               >
-                <span className="absolute top-0.5 size-3 rounded-full bg-white transition-all" style={{ left: a.enabled ? 14 : 2 }} />
+                <span
+                  className="absolute left-0.5 top-0.5 size-3 rounded-full bg-white"
+                  style={{
+                    transform: a.enabled ? 'translateX(12px)' : 'translateX(0)',
+                    transition: 'transform 160ms var(--ease)',
+                  }}
+                />
               </button>
             </div>
           );
@@ -176,7 +182,7 @@ function Header({ healthy }: { healthy: boolean }) {
 
 export default function AppShell() {
   const healthy = useHealth();
-  useRunEvents(); // estado live de agentes para la hex-viz
+  useLogStream(); // UNICA conexion SSE de la app: la comparten viz, logs y el dock
 
   return (
     <div className="flex min-h-screen app-texture">

@@ -32,6 +32,7 @@ from __future__ import annotations
 import os
 import re
 import secrets
+import sys
 import time
 import uuid
 from dataclasses import asdict, replace
@@ -50,6 +51,7 @@ from .logs import LogBus, sse_stream
 from .multiagent import MODES, MultiAgent, MultiAgentReport
 from .orchestrator import Orchestrator
 from .providers import PROVIDERS
+from .providers import pricing as pricing_tables
 from .registry import Agent, Registry
 
 
@@ -116,20 +118,28 @@ class CliApproveIn(BaseModel):
     approved: bool = False
 
 
-def _multiagent_out(report: MultiAgentReport) -> dict[str, Any]:
-    """Aplana un MultiAgentReport (candidatos finales) a la forma 'runs' del /run."""
+def _multiagent_out(report: MultiAgentReport, prompt: str = "") -> dict[str, Any]:
+    """Aplana un MultiAgentReport (candidatos finales) a la forma 'runs' del /run.
+
+    `usage`, `latency_ms` y `prompt` salen de datos REALES. Antes se falseaban a
+    cero/vacio, y como /stats agrega desde las sesiones guardadas, el cockpit
+    reportaba 0 tokens para TODO run que no fuera modo `parallel`.
+    """
     runs = [
         {
             "agent": c.agent, "provider": c.provider, "model": c.model,
             "result": {
                 "provider": c.provider, "model": c.model, "text": c.text,
-                "usage": {"input_tokens": 0, "output_tokens": 0},
-                "cost_usd": c.cost_usd, "latency_ms": 0, "error": c.error,
+                "usage": {
+                    "input_tokens": c.usage.input_tokens,
+                    "output_tokens": c.usage.output_tokens,
+                },
+                "cost_usd": c.cost_usd, "latency_ms": c.latency_ms, "error": c.error,
             },
         }
         for c in report.final
     ]
-    return {"prompt": "", "mode": report.mode, "runs": runs,
+    return {"prompt": prompt, "mode": report.mode, "runs": runs,
             "warnings": list(report.warnings), "total_cost_usd": report.total_cost_usd}
 
 
@@ -181,8 +191,15 @@ def _load_or_create_token() -> str:
         try:
             f.write_text(tok, encoding="utf-8")
             os.chmod(f, 0o600)
-        except OSError:
-            pass
+        except OSError as exc:
+            # NO se traga en silencio: si el token no persiste, cada arranque genera
+            # uno nuevo y cualquier cliente con el token viejo queda en 401 sin
+            # ninguna pista de por que.
+            print(
+                f"ENJAMBRE_WARN: no se pudo persistir el token en {f} ({exc}). "
+                "Se regenerara en cada arranque.",
+                file=sys.stderr, flush=True,
+            )
     print(f"ENJAMBRE_API_TOKEN={tok}", flush=True)
     return tok
 
@@ -304,7 +321,10 @@ def create_app(*, registry: Registry | None = None,
             sent = (request.headers.get("x-api-token")
                     or request.headers.get("authorization", "").removeprefix("Bearer ").strip()
                     or request.query_params.get("token", ""))  # EventSource no manda headers
-            if sent != token:
+            # Comparacion en tiempo constante: `!=` corta en el primer byte distinto y
+            # filtra el token por temporizacion. compare_digest sobre bytes (tolera
+            # tokens con no-ASCII sin lanzar).
+            if not secrets.compare_digest(sent.encode("utf-8"), token.encode("utf-8")):
                 return JSONResponse({"detail": "token invalido o ausente"},
                                     status_code=401)
             return await call_next(request)
@@ -366,7 +386,11 @@ def create_app(*, registry: Registry | None = None,
             out.append({"provider": p, "env": config.PROVIDER_ENV[p],
                         "key_present": bool(eff.get(p)),
                         "default_model": default_model, "models": models,
-                        "pricing": pricing})
+                        # Los precios son ESTIMACIONES fechadas, no facturacion real.
+                        # La UI debe decir de cuando son en vez de presentarlos como
+                        # un dato duro (ver providers/pricing.py).
+                        "pricing": pricing, "pricing_as_of": pricing_tables.PRICING_AS_OF,
+                        "pricing_is_estimate": True})
         return out
 
     @app.post("/agents", status_code=201)
@@ -446,7 +470,7 @@ def create_app(*, registry: Registry | None = None,
             ma = MultiAgent(reg, keys=_effective_keys(), client=client,
                             max_tokens=req.max_tokens)
             report = await ma.run(req.mode, req.prompt, review=False)
-            out = _multiagent_out(report)
+            out = _multiagent_out(report, req.prompt)
             runs_for_log = [(r["agent"], r["provider"], r["result"]["error"] is None,
                              r["result"]["error"], r["result"]["cost_usd"])
                             for r in out["runs"]]
@@ -497,6 +521,10 @@ def create_app(*, registry: Registry | None = None,
 
     @app.post("/projects", status_code=201)
     def add_project(body: ProjectIn) -> dict[str, Any]:
+        # Exigir la allowlist YA al registrar, no solo al usar el proyecto: en el
+        # paquete ENJAMBRE_ALLOWED_ROOTS se fija a la carpeta del usuario, asi que
+        # registrar C:\Windows o una ruta de sistema se rechaza aqui mismo.
+        _ensure_root(body.root)
         try:
             return asdict(projects.add_project(body.name, body.root))
         except ValueError as exc:
@@ -588,10 +616,12 @@ def create_app(*, registry: Registry | None = None,
                 # agent.output tipo tool_call para el panel (los agentes CLI SI editan
                 # archivos, a diferencia de los API); run_id permite al dock pedir el
                 # diff (GET /cli/{run_id}) y aprobar (POST /cli/{run_id}/approve).
-                bus.emit("agent.output", agent="cli",
-                         message=f"{len(res.changed_files)} archivo(s)",
+                # `preview` va SIEMPRE, en las dos variantes del evento: sin el, el
+                # consumidor tenia que adivinar que forma le tocaba.
+                summary = f"{len(res.changed_files)} archivo(s)"
+                bus.emit("agent.output", agent="cli", message=summary,
                          kind="tool_call", changed_files=res.changed_files,
-                         run_id=run_id)
+                         run_id=run_id, preview=summary)
             return _cli_payload(run_id, res)
 
         @app.get("/cli/{run_id}")

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { api } from '../api/client';
-import type { LogEvent } from '../api/types';
+import { useLogStore } from '../stores/log-store';
 import { Panel, PageHeader } from '../components/ui/Panel';
+import Dot from '../components/ui/Dot';
 
 const LEVEL_COLOR: Record<string, string> = {
   info: 'var(--fg-mute)',
@@ -17,29 +17,14 @@ const LEVEL_DOT: Record<string, string> = {
 const FILTERS = ['all', 'info', 'warn', 'error'] as const;
 type Filter = (typeof FILTERS)[number];
 
-type Entry = LogEvent & { _id: string };
-
 export default function LogsPage() {
-  const [events, setEvents] = useState<Entry[]>([]);
-  const [live, setLive] = useState(false);
+  // Lee del store compartido: el stream lo abre AppShell (useLogStream) una sola
+  // vez. Antes esta pagina abria SU PROPIA conexion y no dedupeaba, asi que cada
+  // reconexion le re-inyectaba los 50 eventos del replay como si fueran nuevos.
+  const events = useLogStore((s) => s.events);
+  const live = useLogStore((s) => s.live);
+  const clear = useLogStore((s) => s.clear);
   const [filter, setFilter] = useState<Filter>('all');
-
-  useEffect(() => {
-    const q = new URLSearchParams({ replay: '50' });
-    if (api.token) q.set('token', api.token);
-    const es = new EventSource(`${api.base}/logs/stream?${q.toString()}`);
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(false);
-    es.onmessage = (m) => {
-      try {
-        const ev = JSON.parse(m.data) as LogEvent;
-        setEvents((prev) => [...prev.slice(-300), { ...ev, _id: crypto.randomUUID() }]);
-      } catch {
-        /* ignora frames no-JSON */
-      }
-    };
-    return () => es.close();
-  }, []);
 
   const counts = useMemo(() => {
     const c = { info: 0, warn: 0, error: 0 };
@@ -58,12 +43,12 @@ export default function LogsPage() {
         }`}
         style={{ border: `1px solid ${live ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--border)'}`, background: live ? 'color-mix(in srgb, var(--ok) 10%, transparent)' : 'transparent' }}
       >
-        <span className="size-1.5 rounded-full" style={{ background: live ? 'var(--ok)' : 'var(--fg-faint)', boxShadow: live ? '0 0 5px var(--ok)' : 'none' }} />
+        <Dot color={live ? 'var(--ok)' : 'var(--fg-faint)'} glow={live} />
         {live ? 'En tiempo real' : 'Sin stream'}
       </span>
       <button
         type="button"
-        onClick={() => setEvents([])}
+        onClick={clear}
         aria-label="Limpiar"
         className="grid size-7 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground"
       >
@@ -86,6 +71,7 @@ export default function LogsPage() {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
+              aria-pressed={on}
               className="flex items-center gap-1.5 rounded-lg px-3 h-8 font-mono text-xs capitalize transition-colors"
               style={{
                 border: `1px solid ${on ? 'color-mix(in srgb, var(--purple) 40%, transparent)' : 'var(--border)'}`,
@@ -93,7 +79,7 @@ export default function LogsPage() {
                 color: on ? 'var(--fg)' : 'var(--fg-mute)',
               }}
             >
-              {f !== 'all' && <span className="size-1.5 rounded-full" style={{ background: LEVEL_DOT[f] }} />}
+              {f !== 'all' && <Dot color={LEVEL_DOT[f]} />}
               {f} <span style={{ color: 'var(--fg-faint)' }}>{n}</span>
             </button>
           );
@@ -112,7 +98,7 @@ export default function LogsPage() {
         )}
         {shown.map((e) => (
           <div key={e._id} className="flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-[color-mix(in_srgb,var(--purple)_7%,transparent)]">
-            <span className="size-1.5 shrink-0 rounded-full" style={{ background: LEVEL_DOT[e.level] ?? 'var(--fg-faint)' }} />
+            <Dot color={LEVEL_DOT[e.level] ?? 'var(--fg-faint)'} />
             <span className="shrink-0 text-muted-foreground">{new Date(e.ts * 1000).toLocaleTimeString()}</span>
             <span className="min-w-[110px] shrink-0 text-primary">{e.event}</span>
             {e.agent && (

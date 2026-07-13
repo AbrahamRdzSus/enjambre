@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enjambre"
-version = "0.6.0"
+version = "0.6.1"
 description = "Orquestador local-first de agentes IA de codificacion (BYOK)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -18,7 +18,7 @@ dependencies = [
 enjambre = "enjambre.cli:main"
 
 [project.optional-dependencies]
-gui = ["streamlit>=1.30", "rich>=13"]
+gui = ["streamlit>=1.30"]
 api = ["fastapi>=0.115", "uvicorn>=0.30", "websockets>=12"]
 dev = ["pytest>=8", "ruff>=0.6"]
 

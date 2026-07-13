@@ -15,12 +15,9 @@ import MetricsRow, { type Metric } from '../components/overview/MetricsRow';
 import Conversations from '../components/overview/Conversations';
 import FilePanel from '../components/overview/FilePanel';
 import BottomRow from '../components/overview/BottomRow';
-
-function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(Math.round(n));
-}
+import OfflineBanner from '../components/ui/OfflineBanner';
+import { PageHeader } from '../components/ui/Panel';
+import { fmtCost, fmtTokens } from '../lib/format';
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -75,12 +72,12 @@ export default function OverviewPage() {
     {
       label: 'Tokens usados',
       value: fmtTokens(stats.data?.total_tokens ?? 0),
-      extra: `$${(stats.data?.total_cost_usd ?? 0).toFixed(2)} acumulado`,
+      extra: `${fmtCost(stats.data?.total_cost_usd ?? 0)} acumulado`,
       icon: Coins,
     },
     {
       label: 'Costo hoy',
-      value: `$${costToday.toFixed(2)}`,
+      value: fmtCost(costToday),
       tone: 'muted',
       icon: Wallet,
     },
@@ -94,12 +91,11 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <header className="px-1">
-        <p className="eyebrow">Panel</p>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--fg)' }}>
-          Tu equipo de IAs trabajando en paralelo
-        </h1>
-      </header>
+      <PageHeader eyebrow="Panel" title="Tu equipo de IAs trabajando en paralelo" />
+
+      {/* Sin esto, un sidecar caido pinta 0 agentes / $0.00 / "—" de exito, que se
+          lee identico a "todavia no has usado la app". */}
+      {stats.isError && <OfflineBanner error={stats.error} />}
 
       {/* Cockpit de 3 columnas que aprovecha el ancho de la ventana:
           izquierda = proyecto en trabajo, centro = metricas + flujo +
@@ -125,7 +121,9 @@ export default function OverviewPage() {
             style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)' }}
           >
             <div className="relative flex items-center justify-center overflow-hidden glass p-4">
-              <div className="absolute left-4 top-3 text-[13px] font-semibold tracking-tight" style={{ color: 'var(--fg)' }}>
+              {/* Titulo superpuesto sobre la viz (no un Panel estandar): mismo estilo
+                  de header del cockpit para consistencia. */}
+              <div className="absolute left-4 top-3 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Orquestacion del enjambre
               </div>
               <HexSwarm size={420} />

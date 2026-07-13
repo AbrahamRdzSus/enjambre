@@ -1,10 +1,18 @@
 # Roadmap de levantamiento — ENJAMBRE
 
 > De "app funcional con dashboard" a "producto distribuible y, opcionalmente, vendible".
-> Estado base: backend completo (214 tests), dashboard React con identidad morado/ambar,
-> app de escritorio Tauri que compila a .exe, todo en GitHub (AbrahamRdzSus/enjambre).
-> Ademas ya mergeados: seguridad sidecar default-on, agente CLI, F1 OPS HUD y panel
-> "Actividad por modelo". Frente abierto = empaque/release v0.6.0 (E5, ver ROADMAP_E5.md).
+> Estado base: backend completo (218 tests), dashboard React con identidad morado/ambar,
+> app de escritorio Tauri, todo en GitHub (AbrahamRdzSus/enjambre). Ya mergeados:
+> seguridad sidecar default-on, agente CLI, F1 OPS HUD y panel "Actividad por modelo".
+>
+> **E5 (empaque/release) CERRADO**: instalador **v0.6.0 publicado y firmado**, con
+> auto-update vivo (`releases/latest/download/latest.json` responde 200).
+>
+> **Frente abierto: v0.6.1** — pase de robustez + seguridad + pulido visual, salido de una
+> auditoria completa del programa. Lo que destapo (y no era el panel): el cockpit reportaba
+> **0 tokens** fuera del modo `parallel`; `/run` fallaba **en silencio**; el webview salio
+> **sin CSP** en un producto que renderiza salida de modelos; y el token del sidecar no
+> llegaba de forma fiable (carrera + un F5 lo borraba). Ver HANDOFF.md.
 
 ## Fase A — Diseño final (HECHA)
 - [x] 6 pantallas con look glass + viz hexagonal + stat cards/charts + modos + entidad proyecto + estado live.

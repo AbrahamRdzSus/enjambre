@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { Check } from 'lucide-react';
 import { api } from '../api/client';
 
 // Pantalla de carga (mockup 1): hex logo + wordmark ENJAMBRE + tagline + pasos.
@@ -75,10 +76,10 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
               return (
                 <div key={label} className="flex items-center gap-2 text-xs" style={{ color: done ? 'var(--fg)' : 'var(--fg-faint)' }}>
                   <span
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px]"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full"
                     style={{ background: done ? 'var(--ok)' : 'var(--border)', color: '#05140a' }}
                   >
-                    {done ? '✓' : ''}
+                    {done && <Check size={10} strokeWidth={3} />}
                   </span>
                   {label}
                 </div>

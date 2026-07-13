@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, FolderPlus, Trash2 } from 'lucide-react';
 import { useAddProject, useDeleteProject, useProjects } from '../api/hooks';
 import { useProjectStore } from '../stores/project-store';
@@ -14,8 +14,33 @@ export default function ProjectSelector() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [root, setRoot] = useState('.');
+  const ref = useRef<HTMLDivElement>(null);
 
   const active = projects.find((p) => p.id === activeId) ?? null;
+
+  // Cerrar con Escape o clic fuera (el menu quedaba abierto atrapando el foco).
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
+    };
+  }, [open]);
+
+  function removeProject(id: string, projectName: string) {
+    // Borrar un proyecto es destructivo (lo saca del registro): confirmar antes.
+    if (!window.confirm(`Eliminar el proyecto "${projectName}" del registro?`)) return;
+    del.mutate(id);
+    if (id === activeId) setActive(null);
+  }
 
   function create() {
     if (!name.trim()) return;
@@ -26,10 +51,12 @@ export default function ProjectSelector() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
         className="flex items-center gap-2"
       >
         <span className="eyebrow">Proyecto</span>
@@ -65,7 +92,7 @@ export default function ProjectSelector() {
               </button>
               <button
                 type="button"
-                onClick={() => { del.mutate(p.id); if (p.id === activeId) setActive(null); }}
+                onClick={() => removeProject(p.id, p.name)}
                 aria-label={`Eliminar ${p.name}`}
                 className="p-1 rounded"
                 style={{ color: 'var(--alert)' }}

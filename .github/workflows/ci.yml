@@ -120,3 +120,56 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # El shell Tauri NO se compilaba en CI: un error en tauri/src/lib.rs o en
+  # tauri.conf.json no se descubria hasta que alguien hacia el build del instalador
+  # en su maquina. Asi se colo el bug de `externalBin` en E5 (Tauri le añade el
+  # target-triple solo, y la config lo traia ya puesto).
+  desktop:
+    name: tauri (cargo check + clippy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencias de sistema (webkit2gtk para Tauri v2)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tauri
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `tauri::generate_context!` valida en COMPILACION que existan frontendDist y
+      # los externalBin. En CI no hay sidecar congelado (es un artefacto de release),
+      # asi que se pone uno ficticio con el nombre exacto que Tauri espera:
+      # <nombre>-<target-triple>. Si alguien vuelve a poner el triple en la config,
+      # este job falla, que es justo lo que se busca.
+      - name: Preparar artefactos que la config exige
+        run: |
+          npm ci --prefix frontend
+          npm run build --prefix frontend
+          triple="$(rustc -vV | sed -n 's/^host: //p')"
+          mkdir -p tauri/binaries
+          touch "tauri/binaries/enjambre-sidecar-${triple}"
+          chmod +x "tauri/binaries/enjambre-sidecar-${triple}"
+
+      - name: cargo check
+        working-directory: tauri
+        run: cargo check --locked
+
+      - name: clippy
+        working-directory: tauri
+        run: cargo clippy --locked -- -D warnings

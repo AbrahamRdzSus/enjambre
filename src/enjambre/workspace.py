@@ -79,7 +79,9 @@ def build_context(root: str | Path, paths: list[str], *,
         rel_norm = rel.replace("\\", "/")
         if policy.is_blocked_file(rel_norm):
             continue  # nunca exponer archivos sensibles como contexto
-        fp = root / rel_norm
+        fp = policy.safe_resolve(root, rel_norm)
+        if fp is None:
+            continue  # path traversal: ruta fuera de la raiz, no se lee
         if not fp.is_file():
             continue
         try:

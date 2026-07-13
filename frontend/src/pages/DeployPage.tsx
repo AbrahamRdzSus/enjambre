@@ -10,6 +10,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { hub, type HubAppStatus, type HubDeployRecord, type DeployScope } from '../api/hub';
+import { PageHeader } from '../components/ui/Panel';
+import Dot from '../components/ui/Dot';
 
 interface LiveState {
   steps: Record<string, string>;
@@ -108,10 +110,9 @@ export default function DeployPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <p className="eyebrow">Obsidia CD</p>
-        <h1 className="text-xl font-semibold" style={{ color: 'var(--fg)' }}>Deploy</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--fg-mute)' }}>
+      <div className="flex flex-col gap-1">
+        <PageHeader eyebrow="Obsidia CD" title="Deploy" />
+        <p className="text-sm" style={{ color: 'var(--fg-mute)' }}>
           Estado de las apps del hub y disparo de deploys (proxy via el sidecar).
         </p>
       </div>
@@ -159,8 +160,7 @@ export default function DeployPage() {
                   </td>
                   <td className="px-4 py-2">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="inline-block w-2 h-2 rounded-full"
-                            style={{ background: statusColor(app.pm2?.status) }} />
+                      <Dot color={statusColor(app.pm2?.status)} size={8} />
                       {app.pm2?.status ?? '—'}
                     </span>
                   </td>
@@ -221,7 +221,7 @@ export default function DeployPage() {
           </button>
           {watching && (
             <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--ok)' }}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ok)' }} />
+              <Dot color="var(--ok)" glow />
               conectado
             </span>
           )}
@@ -234,8 +234,7 @@ export default function DeployPage() {
                 {Object.entries(live.steps).map(([nombre, estado]) => (
                   <span key={nombre} className="inline-flex items-center gap-1.5 text-[11px] rounded-md px-2 py-0.5 border"
                         style={{ borderColor: 'var(--border)' }}>
-                    <span className="inline-block w-1.5 h-1.5 rounded-full"
-                          style={{ background: estado === 'done' ? 'var(--ok)' : estado === 'error' ? 'var(--alert)' : 'var(--amber)' }} />
+                    <Dot color={estado === 'done' ? 'var(--ok)' : estado === 'error' ? 'var(--alert)' : 'var(--amber)'} />
                     {nombre}: {estado}
                   </span>
                 ))}

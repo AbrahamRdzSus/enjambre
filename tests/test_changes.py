@@ -14,6 +14,22 @@ def test_diff_against_existing_file(tmp_path: Path):
     assert "-dos" in diff and "+DOS" in diff
 
 
+def test_diff_blocks_traversal_without_reading(tmp_path: Path):
+    """P1-3: /changes/preview leia el archivo (read_text) ANTES de validar traversal;
+    `../x` exfiltraba el contenido de un archivo externo por el diff."""
+    root = tmp_path / "proj"
+    root.mkdir()
+    secret = tmp_path / "secreto.txt"
+    secret.write_text("NO_DEBE_SALIR", encoding="utf-8")
+
+    diff = Change("../secreto.txt", "reemplazo\n").diff(root)
+    assert "NO_DEBE_SALIR" not in diff       # no se leyo el archivo externo
+    assert "fuera de la raiz" in diff
+
+    prev = ChangeSet([Change("../secreto.txt", "x\n")]).preview(root)
+    assert "NO_DEBE_SALIR" not in prev["../secreto.txt"]
+
+
 def test_apply_requires_approval(tmp_path: Path):
     cs = ChangeSet([Change("nuevo.py", "x = 1\n")])
     with pytest.raises(ApprovalRequired):

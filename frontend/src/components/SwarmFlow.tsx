@@ -2,20 +2,21 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Sparkles, GitCompareArrows, GitPullRequestArrow, Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAgents } from '../api/hooks';
-import { useRunStore, type AgentStatus } from '../stores/run-store';
+import { useLogStore, type AgentStatus } from '../stores/log-store';
+import { STATUS_COLOR, STATUS_LABEL } from '../lib/status';
 import ProviderIcon from './ProviderIcon';
 import StatusIcon from './ui/StatusIcon';
 
 // Pipeline del enjambre: prompt -> agentes en paralelo -> comparar -> aprobar.
-// Cableado a datos reales: useAgents() para el roster, useRunStore() para el
+// Cableado a datos reales: useAgents() para el roster, useLogStore() para el
 // estado en vivo por agente (idle/running/ok/error, alimentado por SSE en
-// run-store). Identidad ENJAMBRE (tokens obsidiana + morado + ambar), motion/react,
+// log-store). Identidad ENJAMBRE (tokens obsidiana + morado + ambar), motion/react,
 // respeta prefers-reduced-motion (WCAG 2.3.3).
 
 const PURPLE = 'var(--purple)';
 const AMBER = 'var(--amber)';
 
-// Fase global derivada del mapa de estados del run-store.
+// Fase global derivada del mapa de estados del log-store.
 type Phase = 'idle' | 'running' | 'done';
 
 function phaseFrom(status: Record<string, AgentStatus>): Phase {
@@ -24,20 +25,6 @@ function phaseFrom(status: Record<string, AgentStatus>): Phase {
   if (vals.some((s) => s === 'running')) return 'running';
   if (vals.every((s) => s === 'ok' || s === 'error')) return 'done';
   return 'running';
-}
-
-function statusColor(s: AgentStatus): string {
-  if (s === 'running') return AMBER;
-  if (s === 'ok') return 'var(--ok)';
-  if (s === 'error') return 'var(--alert)';
-  return 'var(--fg-faint)';
-}
-
-function statusLabel(s: AgentStatus): string {
-  if (s === 'running') return 'pensando';
-  if (s === 'ok') return 'listo';
-  if (s === 'error') return 'error';
-  return 'en espera';
 }
 
 // Nodo hexagonal de etapa (prompt / comparar / aprobar).
@@ -128,7 +115,7 @@ function Connector({ active }: { active: boolean }) {
 // Tarjeta compacta de agente dentro del abanico paralelo.
 function AgentChip({ name, provider, status }: { name: string; provider: string; status: AgentStatus }) {
   const reduce = useReducedMotion();
-  const color = statusColor(status);
+  const color = STATUS_COLOR[status];
   const running = status === 'running';
   return (
     <div
@@ -144,7 +131,7 @@ function AgentChip({ name, provider, status }: { name: string; provider: string;
         transition={reduce ? undefined : { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
       >
         <StatusIcon status={status} size={11} />
-        {statusLabel(status)}
+        {STATUS_LABEL[status]}
       </motion.span>
     </div>
   );
@@ -152,7 +139,7 @@ function AgentChip({ name, provider, status }: { name: string; provider: string;
 
 export default function SwarmFlow() {
   const agents = useAgents();
-  const status = useRunStore((s) => s.status);
+  const status = useLogStore((s) => s.status);
   const phase = phaseFrom(status);
 
   const roster = (agents.data ?? []).filter((a) => a.enabled);

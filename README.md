@@ -8,7 +8,7 @@ ENJAMBRE no es un modelo de IA, no entrena modelos y no vende acceso a modelos d
 
 ## Estado
 
-Producto local-first en beta, **v0.6.0**. Core real (Fases 1-5 del roadmap técnico, 214 tests) más seguridad del sidecar endurecida, agente CLI, panel de actividad por modelo y proxy de operaciones (OPS HUD). El instalador publicado es la v0.5.0; el paquete v0.6.0 se genera en la fase de empaque (E5). Apache-2.0.
+Producto local-first en beta. Core real (Fases 1-5 del roadmap técnico, 218 tests) más seguridad del sidecar endurecida, agente CLI, panel de actividad por modelo y proxy de operaciones (OPS HUD). **Instalador v0.6.0 publicado y firmado** (Windows/NSIS), con auto-update. En curso: **v0.6.1** (pase visual + robustez + CSP del webview). Apache-2.0.
 
 ## Objetivos
 

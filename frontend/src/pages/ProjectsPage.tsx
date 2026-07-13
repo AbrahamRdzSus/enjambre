@@ -35,6 +35,7 @@ export default function ProjectsPage() {
           value={root}
           onChange={(e) => setRoot(e.target.value)}
           placeholder="Ruta del proyecto local"
+          aria-label="Ruta del proyecto local"
           className="h-10 flex-1 rounded-lg border px-3 text-sm"
           style={inputStyle}
         />
@@ -86,6 +87,7 @@ export default function ProjectsPage() {
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             placeholder="Ruta del archivo a cambiar (relativa a la raiz)"
+            aria-label="Ruta del archivo a cambiar"
             className="h-10 rounded-lg border px-3 font-mono text-sm"
             style={inputStyle}
           />
@@ -93,6 +95,7 @@ export default function ProjectsPage() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Contenido nuevo propuesto"
+            aria-label="Contenido nuevo del archivo"
             className="resize-y rounded-lg border p-3 font-mono text-xs"
             style={{ minHeight: 140, ...inputStyle }}
           />
@@ -129,13 +132,13 @@ export default function ProjectsPage() {
                 {apply.data.temp_branch ? ` (branch ${apply.data.temp_branch})` : ''}
               </p>
             ) : (
-              <div className="text-xs" style={{ color: 'var(--alert)' }}>
+              <div role="alert" className="text-xs" style={{ color: 'var(--alert)' }}>
                 {apply.data.rejected.map(([p, m]) => <p key={p}>Rechazado {p}: {m}</p>)}
               </div>
             )
           )}
           {apply.isError && (
-            <p className="text-xs" style={{ color: 'var(--alert)' }}>
+            <p role="alert" className="text-xs" style={{ color: 'var(--alert)' }}>
               {(apply.error as Error).message}
             </p>
           )}

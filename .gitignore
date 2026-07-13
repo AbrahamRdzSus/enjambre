@@ -71,5 +71,9 @@ diseno/_v0cockpit/
 build/
 dist/
 *.spec
+# ...salvo el spec del sidecar: NO es autogenerado, es la receta de empaque
+# (hiddenimports, upx) que docs/ROADMAP_E5.md manda ejecutar. Sin el versionado,
+# quien clone el repo no puede reconstruir el sidecar.
+!enjambre-sidecar.spec
 tauri/binaries/*.exe
 diseno/e-commerce-nexus-dashboard/

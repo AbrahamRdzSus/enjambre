@@ -22,7 +22,7 @@ import httpx
 
 from .gates import Gate
 from .orchestrator import Orchestrator
-from .providers import ProviderResult
+from .providers import ProviderResult, Usage
 from .registry import Agent, Registry
 
 Mode = Literal["parallel", "sequential", "debate", "vote"]
@@ -38,7 +38,12 @@ _SCORE = re.compile(r"\bscore\s*[:=]?\s*(\d{1,3})\b|\b(\d{1,3})\s*/\s*100\b",
 
 @dataclass
 class Candidate:
-    """Una propuesta de un builder (texto), sin aplicar."""
+    """Una propuesta de un builder (texto), sin aplicar.
+
+    `usage` y `latency_ms` se arrastran del ProviderResult: sin ellos, /stats
+    agregaba CERO tokens para todo run que no fuera modo `parallel` (el unico que
+    no pasa por aqui), y el cockpit mostraba costos incompletos al usuario.
+    """
 
     agent: str
     provider: str
@@ -46,6 +51,8 @@ class Candidate:
     text: str = ""
     cost_usd: float = 0.0
     error: str | None = None
+    usage: Usage = field(default_factory=Usage)
+    latency_ms: int = 0
 
     @property
     def ok(self) -> bool:
@@ -54,17 +61,29 @@ class Candidate:
     @classmethod
     def from_result(cls, agent: str, result: ProviderResult) -> Candidate:
         return cls(agent, result.provider, result.model, result.text,
-                   result.cost_usd, result.error)
+                   result.cost_usd, result.error, result.usage, result.latency_ms)
 
 
 @dataclass
 class Verdict:
-    """Juicio del arquitecto sobre un candidato contra el gate."""
+    """Juicio del arquitecto sobre un candidato contra el gate.
+
+    `agent` es el builder JUZGADO (para ordenar/mostrar). El pase de revision tiene
+    su propio costo (una corrida del arquitecto por candidato) que antes no se
+    contabilizaba: `provider`/`cost_usd`/`usage`/`latency_ms` lo arrastran y `reviewer`
+    nombra al arquitecto para el desglose de /stats.
+    """
 
     agent: str
     score: int | None  # None si el arquitecto no emitio score parseable
     rationale: str
     error: str | None = None
+    reviewer: str = ""       # nombre del agente arquitecto que emitio el veredicto
+    provider: str = ""
+    model: str = ""
+    cost_usd: float = 0.0
+    usage: Usage = field(default_factory=Usage)
+    latency_ms: int = 0
 
 
 @dataclass
@@ -81,8 +100,8 @@ class MultiAgentReport:
 
     @property
     def total_cost_usd(self) -> float:
-        return sum(c.cost_usd for r in self.rounds for c in r) \
-            + 0.0  # verdicts cost se imputa en su propia corrida si se quisiera
+        return (sum(c.cost_usd for r in self.rounds for c in r)
+                + sum(v.cost_usd for v in self.verdicts))
 
     @property
     def ranked(self) -> list[Candidate]:
@@ -187,11 +206,18 @@ class MultiAgent:
             prompt = _review_prompt(gate, cand)
             rep = await self._orch.run(prompt, agents=[arch.name],
                                        max_tokens=self._max_tokens)
-            if not rep.runs or not rep.runs[0].result.ok:
-                err = (rep.runs[0].result.error if rep.runs else "sin respuesta")
-                return Verdict(cand.agent, None, "", error=err)
-            text = rep.runs[0].result.text
-            return Verdict(cand.agent, _extract_score(text), text.strip())
+            res = rep.runs[0].result if rep.runs else None
+            common = dict(
+                reviewer=arch.name, provider=arch.provider, model=arch.model,
+                cost_usd=(res.cost_usd if res else 0.0),
+                usage=(res.usage if res else Usage()),
+                latency_ms=(res.latency_ms if res else 0),
+            )
+            if res is None or not res.ok:
+                err = res.error if res else "sin respuesta"
+                return Verdict(cand.agent, None, "", error=err, **common)
+            text = res.text
+            return Verdict(cand.agent, _extract_score(text), text.strip(), **common)
 
         report.verdicts = list(await asyncio.gather(*(_judge(c) for c in reviewable)))
 

@@ -112,3 +112,19 @@ class BaseProvider(abc.ABC):
         if not self.api_key:
             return ValidationResult(False, "Falta API key")
         return None
+
+
+def http_error(resp: httpx.Response) -> str:
+    """Mensaje de error legible a partir de una respuesta HTTP fallida.
+
+    Estaba copiada en anthropic.py, google.py y openai_compat.py. Se conserva la
+    variante de openai_compat, que es la unica que tolera un `error` no-dict (los
+    proveedores compat a veces devuelven un string ahi).
+    """
+    try:
+        msg = (resp.json() or {}).get("error", {})
+        if isinstance(msg, dict):
+            msg = msg.get("message", "")
+        return f"HTTP {resp.status_code}: {msg}".strip()
+    except Exception:
+        return f"HTTP {resp.status_code}"

@@ -6,17 +6,15 @@ import time
 
 import httpx
 
-from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult
+from . import pricing as pricing_tables
+from .base import BaseProvider, Message, ProviderResult, Usage, ValidationResult, http_error
 
 
 class GoogleProvider(BaseProvider):
     name = "google"
     base_url = "https://generativelanguage.googleapis.com/v1beta"
     default_model = "gemini-1.5-flash"
-    pricing = {
-        "gemini-1.5-pro": (1.25, 5.0),
-        "gemini-1.5-flash": (0.075, 0.3),
-    }
+    pricing = pricing_tables.GOOGLE
 
     async def validate_key(self) -> ValidationResult:
         missing = self._has_key()
@@ -69,7 +67,7 @@ class GoogleProvider(BaseProvider):
 
         if resp.status_code != 200:
             return ProviderResult(self.name, model, latency_ms=latency,
-                                  error=_http_error(resp))
+                                  error=http_error(resp))
 
         data = resp.json()
         candidates = data.get("candidates") or [{}]
@@ -83,10 +81,3 @@ class GoogleProvider(BaseProvider):
             cost_usd=self.estimate_cost(usage, model), latency_ms=latency,
         )
 
-
-def _http_error(resp: httpx.Response) -> str:
-    try:
-        err = resp.json().get("error", {})
-        return f"HTTP {resp.status_code}: {err.get('message', '')}".strip()
-    except Exception:
-        return f"HTTP {resp.status_code}"

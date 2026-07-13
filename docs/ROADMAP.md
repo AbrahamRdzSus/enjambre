@@ -1,5 +1,8 @@
 # Roadmap técnico y de producto — ENJAMBRE
 
+> Plan de fixes de seguridad/robustez (auditoria ULTRA 2026-07-12): ver `docs/PLAN-FIXES-2026-07-12.md`.
+> Seguimiento de adopciones de recursos externos (2026-07-12): ver `docs/SEGUIMIENTO-ADOPCIONES-2026-07-12.md`.
+
 ## Fase 0 — Limpieza conceptual
 
 Objetivo: preparar repo seguro y entendible.

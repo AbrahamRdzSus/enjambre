@@ -8,8 +8,6 @@ import DiffViewer from '../components/DiffViewer';
 import MicroLoader from '../components/ui/MicroLoader';
 import { Panel, PageHeader } from '../components/ui/Panel';
 
-const AMBER = '#ffb020';
-
 // Parte el diff agregado de `git diff` en un Record<ruta, diff> para el DiffViewer.
 function splitDiff(diff: string, files: string[]): Record<string, string> {
   if (!diff.trim()) return Object.fromEntries(files.map((f) => [f, '']));
@@ -65,11 +63,7 @@ export default function CliPage() {
       )}
 
       <Panel
-        title={
-          <h3 className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-            <Terminal size={13} /> Agente CLI (claude)
-          </h3>
-        }
+        title={<span className="flex items-center gap-2"><Terminal size={13} /> Agente CLI (claude)</span>}
         bodyClassName="flex flex-col gap-4"
       >
         <textarea
@@ -86,7 +80,7 @@ export default function CliPage() {
             onClick={launch}
             disabled={run.isPending || !prompt.trim() || !active}
             className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
-            style={{ background: AMBER, color: '#1a1006' }}
+            style={{ background: 'var(--amber)', color: '#1a1006' }}
           >
             {run.isPending ? <MicroLoader variant="dots" size={8} /> : <Send size={17} strokeWidth={2} />}
             {run.isPending ? 'Corriendo...' : 'Lanzar agente CLI'}
@@ -107,11 +101,7 @@ export default function CliPage() {
 
       {result && result.ok && (
         <Panel
-          title={
-            <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-              Diff propuesto ({result.changed_files.length} archivo(s))
-            </h3>
-          }
+          title={`Diff propuesto (${result.changed_files.length} archivo(s))`}
           bodyClassName="flex flex-col gap-4"
         >
           {result.changed_files.length === 0 ? (
@@ -143,11 +133,7 @@ export default function CliPage() {
 
       {report && (
         <Panel
-          title={
-            <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-              Resultado
-            </h3>
-          }
+          title="Resultado"
           bodyClassName="flex flex-col gap-2 text-[13px]"
         >
           {report.written.length > 0 && (

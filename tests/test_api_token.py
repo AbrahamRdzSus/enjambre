@@ -55,3 +55,15 @@ def test_env_token_wins(monkeypatch, tmp_path):
     c = TestClient(api.create_app())
     assert c.get("/agents", headers={"X-API-Token": "envtok"}).status_code == 200
     assert c.get("/agents", headers={"X-API-Token": "otro"}).status_code == 401
+
+
+def test_token_compare_handles_non_ascii(monkeypatch, tmp_path):
+    """P2-6: la comparacion del token es en tiempo constante (secrets.compare_digest
+    sobre bytes). Un token enviado con no-ASCII devuelve 401, no revienta con 500."""
+    monkeypatch.setenv("ENJAMBRE_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("ENJAMBRE_API_TOKEN", "envtok")
+    c = TestClient(api.create_app())
+    # el token via query-string (lo usa EventSource) puede traer no-ASCII: compare_digest
+    # sobre bytes no lanza; devuelve 401. Las cabeceras HTTP no admiten no-ASCII.
+    assert c.get("/agents", params={"token": "clave-inválida"}).status_code == 401
+    assert c.get("/agents", headers={"X-API-Token": "envtok"}).status_code == 200
