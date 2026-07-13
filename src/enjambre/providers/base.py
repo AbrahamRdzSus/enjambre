@@ -15,11 +15,32 @@ import httpx
 
 
 @dataclass
+class ToolCall:
+    """Una llamada a herramienta emitida por el modelo (tool/function calling).
+
+    `arguments` es el objeto ya parseado (los proveedores lo mandan como string
+    JSON en `function.arguments`; el adapter lo decodifica antes de exponerlo).
+    """
+
+    id: str
+    name: str
+    arguments: dict
+
+
+@dataclass
 class Message:
-    """Un turno de conversacion. role: system | user | assistant."""
+    """Un turno de conversacion. role: system | user | assistant | tool.
+
+    Campos de tool calling (todos opcionales, retrocompatibles):
+    - `tool_calls`: en un turno `assistant`, las herramientas que pidio el modelo.
+    - `tool_call_id` + `name`: en un turno `tool`, atan el resultado a su llamada.
+    """
 
     role: str
     content: str
+    tool_calls: list[ToolCall] | None = None
+    tool_call_id: str | None = None
+    name: str | None = None
 
 
 @dataclass
@@ -33,7 +54,10 @@ class ProviderResult:
     """Resultado normalizado de una llamada a un proveedor.
 
     `error` es None cuando la llamada fue exitosa. La UI compara estos
-    resultados lado a lado.
+    resultados lado a lado. `tool_calls` trae las herramientas que pidio el modelo
+    (vacio en una respuesta de solo texto) y `stop_reason` distingue por que paro
+    (p. ej. `tool_calls` vs `stop`), que el loop agentico necesita para decidir si
+    hay que ejecutar herramientas y re-llamar.
     """
 
     provider: str
@@ -43,6 +67,8 @@ class ProviderResult:
     cost_usd: float = 0.0
     latency_ms: int = 0
     error: str | None = None
+    tool_calls: list[ToolCall] = field(default_factory=list)
+    stop_reason: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -97,8 +123,14 @@ class BaseProvider(abc.ABC):
     @abc.abstractmethod
     async def chat(self, messages: list[Message], *,
                    model: str | None = None,
-                   max_tokens: int = 1024) -> ProviderResult:
-        """Envia la conversacion y devuelve un resultado normalizado."""
+                   max_tokens: int = 1024,
+                   tools: list[dict] | None = None,
+                   tool_choice: str | None = None) -> ProviderResult:
+        """Envia la conversacion y devuelve un resultado normalizado.
+
+        `tools` (opcional) son los esquemas de herramientas que el modelo puede
+        invocar. Con `tools=None` el comportamiento es identico al de una llamada
+        de solo texto. No todos los adapters soportan tools todavia."""
 
     def estimate_cost(self, usage: Usage, model: str) -> float:
         price = self.pricing.get(model)
