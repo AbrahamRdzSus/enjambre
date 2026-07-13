@@ -133,9 +133,12 @@ body {
   color: var(--purple-soft);
 }
 
+/* Foco visible: outline REAL (no solo box-shadow). El box-shadow lo destruia cualquier
+   `boxShadow` inline y lo recortaba cualquier ancestro `overflow-hidden` (= todos los
+   Panel); el outline no se recorta y sobrevive al clip. */
 *:focus-visible {
-  outline: none;
-  box-shadow: var(--glow-purple);
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
 }
 
 /* Glassmorphism: superficie translucida con blur (cards, paneles).
@@ -207,12 +210,17 @@ button:not(:disabled):active { transform: scale(0.97); }
 @keyframes enj-shimmer { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.85; } }
 .skeleton { background: var(--bg-card); border-radius: var(--r-md); animation: enj-shimmer 1.4s ease-in-out infinite; }
 
+/* reduced-motion = MENOS movimiento, no CERO feedback. Se detienen las animaciones
+   en bucle (shimmer, spinners, ambiente); se conservan las transiciones cortas de
+   opacidad/color/press para que hover y foco sigan siendo legibles. No se toca
+   `transform` global: el knob del Toggle lo usa para su posicion. La motion grande
+   (revelado del dock, alturas) ya respeta reduced-motion via useReducedMotion() en JS. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
   }
+  html { scroll-behavior: auto !important; }
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }

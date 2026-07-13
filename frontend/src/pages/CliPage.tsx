@@ -8,8 +8,6 @@ import DiffViewer from '../components/DiffViewer';
 import MicroLoader from '../components/ui/MicroLoader';
 import { Panel, PageHeader } from '../components/ui/Panel';
 
-const AMBER = '#ffb020';
-
 // Parte el diff agregado de `git diff` en un Record<ruta, diff> para el DiffViewer.
 function splitDiff(diff: string, files: string[]): Record<string, string> {
   if (!diff.trim()) return Object.fromEntries(files.map((f) => [f, '']));
@@ -86,7 +84,7 @@ export default function CliPage() {
             onClick={launch}
             disabled={run.isPending || !prompt.trim() || !active}
             className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
-            style={{ background: AMBER, color: '#1a1006' }}
+            style={{ background: 'var(--amber)', color: '#1a1006' }}
           >
             {run.isPending ? <MicroLoader variant="dots" size={8} /> : <Send size={17} strokeWidth={2} />}
             {run.isPending ? 'Corriendo...' : 'Lanzar agente CLI'}

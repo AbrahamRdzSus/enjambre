@@ -13,8 +13,8 @@ import ProviderIcon from '../components/ProviderIcon';
 import AgentCard from '../components/AgentCard';
 import ActivityDock from '../components/activity/ActivityDock';
 import { Panel, PageHeader } from '../components/ui/Panel';
+import Toggle from '../components/ui/Toggle';
 
-const AMBER = '#ffb020';
 const ACTIVITY_DOCK = import.meta.env.VITE_ACTIVITY_DOCK === '1';
 const MODES = [
   { id: 'parallel', label: 'Paralelo' },
@@ -49,25 +49,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
       {children}
     </h3>
-  );
-}
-
-// Toggle estilo cockpit (verde = activo). Reutiliza el patrón del mockup nexus.
-function Toggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={on}
-      className="relative h-5 w-9 shrink-0 rounded-full transition-colors"
-      style={{ background: on ? 'var(--ok)' : 'var(--bg-raised)', boxShadow: on ? '0 0 8px color-mix(in srgb, var(--ok) 50%, transparent)' : 'none' }}
-    >
-      <span
-        className="absolute top-0.5 size-4 rounded-full bg-white transition-all"
-        style={{ left: on ? 18 : 2 }}
-      />
-    </button>
   );
 }
 
@@ -257,7 +238,7 @@ export default function RunPage() {
                 onClick={launch}
                 disabled={run.isPending || !prompt.trim() || chosen.length === 0}
                 className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold disabled:opacity-50"
-                style={{ background: AMBER, color: '#1a1006' }}
+                style={{ background: 'var(--amber)', color: '#1a1006' }}
               >
                 {run.isPending ? <MicroLoader variant="dots" size={8} /> : <Send size={17} strokeWidth={2} />}
                 {run.isPending ? 'Consultando...' : 'Lanzar enjambre'}

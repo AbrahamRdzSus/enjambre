@@ -18,6 +18,16 @@ const COLORS: Record<Status, string> = {
   enabled: '#8b5cf6', // --purple
 };
 
+// UI en espanol (regla dura): el aria-label caia al status crudo en ingles
+// ("running"/"ok"/...) cuando no se pasaba `title`. Se mapea a etiquetas legibles.
+const LABELS: Record<Status, string> = {
+  idle: 'inactivo',
+  running: 'en curso',
+  ok: 'completado',
+  error: 'error',
+  enabled: 'habilitado',
+};
+
 /**
  * Small animated per-state icon for the Enjambre desktop.
  * running -> amber spinner/pulse, ok -> drawn green check,
@@ -32,7 +42,7 @@ export default function StatusIcon({
 }: StatusIconProps) {
   const reduce = useReducedMotion();
   const color = COLORS[status];
-  const label = title ?? status;
+  const label = title ?? LABELS[status];
 
   // Static fallbacks when motion is reduced.
   if (reduce) {

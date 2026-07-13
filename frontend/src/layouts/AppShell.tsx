@@ -100,7 +100,13 @@ function SidebarAgents() {
                 className="relative ml-auto h-4 w-7 shrink-0 rounded-full transition-colors"
                 style={{ background: a.enabled ? 'var(--ok)' : 'var(--bg-card)' }}
               >
-                <span className="absolute top-0.5 size-3 rounded-full bg-white transition-all" style={{ left: a.enabled ? 14 : 2 }} />
+                <span
+                  className="absolute left-0.5 top-0.5 size-3 rounded-full bg-white"
+                  style={{
+                    transform: a.enabled ? 'translateX(12px)' : 'translateX(0)',
+                    transition: 'transform 160ms var(--ease)',
+                  }}
+                />
               </button>
             </div>
           );
