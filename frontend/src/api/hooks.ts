@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type {
   Agent, Project, Provider, RunReport, Stats, LogEvent, Session,
-  CliRunResult, CliApplyReport,
+  CliRunResult, CliApplyReport, ToolRunState,
 } from './types';
 
 export function useProjects() {
@@ -174,5 +174,21 @@ export function useApproveCliRun() {
   return useMutation({
     mutationFn: ({ runId, approved }: { runId: string; approved: boolean }) =>
       api.post<CliApplyReport>(`/cli/${encodeURIComponent(runId)}/approve`, { approved }),
+  });
+}
+
+/* --- Tool calling (loop agentico, opt-in con VITE_TOOLS) ------------------- */
+export function useRunTools() {
+  return useMutation({
+    mutationFn: (body: { project_id: string; prompt: string; agent?: string }) =>
+      api.post<ToolRunState>('/tools/run', body),
+  });
+}
+
+export function useApproveTools() {
+  return useMutation({
+    mutationFn: ({ runId, decisions }:
+      { runId: string; decisions: { call_id: string; approved: boolean }[] }) =>
+      api.post<ToolRunState>(`/tools/${encodeURIComponent(runId)}/approve`, { decisions }),
   });
 }
