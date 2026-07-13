@@ -17,7 +17,9 @@ import asyncio
 import os
 import re
 import shutil
+import signal
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -45,6 +47,34 @@ _ENV_ALLOW = frozenset({
 def _clean_env() -> dict[str, str]:
     """Entorno minimo para `claude`: solo vars de sistema, sin claves de proveedor."""
     return {k: v for k, v in os.environ.items() if k.upper() in _ENV_ALLOW}
+
+
+#: kwargs para lanzar el subproceso en su PROPIO grupo, para poder matar el arbol
+#: completo (claude spawnea node/subagentes; matar solo al padre deja huerfanos).
+_GROUP_KW: dict = (
+    {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore[attr-defined]
+    if sys.platform == "win32" else {"start_new_session": True})
+
+
+def _kill_tree(proc: asyncio.subprocess.Process) -> None:
+    """Mata el proceso Y todos sus descendientes. En timeout, `proc.kill()` a secas
+    solo mataba a `claude`, dejando vivos los procesos que el spawneo."""
+    pid = proc.pid
+    if pid is None:
+        return
+    if sys.platform == "win32":
+        # taskkill /T recorre el arbol de descendientes y los termina a todos.
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(pid)],
+                       check=False, capture_output=True)
+    else:
+        try:
+            os.killpg(os.getpgid(pid), signal.SIGKILL)  # todo el grupo de sesion
+        except (ProcessLookupError, PermissionError):
+            pass
+    try:
+        proc.kill()  # fallback directo al padre por si sigue vivo
+    except (ProcessLookupError, OSError):
+        pass
 
 
 @dataclass
@@ -145,11 +175,12 @@ async def run_cli_task(prompt: str, project_root: str | Path, *,
         proc = await asyncio.create_subprocess_exec(
             "claude", "-p", prompt, "--output-format", "json",
             cwd=worktree_path, env=_clean_env(),
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            **_GROUP_KW)
         try:
             out_b, err_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         except asyncio.TimeoutError:
-            proc.kill()
+            _kill_tree(proc)  # mata claude Y su arbol de subprocesos, no solo al padre
             await proc.wait()
             cleanup_worktree(worktree_path, branch, root)
             return CliTaskResult(ok=False, branch=branch,
