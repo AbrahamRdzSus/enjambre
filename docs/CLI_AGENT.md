@@ -139,7 +139,25 @@ en la pestana Proyectos.
 - Runs concurrentes sobre el mismo proyecto -> cada uno en su worktree/rama (timestamp + slug +
   uuid evitan colision). Sin lock compartido en v1 (limitacion conocida).
 
+## Contencion en docker (W3, v0.6.2) - opt-in por ahora
+
+Por defecto el worktree aisla solo ESCRITURAS (ver arriba). Con `ENJAMBRE_CLI_SANDBOX=1` el
+proceso `claude` corre CONTENIDO en docker (ADR `docs/adr/0001-contencion-agente-cli.md`):
+
+- Se monta SOLO el worktree en `/work` y `~/.claude` read-only; nada mas del home/FS del host
+  entra al contenedor -> `claude` ya no puede leer `.env`/claves FUERA del worktree.
+- Fail-closed: con el flag activo pero sin docker, el agente CLI NO corre (no cae a host).
+- Imagen: construir una vez con `docker build -f docker/cli-agent.Dockerfile -t enjambre/cli-agent .`
+  (override con `ENJAMBRE_CLI_IMAGE`).
+- Egress (W3.2): `ENJAMBRE_CLI_NETWORK` + `ENJAMBRE_CLI_EGRESS_PROXY` fuerzan el trafico por una
+  red interna + proxy filtrante (allowlist a api.anthropic.com). La receta de red/proxy y el
+  allowlist exacto salen del SPIKE (ver el ADR).
+
+Es opt-in mientras el spike verifica que claude arranca dentro del contenedor con su auth; el
+flip a obligatorio-por-defecto viene despues (leccion: verificar el camino feliz en el binario
+real antes de invertir a fail-closed).
+
 ## Fuera de alcance (v2+)
 
-Multiples CLIs en paralelo / comparacion lado a lado, auto-aplicar con sandbox docker, abrir PR
+Multiples CLIs en paralelo / comparacion lado a lado, auto-aplicar cambios sin gate, abrir PR
 directo, tool-use para los agentes tipo API, y lock/cola para runs concurrentes.

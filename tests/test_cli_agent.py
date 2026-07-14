@@ -194,6 +194,63 @@ def test_kill_tree_kills_child_processes():
         raise AssertionError(f"el proceso hijo {child_pid} sigue vivo tras _kill_tree")
 
 
+def test_sandbox_builds_docker_argv(tmp_path, monkeypatch):
+    """W3.1: con ENJAMBRE_CLI_SANDBOX=1, claude corre en docker con SOLO el worktree
+    montado (en /work) y la auth read-only; nada mas del host."""
+    _git_repo(tmp_path)
+    monkeypatch.setenv("ENJAMBRE_CLI_SANDBOX", "1")
+    monkeypatch.setattr(cli_agent.shutil, "which", lambda name: f"/usr/bin/{name}")
+    captured: dict = {}
+
+    async def fake_exec(*args, cwd=None, env=None, **kw):
+        captured["argv"] = list(args)
+        return _FakeProc(cwd)
+
+    monkeypatch.setattr(cli_agent.asyncio, "create_subprocess_exec", fake_exec)
+    asyncio.run(cli_agent.run_cli_task("hola", tmp_path))
+
+    argv = captured["argv"]
+    assert argv[0] == "docker" and "run" in argv
+    assert any(a.endswith(":/work") for a in argv)                    # worktree montado
+    assert any(":/home/node/.claude:ro" in a for a in argv)           # auth read-only
+    assert cli_agent.CLI_IMAGE in argv
+    assert argv[-5:] == ["claude", "-p", "hola", "--output-format", "json"]
+
+
+def test_sandbox_fail_closed_without_docker(tmp_path, monkeypatch):
+    """W3: sandbox pedido pero sin docker -> fail-closed (no cae a host, no worktree)."""
+    monkeypatch.setenv("ENJAMBRE_CLI_SANDBOX", "1")
+    monkeypatch.setattr(cli_agent.shutil, "which", lambda name: None)
+    res = asyncio.run(cli_agent.run_cli_task("x", tmp_path))
+    assert not res.ok and "docker" in res.error
+    assert res.worktree_path == ""  # corto antes de crear el worktree
+
+
+def test_egress_flags_from_env(monkeypatch):
+    """W3.2: red interna + proxy filtrante se arman desde el entorno."""
+    monkeypatch.setenv("ENJAMBRE_CLI_NETWORK", "enjambre-cli-net")
+    monkeypatch.setenv("ENJAMBRE_CLI_EGRESS_PROXY", "http://proxy:8080")
+    flags = cli_agent._egress_flags()
+    assert "--network" in flags and "enjambre-cli-net" in flags
+    assert any("HTTPS_PROXY=http://proxy:8080" in f for f in flags)
+
+
+def test_sandbox_off_by_default_uses_host_claude(tmp_path, monkeypatch):
+    """Sin el flag, el comportamiento es el de siempre: claude directo en el host."""
+    _git_repo(tmp_path)
+    monkeypatch.delenv("ENJAMBRE_CLI_SANDBOX", raising=False)
+    monkeypatch.setattr(cli_agent.shutil, "which", lambda name: "/usr/bin/claude")
+    captured: dict = {}
+
+    async def fake_exec(*args, cwd=None, env=None, **kw):
+        captured["argv"] = list(args)
+        return _FakeProc(cwd)
+
+    monkeypatch.setattr(cli_agent.asyncio, "create_subprocess_exec", fake_exec)
+    asyncio.run(cli_agent.run_cli_task("x", tmp_path))
+    assert captured["argv"][0] == "claude"  # no docker
+
+
 def test_cleanup_worktree_fallback_removes_dir(tmp_path):
     """Si `git worktree remove` no aplica (dir suelto, no worktree), el fallback
     rmtree lo borra igual: nunca deja el directorio huerfano."""
