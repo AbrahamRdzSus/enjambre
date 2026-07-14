@@ -77,6 +77,65 @@ def _kill_tree(proc: asyncio.subprocess.Process) -> None:
         pass
 
 
+#: Imagen del contenedor del agente CLI (W3). Se construye una vez con
+#: docker/cli-agent.Dockerfile. Override por entorno.
+CLI_IMAGE = os.environ.get("ENJAMBRE_CLI_IMAGE", "enjambre/cli-agent")
+
+
+def _sandbox_enabled() -> bool:
+    """W3: correr `claude` CONTENIDO en docker (FS=solo worktree + egress restringido).
+    Detras de flag a proposito: hacerlo mandatorio-por-defecto se DIFIERE hasta verificar
+    en vivo que claude arranca dentro del contenedor con su auth montada (spike de
+    Abraham), por la leccion fail-closed-mal-empaquetado-es-apagon."""
+    return os.environ.get("ENJAMBRE_CLI_SANDBOX", "").strip().lower() in (
+        "1", "true", "yes")
+
+
+def _docker_available() -> bool:
+    return shutil.which("docker") is not None
+
+
+def _egress_flags() -> list[str]:
+    """W3.2: restringe la salida de red del contenedor. Se conecta a una red docker
+    interna (ENJAMBRE_CLI_NETWORK) y/o fuerza el trafico por un proxy filtrante
+    (ENJAMBRE_CLI_EGRESS_PROXY) que solo deja pasar api.anthropic.com. Sin estas vars el
+    contenedor usa el bridge por defecto (W3.1: FS aislado, red aun abierta)."""
+    flags: list[str] = []
+    net = os.environ.get("ENJAMBRE_CLI_NETWORK", "").strip()
+    proxy = os.environ.get("ENJAMBRE_CLI_EGRESS_PROXY", "").strip()
+    if net:
+        flags += ["--network", net]
+    if proxy:
+        flags += ["-e", f"HTTPS_PROXY={proxy}", "-e", f"HTTP_PROXY={proxy}"]
+    return flags
+
+
+def _claude_argv(prompt: str, worktree_path: str, container_name: str) -> list[str]:
+    """argv para lanzar claude. Con sandbox activo -> `docker run` con SOLO el worktree
+    montado (en /work) y la auth de claude read-only; sin sandbox -> claude directo."""
+    base = ["claude", "-p", prompt, "--output-format", "json"]
+    if not _sandbox_enabled():
+        return base
+    home_claude = str(Path(os.path.expanduser("~")) / ".claude")
+    return [
+        "docker", "run", "--rm", "--name", container_name,
+        "-v", f"{worktree_path}:/work", "--workdir", "/work",
+        # auth de claude read-only; NADA mas del home/FS del host entra al contenedor.
+        "-v", f"{home_claude}:/home/node/.claude:ro",
+        *_egress_flags(),
+        CLI_IMAGE, *base,
+    ]
+
+
+def _docker_kill(container_name: str) -> None:
+    """Mata el contenedor por si sobrevivio al proceso `docker run` (timeout)."""
+    try:
+        subprocess.run(["docker", "kill", container_name],
+                       check=False, capture_output=True)
+    except FileNotFoundError:
+        pass
+
+
 @dataclass
 class CliTaskResult:
     ok: bool
@@ -151,8 +210,16 @@ async def run_cli_task(prompt: str, project_root: str | Path, *,
     """
     root = Path(project_root).expanduser().resolve()
 
-    # Requisito 5 / caso borde: binario ausente -> error claro, no worktree a medias.
-    if shutil.which("claude") is None:
+    # Contencion (W3): con sandbox activo se EXIGE docker (fail-closed, no cae a host);
+    # sin sandbox se exige el binario `claude` en el PATH del host. Caso borde: falta la
+    # dependencia -> error claro, sin worktree a medias.
+    if _sandbox_enabled():
+        if not _docker_available():
+            return CliTaskResult(
+                ok=False,
+                error="ENJAMBRE_CLI_SANDBOX=1 pero docker no esta disponible "
+                      "(fail-closed: el agente CLI no corre sin aislamiento)")
+    elif shutil.which("claude") is None:
         return CliTaskResult(ok=False, error="claude CLI no encontrado en PATH")
 
     # Caso borde: no es repo git -> error explicito, sin worktree a medias.
@@ -173,17 +240,21 @@ async def run_cli_task(prompt: str, project_root: str | Path, *,
         return CliTaskResult(ok=False, branch=branch, worktree_path=worktree_path,
                              error=f"no se pudo crear el worktree: {exc.stderr or exc}")
 
-    # Ejecutar el CLI dentro del worktree (subprocess async, con timeout).
+    # Ejecutar el CLI (directo, o dentro de un contenedor con FS aislado si W3 activo),
+    # anclado al worktree, con timeout.
+    container_name = f"enjambre-cli-{uuid.uuid4().hex[:12]}"
+    argv = _claude_argv(prompt, worktree_path, container_name)
     try:
         proc = await asyncio.create_subprocess_exec(
-            "claude", "-p", prompt, "--output-format", "json",
-            cwd=worktree_path, env=_clean_env(),
+            *argv, cwd=worktree_path, env=_clean_env(),
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             **_GROUP_KW)
         try:
             out_b, err_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         except asyncio.TimeoutError:
             _kill_tree(proc)  # mata claude Y su arbol de subprocesos, no solo al padre
+            if _sandbox_enabled():
+                _docker_kill(container_name)  # el contenedor no muere con `docker run`
             await proc.wait()
             cleanup_worktree(worktree_path, branch, root)
             return CliTaskResult(ok=False, branch=branch,
