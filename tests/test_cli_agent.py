@@ -2,8 +2,11 @@
 para no depender del binario real en CI; el worktree usa git real."""
 
 import asyncio
+import os
 import shutil
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -64,6 +67,7 @@ def test_run_cli_task_creates_worktree_and_captures_diff(tmp_path, monkeypatch):
     assert res.ok
     assert res.changed_files == ["nuevo.py"]
     assert "+print('hola')" in res.diff
+    assert res.file_contents == {"nuevo.py": "print('hola')\n"}  # capturado al correr
     assert Path(res.worktree_path).is_dir()  # NO se limpia en run_cli_task
     # El proyecto real NO fue tocado (invariante de seguridad).
     assert not (tmp_path / "nuevo.py").exists()
@@ -117,6 +121,77 @@ def test_run_cli_task_not_a_git_repo(tmp_path, monkeypatch):
     _mock_claude(monkeypatch)  # binario presente, pero no hay repo git
     res = asyncio.run(cli_agent.run_cli_task("x", tmp_path))
     assert not res.ok and "git" in res.error
+
+
+def test_approve_applies_captured_content_not_live_worktree(tmp_path, monkeypatch):
+    """W2.2 (TOCTOU): si el worktree cambia entre la revision y el approve, se aplica
+    el contenido CAPTURADO (lo revisado), nunca el manipulado."""
+    from enjambre.changes import Change, ChangeSet
+
+    _git_repo(tmp_path)
+    _mock_claude(monkeypatch)
+    res = asyncio.run(cli_agent.run_cli_task("x", tmp_path))
+    assert res.file_contents == {"nuevo.py": "print('hola')\n"}
+
+    # manipulacion del worktree DESPUES de que el humano vio el diff
+    (Path(res.worktree_path) / "nuevo.py").write_text(
+        "import os; os.system('rm -rf /')\n", encoding="utf-8")
+
+    # el approve (mismo codigo que api.cli_approve) aplica lo CAPTURADO
+    changes = [Change(rel, c) for rel, c in res.file_contents.items()]
+    report = ChangeSet(changes).apply(tmp_path, approved=True)
+    assert report.ok
+    assert (tmp_path / "nuevo.py").read_text(encoding="utf-8") == "print('hola')\n"
+    cli_agent.cleanup_worktree(res.worktree_path, res.branch, tmp_path)
+
+
+def test_run_cli_task_launches_in_own_process_group(tmp_path, monkeypatch):
+    """W2.1: el subproceso se lanza en su propio grupo para poder matar el arbol."""
+    _git_repo(tmp_path)
+    monkeypatch.setattr(cli_agent.shutil, "which", lambda name: "/usr/bin/claude")
+    captured: dict = {}
+
+    async def fake_exec(*args, cwd=None, env=None, **kw):
+        captured.update(kw)
+        return _FakeProc(cwd)
+
+    monkeypatch.setattr(cli_agent.asyncio, "create_subprocess_exec", fake_exec)
+    asyncio.run(cli_agent.run_cli_task("x", tmp_path))
+    if sys.platform == "win32":
+        assert "creationflags" in captured
+    else:
+        assert captured.get("start_new_session") is True
+
+
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="verificacion de pid viva es POSIX; en Windows lo cubre taskkill /T")
+def test_kill_tree_kills_child_processes():
+    """W2.1: _kill_tree mata al padre Y a los hijos que spawnee, no solo al padre."""
+    code = ("import subprocess,sys,time;"
+            "c=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)']);"
+            "print(c.pid,flush=True);"
+            "time.sleep(30)")
+
+    async def go():
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable, "-c", code,
+            stdout=asyncio.subprocess.PIPE, **cli_agent._GROUP_KW)
+        line = await proc.stdout.readline()
+        child_pid = int(line.decode().strip())
+        cli_agent._kill_tree(proc)
+        await proc.wait()
+        return child_pid
+
+    child_pid = asyncio.run(go())
+    # el hijo (nieto del test) debe morir; init lo cosecha -> poll corto
+    for _ in range(20):
+        try:
+            os.kill(child_pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+    else:
+        raise AssertionError(f"el proceso hijo {child_pid} sigue vivo tras _kill_tree")
 
 
 def test_cleanup_worktree_fallback_removes_dir(tmp_path):

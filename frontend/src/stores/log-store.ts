@@ -70,22 +70,51 @@ export const useLogStore = create<LogState>((set) => ({
 export function useLogStream() {
   useEffect(() => {
     const { push, setLive, reset } = useLogStore.getState();
-    const q = new URLSearchParams({ replay: '50' });
-    if (api.token) q.set('token', api.token);
-    const es = new EventSource(`${api.base}/logs/stream?${q.toString()}`);
+    let es: EventSource | null = null;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
 
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(false);
-    es.onmessage = (m) => {
+    async function connect() {
+      if (closed) return;
+      let url = `${api.base}/logs/stream?replay=50`;
+      // Ticket efimero de un solo uso: evita poner el token REAL en la URL (queda en
+      // logs/historial). Si el sidecar no exige token, /sse-ticket devuelve vacio y se
+      // abre igual. Fallback al token por query si el fetch del ticket falla.
       try {
-        const ev = JSON.parse(m.data) as LogEvent;
-        push(ev);
-        // run.done limpia el pulso de la viz, pero deja los eventos en la lista.
-        if (ev.event === 'run.done') setTimeout(reset, 1500);
+        const { ticket } = await api.post<{ ticket: string }>('/sse-ticket');
+        if (ticket) url += `&ticket=${encodeURIComponent(ticket)}`;
+        else if (api.token) url += `&token=${encodeURIComponent(api.token)}`;
       } catch {
-        /* ignora frames no-JSON (comentarios keep-alive) */
+        if (api.token) url += `&token=${encodeURIComponent(api.token)}`;
       }
+      if (closed) return;
+      es = new EventSource(url);
+      es.onopen = () => setLive(true);
+      es.onmessage = (m) => {
+        try {
+          const ev = JSON.parse(m.data) as LogEvent;
+          push(ev);
+          // run.done limpia el pulso de la viz, pero deja los eventos en la lista.
+          if (ev.event === 'run.done') setTimeout(reset, 1500);
+        } catch {
+          /* ignora frames no-JSON (comentarios keep-alive) */
+        }
+      };
+      es.onerror = () => {
+        setLive(false);
+        es?.close();  // el ticket ya se consumio: el reintento NATIVO reusaria uno
+        es = null;    // muerto -> reconectamos a mano con un ticket nuevo
+        if (!closed && retry === null) {
+          retry = setTimeout(() => { retry = null; void connect(); }, 2000);
+        }
+      };
+    }
+
+    void connect();
+    return () => {
+      closed = true;
+      if (retry !== null) clearTimeout(retry);
+      es?.close();
     };
-    return () => es.close();
   }, []);
 }

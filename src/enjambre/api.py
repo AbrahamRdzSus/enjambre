@@ -312,12 +312,37 @@ def create_app(*, registry: Registry | None = None,
             bucket["tokens"] -= 1
             return await call_next(request)
 
+    # Tickets efimeros de un solo uso para el SSE. EventSource no manda headers, asi
+    # que sin esto el token REAL viajaba en la URL (?token=), quedando en logs de
+    # acceso e historial del navegador. El frontend pide un ticket (endpoint
+    # autenticado) y abre /logs/stream?ticket=...; el ticket se consume al usarse y
+    # caduca a los SSE_TICKET_TTL segundos. (W2.3)
+    sse_tickets: dict[str, float] = {}
+    SSE_TICKET_TTL = 30.0
+
+    def _mint_ticket() -> str:
+        now = time.monotonic()
+        for k in [k for k, exp in sse_tickets.items() if exp < now]:
+            sse_tickets.pop(k, None)  # limpieza oportunista de expirados
+        tkt = secrets.token_urlsafe(24)
+        sse_tickets[tkt] = now + SSE_TICKET_TTL
+        return tkt
+
+    def _consume_ticket(ticket: str) -> bool:
+        exp = sse_tickets.pop(ticket, None)  # pop = un solo uso
+        return exp is not None and exp >= time.monotonic()
+
     if token:
         @app.middleware("http")
         async def _auth(request: Request, call_next):
             # /health y preflight CORS quedan abiertos; el resto exige token.
             if request.url.path == "/health" or request.method == "OPTIONS":
                 return await call_next(request)
+            # SSE: un ticket efimero de un solo uso reemplaza al token real en la URL.
+            if request.url.path == "/logs/stream":
+                ticket = request.query_params.get("ticket", "")
+                if ticket and _consume_ticket(ticket):
+                    return await call_next(request)
             sent = (request.headers.get("x-api-token")
                     or request.headers.get("authorization", "").removeprefix("Bearer ").strip()
                     or request.query_params.get("token", ""))  # EventSource no manda headers
@@ -643,12 +668,13 @@ def create_app(*, registry: Registry | None = None,
                                           "rejected": [], "temp_branch": None}
             try:
                 if body.approved and res.ok:
-                    wt = Path(res.worktree_path)
-                    changes: list[Change] = []
-                    for rel in res.changed_files:
-                        fp = wt / rel
-                        if fp.is_file():  # v1: borrados quedan fuera de alcance
-                            changes.append(Change(rel, fp.read_text(encoding="utf-8")))
+                    # W2.2: aplicar el contenido CAPTURADO al correr (lo que el humano
+                    # reviso en el diff), NO re-leer el worktree vivo: entre la revision
+                    # y este approve el worktree pudo cambiar (proceso rezagado,
+                    # manipulacion) y se aplicaria algo distinto de lo aprobado.
+                    changes: list[Change] = [
+                        Change(rel, content)
+                        for rel, content in res.file_contents.items()]
                     report = ChangeSet(changes).apply(root, approved=True)
                     if not report.ok:
                         bus.emit("cli.rejected", level="warn",
@@ -669,9 +695,22 @@ def create_app(*, registry: Registry | None = None,
     def logs_recent(limit: int = 100, agent: str | None = None) -> list[dict[str, Any]]:
         return [asdict(e) for e in bus.recent(limit, agent=agent)]
 
+    @app.post("/sse-ticket")
+    def sse_ticket() -> dict[str, Any]:
+        """Emite un ticket efimero de un solo uso para abrir /logs/stream sin poner el
+        token real en la URL. Este endpoint SI pasa por el auth normal (token en header),
+        asi que solo un cliente ya autenticado obtiene ticket. Sin token configurado no
+        hay nada que proteger -> ticket vacio (el stream queda abierto igual)."""
+        if not token:
+            return {"ticket": "", "ttl": SSE_TICKET_TTL}
+        return {"ticket": _mint_ticket(), "ttl": SSE_TICKET_TTL}
+
     @app.get("/logs/stream")
-    async def logs_stream(replay: int = 20) -> StreamingResponse:
-        return StreamingResponse(sse_stream(bus, replay=replay),
+    async def logs_stream(replay: int = 20,
+                          stop_after: int | None = None) -> StreamingResponse:
+        # stop_after: corta el stream tras N eventos (para tests deterministas; en
+        # uso real se omite -> stream infinito en vivo).
+        return StreamingResponse(sse_stream(bus, replay=replay, stop_after=stop_after),
                                  media_type="text/event-stream")
 
     return app

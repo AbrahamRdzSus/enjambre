@@ -43,8 +43,10 @@ def test_cli_run_status_and_approve(tmp_path, monkeypatch):
     (wt / "nuevo.py").write_text("print('hola')\n", encoding="utf-8")
 
     async def fake_run(prompt, project_root, **kw):
+        # run_cli_task captura el contenido al correr (W2.2); el approve aplica ESO.
         return cli_agent.CliTaskResult(
             ok=True, diff="+print('hola')", changed_files=["nuevo.py"],
+            file_contents={"nuevo.py": "print('hola')\n"},
             log='{"result":"ok"}', worktree_path=str(wt), branch="enjambre/cli/x")
 
     monkeypatch.setattr(cli_agent, "run_cli_task", fake_run)
