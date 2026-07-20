@@ -12,9 +12,11 @@ const LogsPage = lazy(() => import('./pages/LogsPage'));
 const StatsPage = lazy(() => import('./pages/StatsPage'));
 const AgentsPage = lazy(() => import('./pages/AgentsPage'));
 const CliPage = lazy(() => import('./pages/CliPage'));
+const ToolsPage = lazy(() => import('./pages/ToolsPage'));
 const DeployPage = lazy(() => import('./pages/DeployPage'));
 
 const CLI_AGENTS = import.meta.env.VITE_CLI_AGENTS === '1';
+const TOOLS = import.meta.env.VITE_TOOLS === '1';
 const HUB_DEPLOY = import.meta.env.VITE_HUB_DEPLOY === '1';
 
 const queryClient = new QueryClient({
@@ -39,6 +41,7 @@ export default function App() {
                 <Route path="stats" element={<StatsPage />} />
                 <Route path="agents" element={<AgentsPage />} />
                 {CLI_AGENTS && <Route path="cli" element={<CliPage />} />}
+                {TOOLS && <Route path="tools" element={<ToolsPage />} />}
                 {HUB_DEPLOY && <Route path="deploy" element={<DeployPage />} />}
                 {/* Con los flags apagados, /cli y /deploy no existen: sin esta ruta,
                     navegar ahi renderiza el AppShell con el Outlet vacio (pantalla

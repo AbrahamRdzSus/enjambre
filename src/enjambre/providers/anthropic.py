@@ -43,7 +43,11 @@ class AnthropicProvider(BaseProvider):
 
     async def chat(self, messages: list[Message], *,
                    model: str | None = None,
-                   max_tokens: int = 1024) -> ProviderResult:
+                   max_tokens: int = 1024,
+                   tools: list[dict] | None = None,
+                   tool_choice: str | None = None) -> ProviderResult:
+        # `tools` se acepta por uniformidad del contrato pero aun NO se implementa
+        # aqui (tool calling nativo de Anthropic = slice T5); se ignora sin fallar.
         model = model or self.default_model
         missing = self._has_key()
         if missing:

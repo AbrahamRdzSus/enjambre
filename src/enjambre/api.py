@@ -45,7 +45,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import cli_agent, config, paths, projects, sessions, stats, workspace
+from . import agent_loop, cli_agent, config, paths, projects, sessions, stats, workspace
 from .changes import ApprovalRequired, Change, ChangeSet
 from .logs import LogBus, sse_stream
 from .multiagent import MODES, MultiAgent, MultiAgentReport
@@ -116,6 +116,21 @@ class CliRunIn(BaseModel):
 
 class CliApproveIn(BaseModel):
     approved: bool = False
+
+
+class ToolsRunIn(BaseModel):
+    project_id: str
+    prompt: str
+    agent: str | None = None  # nombre del agente; None = primer agente habilitado
+
+
+class ToolDecisionIn(BaseModel):
+    call_id: str
+    approved: bool = False
+
+
+class ToolsApproveIn(BaseModel):
+    decisions: list[ToolDecisionIn] = []
 
 
 def _multiagent_out(report: MultiAgentReport, prompt: str = "") -> dict[str, Any]:
@@ -225,6 +240,7 @@ def create_app(*, registry: Registry | None = None,
                allowed_roots: list[str] | None = None,
                dev_docs: bool | None = None,
                cli_agents: bool | None = None,
+               tool_calling: bool | None = None,
                trusted_hosts: list[str] | None = None,
                rate_limit: tuple[float, float] | None = None) -> FastAPI:
     """Crea la app. Sin args usa el registro en disco y claves del entorno.
@@ -243,6 +259,9 @@ def create_app(*, registry: Registry | None = None,
     cli_on = (cli_agents if cli_agents is not None
               else os.getenv("ENJAMBRE_CLI_AGENTS", "").strip().lower()
               in ("1", "true", "yes"))
+    tools_on = (tool_calling if tool_calling is not None
+                else os.getenv("ENJAMBRE_TOOLS", "").strip().lower()
+                in ("1", "true", "yes"))
     # Anti DNS-rebinding: solo se atienden requests cuyo Host sea loopback (o los
     # que se agreguen explicitamente). "testserver" = host del TestClient de FastAPI.
     # "*" desactiva el control (para binds no-loopback conscientes, ej. LAN).
@@ -689,6 +708,86 @@ def create_app(*, registry: Registry | None = None,
                     cli_agent.cleanup_worktree(res.worktree_path, res.branch, root)
                 cli_runs.pop(run_id, None)
             return report_out
+
+    # --- tool calling (loop agentico, opt-in con ENJAMBRE_TOOLS=1) ----------
+    if tools_on:
+        # LoopState + su ToolLoop por run_id (en memoria, no se persiste).
+        tool_runs: dict[str, dict[str, Any]] = {}
+
+        def _tools_root(project_id: str) -> Path:
+            for p in projects.list_projects():
+                if p.id == project_id:
+                    return _ensure_root(p.root)
+            raise HTTPException(status_code=404,
+                                detail=f"proyecto {project_id!r} no existe")
+
+        def _state_out(run_id: str, st: agent_loop.LoopState) -> dict[str, Any]:
+            return {
+                "run_id": run_id, "status": st.status, "agent": st.agent,
+                "text": st.text, "error": st.error, "iters": st.iters,
+                "cost_usd": st.cost_usd,
+                "usage": {"input_tokens": st.usage.input_tokens,
+                          "output_tokens": st.usage.output_tokens},
+                "pending": [{"call_id": pc.id, "name": pc.name,
+                             "arguments": pc.arguments, "danger": pc.danger,
+                             "preview": pc.preview} for pc in st.pending],
+            }
+
+        def _emit_state(run_id: str, st: agent_loop.LoopState) -> None:
+            for pc in st.pending:  # cada tool_call que espera aprobacion humana
+                bus.emit("tool.call", agent=st.agent, message=pc.name,
+                         kind="tool_call", run_id=run_id, call_id=pc.id,
+                         name=pc.name, arguments=pc.arguments, danger=pc.danger,
+                         preview=pc.preview)
+            if st.status == "done":
+                bus.emit("tool.run.done", agent=st.agent, run_id=run_id,
+                         message=st.text[:200] or "listo")
+            elif st.status == "error":
+                bus.emit("tool.run.done", level="error", agent=st.agent,
+                         run_id=run_id, message=st.error or "error")
+
+        @app.post("/tools/run")
+        async def tools_run(req: ToolsRunIn) -> dict[str, Any]:
+            root = _tools_root(req.project_id)
+            reg = _registry()
+            agent_name = req.agent or next((a.name for a in reg.enabled()), None)
+            if not agent_name:
+                raise HTTPException(status_code=400,
+                                    detail="no hay agentes habilitados")
+            loop = agent_loop.ToolLoop(reg, root, keys=_effective_keys(),
+                                       client=client)
+            bus.emit("tool.run.start", agent=agent_name,
+                     message=f"prompt ({len(req.prompt)} chars)")
+            state = await loop.start(agent_name, req.prompt)
+            run_id = uuid.uuid4().hex
+            tool_runs[run_id] = {"loop": loop, "state": state}
+            _emit_state(run_id, state)
+            return _state_out(run_id, state)
+
+        @app.get("/tools/{run_id}")
+        def tools_status(run_id: str) -> dict[str, Any]:
+            rec = tool_runs.get(run_id)
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"run {run_id!r} no existe")
+            return _state_out(run_id, rec["state"])
+
+        @app.post("/tools/{run_id}/approve")
+        async def tools_approve(run_id: str, body: ToolsApproveIn) -> dict[str, Any]:
+            rec = tool_runs.get(run_id)
+            if rec is None:
+                raise HTTPException(status_code=404, detail=f"run {run_id!r} no existe")
+            loop: agent_loop.ToolLoop = rec["loop"]
+            state: agent_loop.LoopState = rec["state"]
+            if state.status != "awaiting_approval":
+                raise HTTPException(status_code=409,
+                                    detail=f"el run no espera aprobacion (status {state.status})")
+            decisions = {d.call_id: d.approved for d in body.decisions}
+            state = await loop.resume(state, loop._agent(state.agent), decisions)
+            rec["state"] = state
+            _emit_state(run_id, state)
+            if state.status in ("done", "error"):
+                tool_runs.pop(run_id, None)  # terminal: libera memoria (como cli)
+            return _state_out(run_id, state)
 
     # --- logs (tab Logs en Vivo) -------------------------------------------
     @app.get("/logs")

@@ -72,6 +72,12 @@ pip install -e ".[api]"; uvicorn enjambre.api:app --host 127.0.0.1 --port 8000
 # inferior estilo Jules en la pestana Lanzar (carriles por agente + comparativa).
 # OPS HUD (opt-in): VITE_HUB_DEPLOY=1 + ENJAMBRE_HUB_URL/ENJAMBRE_HUB_PIN cablea el
 # proxy del sidecar al hub de CD (deploy/rollback). Sin los flags, nada cambia.
+# tool calling (opt-in): ENJAMBRE_TOOLS=1 (sidecar, endpoints /tools/*) + VITE_TOOLS=1
+# (frontend, pestana "Herramientas"). El modelo emite tool calls; leer se auto-ejecuta,
+# escribir/correr shell PAUSA y exige aprobacion humana por-llamada (reusa
+# changes/sandbox/workspace). Enciende en los free providers (OpenAI-compat);
+# Anthropic/Google ignoran tools aun (T5 diferido). Sin los flags, nada cambia.
+# Guia: docs/TOOL_CALLING.md.
 # frontend React (dashboard, consume el sidecar; ver frontend/):
 cd frontend; npm install; npm run dev   # http://localhost:5173 (sidecar en :8000)
 # app de escritorio (Tauri 2; requiere Rust+MSVC, ver docs/MIGRATION_TAURI.md):

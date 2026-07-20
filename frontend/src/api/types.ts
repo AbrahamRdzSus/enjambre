@@ -86,6 +86,26 @@ export interface CliApplyReport {
   temp_branch: string | null;
 }
 
+export interface ToolPendingCall {
+  call_id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  danger: 'read' | 'write' | 'shell';
+  preview: string;
+}
+
+export interface ToolRunState {
+  run_id: string;
+  status: 'running' | 'awaiting_approval' | 'done' | 'error';
+  agent: string;
+  text: string;
+  error: string | null;
+  iters: number;
+  cost_usd: number;
+  usage: { input_tokens: number; output_tokens: number };
+  pending: ToolPendingCall[];
+}
+
 export interface Session {
   id: string;
   kind: string;
