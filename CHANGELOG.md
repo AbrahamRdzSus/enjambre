@@ -3,6 +3,34 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 ENJAMBRE sigue versionado semantico aproximado mientras esta en beta.
 
+## [0.7.0] - 2026-07-19
+
+Tool calling: un modelo puede pedir herramientas, ENJAMBRE las ejecuta bajo el mismo
+gate humano de siempre y el modelo continua. Objetivo directo: encender los cuatro
+proveedores gratuitos (Groq, Cerebras, OpenRouter, GitHub Models), todos OpenAI-compat.
+
+### Anadido
+- Modelo de datos de tool calling en `providers/base.py` (`ToolCall`,
+  `Message.tool_calls`, `ProviderResult.tool_calls` y `stop_reason`).
+  `OpenAICompatProvider` serializa y parsea tool calls. Anthropic y Google aceptan
+  `tools=` pero por ahora lo IGNORAN (nativos = pendiente, no bloquea).
+- `tools.py`: registro de cuatro herramientas. `list_files` y `read_file` corren solas;
+  `write_file` pasa por `ChangeSet.apply` y `run_command` por el Sandbox docker. **No
+  reimplementa seguridad: la delega en los gates que ya existian.**
+- `agent_loop.py`: `ToolLoop.start` / `.resume`. Las lecturas fluyen; escritura y shell
+  PAUSAN el loop en `awaiting_approval` con su preview, y `resume(decisions)` continua.
+  Backstop de `max_iters=8` para que un modelo en bucle no corra indefinidamente.
+- Endpoints `/tools/run`, `/tools/{id}` y `/tools/{id}/approve`, detras del gate
+  `ENJAMBRE_TOOLS`, con eventos SSE (`tool.run.start`, `tool.call`, `tool.run.done`).
+- Pestana "Herramientas" en el frontend (gate `VITE_TOOLS`): una tarjeta por llamada,
+  con DiffViewer para escrituras y comando mas dry-run para shell, aprobar o rechazar.
+- `docs/TOOL_CALLING.md`.
+
+### Notas
+- Las herramientas estan APAGADAS por defecto en ambos lados (`ENJAMBRE_TOOLS` y
+  `VITE_TOOLS`). Nada cambia si no se encienden.
+- Pendiente: tools nativos de Anthropic y Google, y un E2E real con BYOK.
+
 ## [0.6.2] - 2026-07-14
 
 Robustez del agente CLI: cierra la deuda W2 de la auditoria ULTRA 2026-07-12 y deja
