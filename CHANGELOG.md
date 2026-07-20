@@ -3,6 +3,35 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 ENJAMBRE sigue versionado semantico aproximado mientras esta en beta.
 
+## [0.6.2] - 2026-07-14
+
+Robustez del agente CLI: cierra la deuda W2 de la auditoria ULTRA 2026-07-12 y deja
+puesto el andamiaje de contencion real (W3), apagado a proposito hasta verificarlo
+en vivo.
+
+### Corregido
+- **El timeout del agente CLI solo mataba al proceso padre.** `proc.kill()` dejaba vivos
+  a los hijos que `claude` hubiera lanzado. Ahora el subproceso arranca en su propio
+  grupo y el timeout mata el arbol completo (`_kill_tree`).
+- **TOCTOU entre revisar y aprobar un diff.** El approve volvia a leer el worktree vivo,
+  asi que lo aplicado podia no ser lo revisado. Ahora `CliTaskResult.file_contents`
+  captura el contenido al terminar la corrida y el approve aplica ESO.
+- **El token del sidecar viajaba en la URL del SSE.** `EventSource` no puede mandar
+  cabeceras, asi que el token real quedaba en la query string (y en cualquier log que la
+  registrara). Se reemplaza por un ticket efimero de un solo uso: `POST /sse-ticket`.
+  El frontend reconecta a mano al expirar. El endpoint expone `stop_after` para poder
+  testear el stream de forma determinista.
+
+### Anadido
+- **Andamiaje de contencion del agente CLI (W3), detras de `ENJAMBRE_CLI_SANDBOX=1`,
+  por defecto APAGADO.** `_claude_argv` envuelve `claude` en `docker run` exponiendo
+  SOLO el worktree en `/work` y `~/.claude` en read-only; `_egress_flags` arma red
+  interna mas proxy (`ENJAMBRE_CLI_NETWORK` / `ENJAMBRE_CLI_EGRESS_PROXY`); sin docker
+  falla cerrado; el timeout hace `docker kill`. Imagen en `docker/cli-agent.Dockerfile`.
+  Queda OFF hasta verificar en vivo que `claude` arranca dentro del contenedor con su
+  propia auth y produce diff: un fail-closed mal empaquetado es un apagon.
+- ADR `docs/adr/0001-contencion-agente-cli.md` con la decision y sus alternativas.
+
 ## [0.6.1] - 2026-07-13
 
 Pase de robustez, seguridad y pulido visual. Salio de una auditoria completa del
