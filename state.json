@@ -1,0 +1,8 @@
+{
+  "project": "enjambre",
+  "stage": 5,
+  "stageNote": "Agente CLI v0.7.0 en main, maduro. Cuello: sin Release desde v0.6.0, no llega a nadie.",
+  "prodCommit": "",
+  "ownerTask": "Cortar Release v0.7.0.",
+  "updated": "2026-08-02"
+}
