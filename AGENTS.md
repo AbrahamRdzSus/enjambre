@@ -25,3 +25,6 @@ detalle en CLAUDE.md y deja aqui solo lo comun a cualquier agente.
 - Codigo: `src/`
 - Diseno: `DESIGN.md`
 - Seguridad: `SECURITY.md`
+
+## Adiciones pendientes (Obsidia)
+Antes de trabajar en este proyecto, revisa `.obsidia/adiciones-pendientes.md`: material externo evaluado y dirigido aqui (analisis-externo). Las lineas `- pendiente` son para considerar; marca `aceptada`/`descartada` al resolver.
