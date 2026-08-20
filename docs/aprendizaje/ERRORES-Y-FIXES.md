@@ -62,3 +62,49 @@ no una violacion de lint.
 
 **Leccion.** Leer el mensaje antes de "arreglar" codigo: un exit code distinto de cero no siempre
 significa que tu codigo este mal. Aqui la herramienta fallo por el entorno, no por el repo.
+
+---
+
+# Errores y fixes — el gate de deps era rojo por el LOCKFILE, no por las dependencias (2026-08-20)
+
+**Sintoma:** los jobs `deps audit (frontend)` y `deps audit (landing)` en rojo desde el 2026-08-08, y
+eran **los unicos rojos del repo**: `ruff`, los 3 `pytest`, `tauri`, `deps audit (python)` y los dos
+`web` estaban verdes.
+
+```
+frontend  7 high: brace-expansion, fast-uri, js-yaml, nanoid, postcss,
+                  react-router, react-router-dom
+landing   2 high: nanoid, postcss
+```
+
+**Diagnostico inicial equivocado, y conviene dejarlo escrito.** Se catalogo como el arreglo mas caro
+de la tanda y se dejo para el final por eso: `react-router` 7.12-7.18.1 (CSRF en modo RSC) parecia
+obligar a subir `react-router-dom`, lo que podia tumbar el job `web (frontend)` que **hoy pasa**. Se
+temia ademas tener que tocar dos arboles con CVEs distintos.
+
+**Causa real:** las versiones parcheadas **ya cabian en los rangos declarados** en los
+`package.json`. Lo que estaba viejo era el **lockfile**, no las dependencias elegidas.
+
+**Fix (`d9262ba`):** `npm update` en los dos directorios. Cero cambios en `package.json`, cero saltos
+de major, cero riesgo para el build. Es la misma forma que tenia Azuras ese mismo dia.
+
+**Verificacion observable**, corriendo los comandos EXACTOS del job `web` en los dos directorios:
+
+```
+npm audit --audit-level=high  -> found 0 vulnerabilities   (frontend y landing)
+npm ci                        -> exit 0                    (frontend y landing)
+npm run lint (solo frontend)  -> exit 0
+npm run build                 -> exit 0, dist generado      (frontend y landing)
+```
+
+**Deuda anotada, no resuelta aqui:** el gate sigue siendo `npm audit --audit-level=high`, que **no
+sabe baselinear** y por tanto se re-rompe solo con cada advisory nuevo, sin que nadie toque el
+codigo. La salida facil ante eso es `|| true`, que es exactamente como **obsidia-class** acabo
+escaneando y saliendo verde SIEMPRE: cobertura falsa. Se cambiara por el gate con allowlist por GHSA
+(motivo + fecha de revision, patron de `silix/web/scripts/audit-gate.mjs`) cuando ese patron se lleve
+al molde, para no crear una tercera variante.
+
+**Leccion:** antes de asumir que una vulnerabilidad exige subir un major, prueba **`npm update`**:
+distingue "dependencia mal elegida" de "lockfile viejo", que son problemas distintos con coste muy
+distinto. Ver `la-cola-de-un-informe-no-es-el-informe` (familia: mirar el informe entero antes de
+dimensionar el trabajo).
