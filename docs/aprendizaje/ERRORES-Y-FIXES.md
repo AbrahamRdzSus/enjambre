@@ -108,3 +108,34 @@ al molde, para no crear una tercera variante.
 distingue "dependencia mal elegida" de "lockfile viejo", que son problemas distintos con coste muy
 distinto. Ver `la-cola-de-un-informe-no-es-el-informe` (familia: mirar el informe entero antes de
 dimensionar el trabajo).
+
+---
+
+# Errores y fixes — un gate que se re-rompe solo acaba en `|| true` (2026-08-20)
+
+El contexto que lo motiva: la cuenta se quedo sin CI unas horas por un cobro rechazado, y al volver
+quedaban **~613 minutos para 11 dias** con el presupuesto en $0 (o sea que al agotarse Actions se
+APAGA, no factura). El minuto dejo de ser gratis e infinito.
+
+Los dos jobs de `npm audit` de este repo llevaban en **rojo desde el 08-ago**, y eran los **unicos**
+rojos: lint, los 3 pytest, tauri y el audit de Python estaban verdes.
+
+**La causa de fondo no era la vulnerabilidad, era el gate.** `npm audit --audit-level=high` no sabe
+baselinear un advisory concreto: falla ante CUALQUIER high **para siempre**. Con eso, el gate **se
+re-rompe solo** cada vez que se publica un advisory nuevo, sin que nadie toque el codigo.
+
+Un gate que se rompe solo entrena a ignorarlo, y de ahi al `|| true` hay un paso. No es una
+suposicion: es exactamente como **obsidia-class** acabo escaneando y saliendo VERDE SIEMPRE.
+
+**Fix:** el patron canonico del molde (`skeleton-web/scripts/audit-gate.mjs`), que ignora SOLO lo que
+este en su ALLOWLIST con motivo y fecha de revision y muerde ante cualquier high/critical nuevo. El
+script vive en la raiz y sirve a los DOS arboles npm (`frontend/` y `landing/`): una sola allowlist
+que mirar en vez de dos. El job de Python (`pip-audit`) no se toca: pip-audit si distingue.
+
+**Nota del mismo dia:** las vulnerabilidades que tenian los dos arboles se limpiaron con `npm update`
+a secas, sin tocar `package.json`. Lo viejo era el LOCKFILE, no las dependencias elegidas. Yo habia
+dimensionado este arreglo como "el mas caro de la tanda" porque `react-router` parecia obligar a
+subir un major y tumbar el build: no hizo falta nada de eso.
+
+**Leccion:** un gate sin baseline no es mas estricto, es mas fragil. La rigidez que no distingue
+acaba desactivada.
