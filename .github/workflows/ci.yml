@@ -85,11 +85,21 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ matrix.kind }}/package-lock.json
 
-      # npm audit del arbol pineado (package-lock.json); falla en severidad high+.
-      - name: npm audit
+      # Gate con allowlist por GHSA (motivo + fecha en scripts/audit-gate.mjs). Falla ante
+      # cualquier high/critical NUEVO e ignora los ya triados que no aplican a este repo.
+      #
+      # ANTES esto era `npm audit --audit-level=high` a secas, que no sabe baselinear: falla
+      # ante CUALQUIER high para siempre, asi que el gate SE RE-ROMPE SOLO cada vez que se
+      # publica un advisory nuevo, sin que nadie toque el codigo. No es teorico: los dos jobs
+      # de audit de este repo llevaban en rojo desde el 08-ago y eran los UNICOS rojos. Un
+      # gate que se rompe solo entrena a ignorarlo, y de ahi al `|| true` hay un paso (que es
+      # exactamente como obsidia-class acabo saliendo verde SIEMPRE).
+      #
+      # El script vive en la raiz y sirve a frontend/ y landing/: una sola allowlist que mirar.
+      - name: npm audit (gate alto/critico con baseline por GHSA)
         if: ${{ matrix.kind != 'python' }}
         working-directory: ${{ matrix.kind }}
-        run: npm audit --audit-level=high
+        run: node ../scripts/audit-gate.mjs
 
   web:
     name: web (${{ matrix.dir }})
