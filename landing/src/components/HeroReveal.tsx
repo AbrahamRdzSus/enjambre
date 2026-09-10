@@ -38,7 +38,7 @@ export default function HeroReveal({ active, children }: { active: boolean; chil
             }}
             initial={{ x: 0 }}
             animate={active ? { x: '-104%' } : { x: 0 }}
-            transition={{ duration: 1, ease: EASE, delay: 0.15 }}
+            transition={{ duration: 1, ease: EASE, delay: 0.35 }}
           />
           {/* Mitad derecha (borde izquierdo = medio hexagono) */}
           <motion.div
@@ -50,7 +50,7 @@ export default function HeroReveal({ active, children }: { active: boolean; chil
             }}
             initial={{ x: 0 }}
             animate={active ? { x: '104%' } : { x: 0 }}
-            transition={{ duration: 1, ease: EASE, delay: 0.15 }}
+            transition={{ duration: 1, ease: EASE, delay: 0.35 }}
           />
           {/* Destello del hexagono en la costura */}
           <motion.span
