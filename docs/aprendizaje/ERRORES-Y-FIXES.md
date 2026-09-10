@@ -139,3 +139,34 @@ subir un major y tumbar el build: no hizo falta nada de eso.
 
 **Leccion:** un gate sin baseline no es mas estricto, es mas fragil. La rigidez que no distingue
 acaba desactivada.
+
+---
+
+## 2026-09-09 — El gate de deps se re-rompe solo, y casi siempre ya hay fix publicado
+
+**Sintoma.** El job `deps audit (frontend)` llevaba dias en rojo con **5 advisories high** fuera de
+la baseline: cuatro de `fast-uri` (confusion de host por canonicalizacion IDN saltada, SSRF por
+normalizacion de IPv6 malformada, SSRF por percent-decoding repetido del hostname, confusion de
+host por normalizacion de esquema percent-encoded) y uno de `js-yaml`
+(`GHSA-2883-xcg3-v3hh`: `maxTotalMergeKeys` no limita el uso de CPU con merges vacios).
+
+**Causa.** Ningun cambio de codigo: **se publicaron los advisories**. Los dos paquetes son DEV y
+transitivos -`fast-uri` lo arrastra `ajv` (via `ajv-formats` y `conf`), `js-yaml` lo arrastra
+`@eslint/eslintrc`- y no llegan al bundle. Pero el gate bloquea ante cualquier high/critical nuevo,
+que es lo correcto: un gate que solo mira produccion no ve una cadena de BUILD comprometida.
+
+**Fix.** Ni uno necesito forzar nada: `ajv` pide `fast-uri ^3.0.1` y `eslintrc` pide
+`js-yaml ^4.3.0`, o sea que las versiones parcheadas **ya entraban en el rango**. Solo hacia falta
+refrescar el lockfile: `npm update fast-uri --package-lock-only` y lo mismo con `js-yaml`, sin
+tocar `package.json` y sin overrides. Commit `d5ccc7b`.
+
+**Verificacion.** El gate REAL del CI (`node scripts/audit-gate.mjs`), no un `npm audit` a secas, en
+los DOS carriles de la matriz de Node: `frontend` y `landing`, ambos
+`SCA OK: 0 advisories high/critical fuera de la baseline`.
+
+**Leccion.** Un gate con baseline **se re-rompe solo** cada vez que se publica un advisory nuevo,
+sin que nadie toque el codigo: eso no es una averia, es el gate haciendo su trabajo. Y antes de
+baselinear, prueba `npm update <pkg> --package-lock-only`: en la mayoria de los casos la version
+parcheada ya cabe en el rango que pide el paquete padre y basta con refrescar el lock. El mismo par
+de advisories aparecio hoy en Azuras y en dos skeletons: cuando algo sale en varios repos, es la
+cadena de build compartida, no el repo.
